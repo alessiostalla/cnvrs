@@ -3,7 +3,7 @@
   (:shadow #:parse-error)
   (:export #:compile-grammar #:compile-lexer #:parse #:lex
            #:define-parser #:in-parser #:defrule #:with-mode
-           #:parser-definition-p
+           #:parser-definition-p #:lexer-matcher
            #:grammar-error #:parse-error
            #:lexical-error #:lexical-error-position #:lexical-error-character
            #:lexer-mode-error #:lexer-mode-error-mode
@@ -63,7 +63,7 @@
   (rewrites (make-hash-table :test 'eq))
   (decisions (make-hash-table))
   (sll-decisions (make-hash-table)))
-(defstruct parser-definition name kind default-rule lexer (rules nil) compiled)
+(defstruct parser-definition name kind default-rule lexer (rules nil) compiled matcher)
 (declaim (ftype function ensure-parser-compiled))
 
 (defun grammar-fail (control &rest arguments)

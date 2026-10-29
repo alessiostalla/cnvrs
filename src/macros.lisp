@@ -139,8 +139,10 @@
            (unless lexer-rules
              (grammar-fail "Lexer grammar ~S has no rules"
                            (parser-definition-name definition)))
-           (setf (parser-definition-compiled definition)
-                 (compile-lexer lexer-rules)))
+           (multiple-value-bind (lexer matcher)
+               (compile-lexer lexer-rules)
+             (setf (parser-definition-compiled definition) lexer
+                   (parser-definition-matcher definition) matcher)))
           (:parser
            (unless parser-rules
              (grammar-fail "Parser grammar ~S has no rules"
@@ -158,7 +160,8 @@
                  (compile-grammar parser-rules
                                   :default-rule
                                   (parser-definition-default-rule definition)
-                                  :lexer (compile-lexer lexer-rules))))))))
+                                  :lexer (compile-lexer lexer-rules)))))
+        (parser-definition-compiled definition))))
 
 (defun lex (parser source)
   "Run the lexer of a lexer or combined grammar on SOURCE."
@@ -170,6 +173,16 @@
                     compiled)))
     (unless lexer (grammar-fail "No lexer is attached to ~S" parser))
     (funcall (coerce lexer 'function) source)))
+
+(defun lexer-matcher (parser)
+  "Return a one-token matcher for a lexer DEFINE-PARSER definition.
+The matcher takes source, character position, and mode, and returns kind,
+end position, and rule index."
+  (unless (and (parser-definition-p parser)
+               (eq (parser-definition-kind parser) :lexer))
+    (grammar-fail "Expected a lexer parser definition, got ~S" parser))
+  (ensure-parser-compiled parser)
+  (parser-definition-matcher parser))
 
 (defmacro define-parser (name &body body)
   "Define NAME as a parser definition. The first body form may be a plist

@@ -637,5 +637,63 @@
   (check (signals cnvrs:grammar-error
            (cnvrs:compile-lexer '((:a :b) (:b :a))))
          "recursive lexer rule rejected")
+  (multiple-value-bind (lexer match)
+      (cnvrs:compile-lexer '((:long "ab") (:short "a")))
+    (declare (ignore lexer))
+    (multiple-value-bind (kind end)
+        (funcall match "abc" 0 :default)
+      (check (and (eq kind :long) (= end 2))
+             "lexer matcher returns one longest token")))
+  (let* ((directory (merge-pathnames "test/fixtures/"
+                                     (asdf:system-source-directory :cnvrs)))
+         (parser-path (merge-pathnames "ANTLRv4Parser.g4" directory))
+         (lexer-path (merge-pathnames "ANTLRv4Lexer.g4" directory)))
+    (check (cnvrs:parser-definition-p cnvrs/antlr4:*parser*)
+           "ANTLR4 parser uses DEFINE-PARSER")
+    (check (cnvrs:parser-definition-p cnvrs/antlr4:*lexer*)
+           "ANTLR4 lexer uses DEFINE-PARSER")
+    (let ((base-tokens (cnvrs:lex cnvrs/antlr4:*lexer*
+                                  "'x' // comment
+options {")))
+      (check (equal (map 'list #'cnvrs:lexeme-kind base-tokens)
+                    '(:string_literal :ws :line_comment :ws :options))
+             "declarative lexer handles strings, comments, and options"))
+    (dolist (path (list parser-path lexer-path))
+      (let ((tree (cnvrs/antlr4:parse (uiop:read-file-string path))))
+        (check (eq (cnvrs:node-rule tree)
+                   'cnvrs/antlr4::grammar-spec)
+               (format nil "ANTLR4 parses ~A" (file-namestring path)))))
+    (let* ((source "grammar T; start [int x] : ID EOF; ID : [a-z]+;")
+           (tokens (cnvrs/antlr4:lex source))
+           (kinds (map 'list #'cnvrs:lexeme-kind tokens)))
+      (check (member :begin_argument kinds)
+             "parser-rule bracket starts an argument")
+      (check (member :lexer_char_set kinds)
+             "lexer-rule bracket is a character set")
+      (check (eq (cnvrs:node-rule (cnvrs/antlr4:parse source))
+                 'cnvrs/antlr4::grammar-spec)
+             "ANTLR4 parses grammar with arguments and character set")
+      (check (signals cnvrs:parse-error
+               (cnvrs/antlr4:parse "grammar T; start : ID"))
+             "ANTLR4 parser rejects missing rule terminator")
+      (check (cnvrs:node-p
+              (cnvrs/antlr4:parse
+               "grammar Café; règle : TOKEN; TOKEN : 'x';"))
+             "ANTLR4 parser accepts Unicode identifiers")
+      (check (cnvrs:node-p
+              (cnvrs/antlr4:parse
+               "grammar T; r : ID { f(\"}\"); {g();} }; ID : 'x';"))
+             "ANTLR4 adaptor balances nested actions and quoted braces")
+      (check (cnvrs:node-p
+              (cnvrs/antlr4:parse
+               "grammar T; r : ID { a=`}`; b=\"\"\"}\"\"\"; }; ID : 'x';"))
+             "ANTLR4 adaptor handles backtick and triple quoted actions"))
+    (let* ((tokens (cnvrs/antlr4:lex "// note
+grammar T;"))
+           (channels (map 'list #'cnvrs:lexeme-channel tokens)))
+      (check (member :comment channels)
+             "ANTLR4 lexer preserves comment channel")
+      (check (member :off_channel channels)
+             "ANTLR4 lexer preserves whitespace channel")))
   (format t "~D CNVRS checks passed.~%" *checks*)
   t)

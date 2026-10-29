@@ -37,7 +37,9 @@
                  ((string= name "+") :plus)
                  ((string= name "?") :optional)
                  ((string= name "RANGE") :range)
-                 ((string= name "ONE-OF") :one-of))))
+                 ((string= name "ONE-OF") :one-of)
+                 ((string= name "NOT-ONE-OF") :not-one-of)
+                 ((string= name "ANY") :any))))
         (t nil)))
 
 (defun lx-validate (form definitions visiting)
@@ -67,7 +69,17 @@
       (:one-of
        (unless (and (= (length form) 2) (stringp (second form))
                     (plusp (length (second form))))
-         (grammar-fail "ONE-OF requires a nonempty string: ~S" form))))))
+         (grammar-fail "ONE-OF requires a nonempty string: ~S" form)))
+      (:not-one-of
+       (unless (and (= (length form) 2)
+                    (or (and (stringp (second form))
+                             (plusp (length (second form))))
+                        (and (consp (second form))
+                             (every #'characterp (second form)))))
+         (grammar-fail "NOT-ONE-OF requires characters: ~S" form)))
+      (:any
+       (unless (= (length form) 1)
+         (grammar-fail "ANY takes no arguments: ~S" form))))))
 
 (defun lx-compile (form definitions states entry exit)
   (case (lx-kind form)
@@ -85,6 +97,8 @@
     (:range (lx-edge states entry :range exit
                      (cons (second form) (third form))))
     (:one-of (lx-edge states entry :one-of exit (second form)))
+    (:not-one-of (lx-edge states entry :not-one-of exit (second form)))
+    (:any (lx-edge states entry :any exit))
     (:sequence
      (let ((parts (rest form)) (current entry))
        (if (null parts)
@@ -133,7 +147,10 @@
                              (:character (char= character (lx-edge-value edge)))
                              (:range (char<= (car (lx-edge-value edge)) character
                                               (cdr (lx-edge-value edge))))
-                             (:one-of (find character (lx-edge-value edge))))
+                             (:one-of (find character (lx-edge-value edge)))
+                             (:not-one-of
+                              (not (find character (lx-edge-value edge))))
+                             (:any t))
                         collect (lx-edge-target edge)))))
 
 (defun lx-best-accept (states active)
@@ -147,7 +164,9 @@
 Rules are (kind expression &key skip channel mode push-mode pop-mode set-mode).
 MODE selects the active mode for a rule, defaulting to :DEFAULT. A matched
 rule may change modes, including when it is skipped. The longest match wins;
-ties use rule order among rules in the current mode."
+ties use rule order among rules in the current mode. The second return value
+is a matcher taking (source position mode), returning kind, end, and rule
+index for one token without consuming the rest of the source."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of lexer rules"))
   (let ((patterns (make-hash-table :test 'eq))
@@ -228,37 +247,45 @@ ties use rule order among rules in the current mode."
                (when (lx-best-accept states (lx-closure states (list start)))
                  (grammar-fail "Lexer rules must consume at least one character")))
              mode-starts)
-    (lambda (source)
-      (unless (stringp source)
-        (error 'type-error :datum source :expected-type 'string))
-      (let ((position 0) (output nil) (mode :default) (mode-stack nil))
-        (loop while (< position (length source)) do
-          (let ((active (lx-closure states (list (gethash mode mode-starts))))
-                (best-end nil) (best-rule nil))
-            (loop for offset from position below (length source) do
-              (setf active (lx-step states active (char source offset)))
-              (when (null active) (return))
-              (let ((rule (lx-best-accept states active)))
-                (when rule
-                  (setf best-end (1+ offset) best-rule rule))))
-            (unless best-end
-              (error 'lexical-error :position position
-                     :character (char source position)))
-            (unless (aref skips best-rule)
-              (push (make-lexeme :kind (aref kinds best-rule)
-                                 :text (subseq source position best-end)
-                                 :start position :end best-end
-                                 :channel (aref channels best-rule))
-                    output))
-            (cond ((aref push-modes best-rule)
-                   (push mode mode-stack)
-                   (setf mode (aref push-modes best-rule)))
-                  ((aref pop-modes best-rule)
-                   (unless mode-stack
-                     (error 'lexer-mode-error :position position
-                            :character (char source position) :mode mode))
-                   (setf mode (pop mode-stack)))
-                  ((aref set-modes best-rule)
-                   (setf mode (aref set-modes best-rule))))
-            (setf position best-end)))
-        (coerce (nreverse output) 'vector)))))
+    (labels ((match-one (source position mode)
+               (let ((active (lx-closure states
+                                         (list (gethash mode mode-starts))))
+                     (best-end nil) (best-rule nil))
+                 (loop for offset from position below (length source) do
+                   (setf active (lx-step states active (char source offset)))
+                   (when (null active) (return))
+                   (let ((rule (lx-best-accept states active)))
+                     (when rule
+                       (setf best-end (1+ offset) best-rule rule))))
+                 (values (and best-rule (aref kinds best-rule))
+                         best-end best-rule))))
+      (values
+       (lambda (source)
+         (unless (stringp source)
+           (error 'type-error :datum source :expected-type 'string))
+         (let ((position 0) (output nil) (mode :default) (mode-stack nil))
+           (loop while (< position (length source)) do
+             (multiple-value-bind (kind best-end best-rule)
+                 (match-one source position mode)
+               (unless best-end
+                 (error 'lexical-error :position position
+                        :character (char source position)))
+               (unless (aref skips best-rule)
+                 (push (make-lexeme :kind kind
+                                    :text (subseq source position best-end)
+                                    :start position :end best-end
+                                    :channel (aref channels best-rule))
+                       output))
+               (cond ((aref push-modes best-rule)
+                      (push mode mode-stack)
+                      (setf mode (aref push-modes best-rule)))
+                     ((aref pop-modes best-rule)
+                      (unless mode-stack
+                        (error 'lexer-mode-error :position position
+                               :character (char source position) :mode mode))
+                      (setf mode (pop mode-stack)))
+                     ((aref set-modes best-rule)
+                      (setf mode (aref set-modes best-rule))))
+               (setf position best-end)))
+           (coerce (nreverse output) 'vector)))
+       #'match-one))))

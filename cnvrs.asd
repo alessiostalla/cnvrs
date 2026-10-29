@@ -4,7 +4,10 @@
   :in-order-to ((asdf:test-op (asdf:test-op "cnvrs/tests")))
   :components ((:file "src/cnvrs")
                (:file "src/lexer")
-               (:file "src/macros")))
+               (:file "src/macros")
+               (:file "src/antlr4-package")
+               (:file "src/antlr4-parser")
+               (:file "src/antlr4")))
 
 (asdf:defsystem #:cnvrs/tests
   :depends-on (#:cnvrs)

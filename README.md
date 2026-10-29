@@ -100,7 +100,7 @@ Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call w
 (cnvrs:parse *parser* "x")
 ```
 
-`compile-lexer` compiles lexer rules in the Lisp image and returns the same kind of function. Rules have the form `(kind expression &key skip channel)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, and `(one-of "characters")`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected.
+`compile-lexer` compiles lexer rules in the Lisp image and returns the same kind of function. Rules have the form `(kind expression &key skip channel)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, `(one-of "characters")`, `(not-one-of (#\a #\b ...))`, and `(any)`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected. A second return value matches one token at a given source position; `lexer-matcher` exposes it for macro-defined lexer grammars.
 
 ```lisp
 (defparameter *lexer*
@@ -205,11 +205,24 @@ At a token mismatch, no argument to `insert-tokens` inserts the expected token. 
 
 `parse` returns two values: the tree and a list of recovery records in input order. `recovery-action`, `recovery-condition`, and `recovery-token` describe each repair. Inserted tokens appear in the tree as `inserted-token` objects with `inserted-token-value` and `inserted-token-position` (`inserted-token-expected` remains an alias); deleted tokens appear only in recovery records. For insertion and deletion, `recovery-token` is a list, including for a one-token repair. A recovered tree's offsets refer to the original input, and its root end may precede discarded trailing input.
 
+## Parsing ANTLR4 grammars
+
+The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars-v4/tree/master/antlr/antlr4) is implemented in the `cnvrs/antlr4` package with CNVRS parser and lexer rules. The parser recognizes ANTLR4 grammar text:
+
+```lisp
+(cnvrs/antlr4:parse "grammar Example; start : ID EOF; ID : [a-z]+;")
+;; => a GRAMMAR-SPEC node
+```
+
+`cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer rules handle strings, comments, whitespace, identifiers, keywords, and punctuation. The adaptor handles action blocks, brackets, and context-dependent identifier token types. In a lexer rule, brackets denote character sets; in a parser rule, they denote argument blocks. Pass a CNVRS rule symbol through `:rule` to select an entry rule.
+
+The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4` files offline. CNVRS does not compile arbitrary `.g4` files into new parsers; the ANTLR4 language grammar here is written in CNVRS forms.
+
 ## Implementation
 
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. At a choice or repetition, prediction explores graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
-Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. It has no semantic actions or external grammar syntax. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. File compilation and an external grammar syntax are future work.
+Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. Compiling arbitrary `.g4` files into new CNVRS parsers remains future work.
 
 ## Tests
 
