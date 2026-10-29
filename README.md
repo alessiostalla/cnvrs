@@ -30,6 +30,42 @@ CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is 
 
 `parse` accepts a sequence of tokens: a string is a sequence of characters, while a list or vector can contain arbitrary token values. It consumes the whole input and returns `node` structs. Each node has a rule name, ordered children, and start/end token offsets. Children are literal tokens or nodes for referenced rules. Invalid grammars signal `cnvrs:grammar-error`.
 
+## Lexing
+
+Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call with `parse`'s `:lexer` argument. A lexer is a function designator taking the source and returning a list or vector of tokens. A hand-written lexer can return plain values, `cnvrs:lexeme` objects made with `make-lexeme`, or both:
+
+```lisp
+(defparameter *lexer*
+  (lambda (source)
+    (declare (ignore source))
+    (vector (cnvrs:make-lexeme :kind :name :text "x" :start 0 :end 1))))
+
+(defparameter *parser*
+  (cnvrs:compile-grammar '((start :name)) :lexer *lexer*))
+(cnvrs:parse *parser* "x")
+```
+
+`compile-lexer` compiles lexer rules in the Lisp image and returns the same kind of function. Rules have the form `(kind expression)` or `(kind expression :skip t)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, and `(one-of "characters")`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected.
+
+```lisp
+(defparameter *lexer*
+  (cnvrs:compile-lexer
+   '((:space (+ (one-of " ")) :skip t)
+     (:let "let")
+     (:name (+ (range #\a #\z)))
+     (:equals #\=)
+     (:number (+ (range #\0 #\9))))))
+
+(defparameter *parser*
+  (cnvrs:compile-grammar
+   '((assignment (and :let :name :equals :number)))
+   :lexer *lexer*))
+
+(cnvrs:parse *parser* "let x = 42")
+```
+
+The generated lexer takes the longest match at each source position. Equal-length matches use the earlier rule. Skipped rules consume text without returning tokens. Returned lexemes expose `lexeme-kind`, `lexeme-text`, `lexeme-start`, and `lexeme-end`; the parser matches their kinds and keeps the lexeme objects in the tree. Node and parse-error offsets still count tokens, while lexeme offsets count source characters. Unmatched input signals `lexical-error` with `lexical-error-position` and `lexical-error-character`.
+
 ## Parse errors and recovery
 
 Strict parsing is the default. Parse failures are `cnvrs:parse-error` conditions with `parse-error-position`, `parse-error-token`, `parse-error-expected`, and `parse-error-rule` readers. At end of input, `parse-error-token` is `eq` to `cnvrs:+end-of-input+`. The three subclasses identify the failure site:
@@ -79,12 +115,12 @@ At a token mismatch, no argument to `insert-tokens` inserts the expected token. 
 
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. At a choice or repetition, prediction explores graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
-This initial implementation rejects left-recursive or zero-consumption rule cycles and repetitions whose body can match empty input. It has no lexer, semantic actions, direct-left-recursion rewrite, or external grammar syntax. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. File compilation and an external grammar syntax are future work.
+This initial implementation rejects left-recursive or zero-consumption rule cycles and repetitions whose body can match empty input. It has no semantic actions, direct-left-recursion rewrite, or external grammar syntax. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. File compilation and an external grammar syntax are future work.
 
 ## Tests
 
 ```sh
-sbcl --non-interactive --eval '(require :asdf)' \
+XDG_CACHE_HOME=/tmp/cnvrs-asdf-cache sbcl --non-interactive --eval '(require :asdf)' \
   --eval '(asdf:load-asd (truename "cnvrs.asd"))' \
   --eval '(asdf:test-system :cnvrs)'
 ```

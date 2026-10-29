@@ -2,7 +2,8 @@
   :description "In-image adaptive LL parsing of Lisp-form grammars"
   :serial t
   :in-order-to ((asdf:test-op (asdf:test-op "cnvrs/tests")))
-  :components ((:file "src/cnvrs")))
+  :components ((:file "src/cnvrs")
+               (:file "src/lexer")))
 
 (asdf:defsystem #:cnvrs/tests
   :depends-on (#:cnvrs)

@@ -1,7 +1,10 @@
 (defpackage #:cnvrs
   (:use #:cl)
   (:shadow #:parse-error)
-  (:export #:compile-grammar #:parse #:grammar-error #:parse-error
+  (:export #:compile-grammar #:compile-lexer #:parse #:grammar-error #:parse-error
+           #:lexical-error #:lexical-error-position #:lexical-error-character
+           #:make-lexeme #:lexeme-p #:lexeme-kind #:lexeme-text
+           #:lexeme-start #:lexeme-end
            #:parse-error-position #:parse-error-token #:parse-error-expected
            #:mismatched-token #:no-viable-alternative #:unexpected-input
            #:parse-error-rule #:+end-of-input+
@@ -39,6 +42,9 @@
 (define-condition unexpected-input (parse-error) ())
 
 (defstruct node rule children start end)
+(defstruct lexeme kind text start end)
+(defun token-key (token)
+  (if (lexeme-p token) (lexeme-kind token) token))
 (defstruct inserted-token expected position)
 (defun inserted-token-value (token)
   (inserted-token-expected token))
@@ -47,7 +53,7 @@
 (defstruct state id (edges nil) stop-rule exit-alternative)
 (defstruct configuration state stack alternative)
 (defstruct dfa-state configurations alternatives accepted (edges (make-hash-table :test 'equal)))
-(defstruct grammar states starts stops start-rule
+(defstruct grammar states starts stops start-rule lexer
   (decisions (make-hash-table))
   (sll-decisions (make-hash-table)))
 
@@ -186,11 +192,12 @@
        (compile-expression grammar (second expression) entry loop-state)
        (compile-expression grammar (list '* (second expression)) loop-state exit)))))
 
-(defun compile-grammar (definitions &key start)
+(defun compile-grammar (definitions &key start lexer)
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), and (TOKEN value).
-Bare symbols name rules; other atoms are literal tokens."
+Bare symbols name rules; other atoms are literal tokens. LEXER, when
+supplied, maps source input to tokens before parsing."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let ((names (make-hash-table :test 'eq))
@@ -217,7 +224,7 @@ Bare symbols name rules; other atoms are literal tokens."
     (let ((grammar (make-grammar :states (make-array 0 :adjustable t :fill-pointer 0)
                                  :starts (make-hash-table :test 'eq)
                                  :stops (make-hash-table :test 'eq)
-                                 :start-rule start)))
+                                 :start-rule start :lexer lexer)))
       (dolist (definition definitions)
         (setf (gethash (first definition) (grammar-starts grammar)) (new-state grammar)
               (gethash (first definition) (grammar-stops grammar))
@@ -288,16 +295,16 @@ Bare symbols name rules; other atoms are literal tokens."
                     :alternatives alternatives :accepted accepted)))
 
 (defun advance-dfa (grammar dfa token)
-  (multiple-value-bind (cached present) (gethash token (dfa-state-edges dfa))
+  (multiple-value-bind (cached present) (gethash (token-key token) (dfa-state-edges dfa))
     (if present cached
-        (setf (gethash token (dfa-state-edges dfa))
+        (setf (gethash (token-key token) (dfa-state-edges dfa))
               (dfa-state-for grammar
                              (loop for configuration in (dfa-state-configurations dfa)
                                    for state = (aref (grammar-states grammar)
                                                      (configuration-state configuration))
                                    append (loop for edge in (state-edges state)
                                                 when (and (eq (transition-kind edge) :token)
-                                                          (equal token (transition-value edge)))
+                                                          (equal (token-key token) (transition-value edge)))
                                                   collect (make-configuration
                                                            :state (transition-target edge)
                                                            :stack (configuration-stack configuration)
@@ -378,14 +385,17 @@ Bare symbols name rules; other atoms are literal tokens."
                         collect (transition-value edge)))
    :test #'equal))
 
-(defun parse (grammar tokens &key (start (grammar-start-rule grammar)) recover)
+(defun parse (grammar tokens &key (start (grammar-start-rule grammar)) recover
+                              (lexer (grammar-lexer grammar)))
   "Parse TOKENS, returning a NODE and a list of RECOVERY records.
-Strict parsing is the default. With RECOVER true, single-token deletion,
+Strict parsing is the default. LEXER, when supplied, maps the source to a
+token sequence before parsing. With RECOVER true, single-token deletion,
 insertion, and choice resynchronization are attempted. Handlers may invoke
 the restarts at each error site to make a different local repair."
   (unless (gethash start (grammar-starts grammar))
     (grammar-fail "Unknown start rule ~S" start))
-  (let* ((input (coerce tokens 'vector))
+  (let* ((input (coerce (if lexer (funcall (coerce lexer 'function) tokens) tokens)
+                        'vector))
          (position 0)
          (state-id (gethash start (grammar-starts grammar)))
          (stack nil)
@@ -436,11 +446,11 @@ the restarts at each error site to make a different local repair."
              (inject (values condition &optional (required nil required-p))
                (let ((items (coerce values 'list)))
                  (unless items (error "INSERT-TOKENS requires a nonempty sequence"))
-                 (when (and required-p (not (equal (first items) required)))
+                 (when (and required-p (not (equal (token-key (first items)) required)))
                    (error "First inserted token ~S does not match expected ~S"
                           (first items) required))
                  (when (and (typep condition 'no-viable-alternative)
-                            (not (member (first items)
+                            (not (member (token-key (first items))
                                          (parse-error-expected condition)
                                          :test #'equal)))
                    (error "First inserted token ~S cannot start this choice"
@@ -453,7 +463,7 @@ the restarts at each error site to make a different local repair."
                    (record :insert-tokens condition markers))))
              (can-insert-before-current-p (target)
                (and (has-token-p)
-                    (member (current-value)
+                    (member (token-key (current-value))
                             (possible-tokens grammar
                                              (list (make-configuration
                                                     :state target :stack stack
@@ -465,7 +475,7 @@ the restarts at each error site to make a different local repair."
                (when recover
                  (let ((expected (parse-error-expected condition)))
                    (cond ((and (has-token-p)
-                               (equal (next-value) expected))
+                               (equal (token-key (next-value)) expected))
                           (invoke-restart 'delete-tokens))
                          ((or (not (has-token-p))
                               (can-insert-before-current-p
@@ -568,7 +578,7 @@ the restarts at each error site to make a different local repair."
                       (:token
                        (let ((expected (transition-value edge)))
                          (if (and (has-token-p)
-                                  (equal (current-value) expected))
+                                  (equal (token-key (current-value)) expected))
                              (progn
                                (push (consume-current) (third (first frames)))
                                (setf state-id (transition-target edge)))
