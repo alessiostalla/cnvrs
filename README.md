@@ -45,7 +45,7 @@ Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call w
 (cnvrs:parse *parser* "x")
 ```
 
-`compile-lexer` compiles lexer rules in the Lisp image and returns the same kind of function. Rules have the form `(kind expression)` or `(kind expression :skip t)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, and `(one-of "characters")`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected.
+`compile-lexer` compiles lexer rules in the Lisp image and returns the same kind of function. Rules have the form `(kind expression &key skip channel)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, and `(one-of "characters")`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected.
 
 ```lisp
 (defparameter *lexer*
@@ -64,7 +64,24 @@ Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call w
 (cnvrs:parse *parser* "let x = 42")
 ```
 
-The generated lexer takes the longest match at each source position. Equal-length matches use the earlier rule. Skipped rules consume text without returning tokens. Returned lexemes expose `lexeme-kind`, `lexeme-text`, `lexeme-start`, and `lexeme-end`; the parser matches their kinds and keeps the lexeme objects in the tree. Node and parse-error offsets still count tokens, while lexeme offsets count source characters. Unmatched input signals `lexical-error` with `lexical-error-position` and `lexical-error-character`.
+The generated lexer takes the longest match at each source position. Equal-length matches use the earlier rule. Skipped rules consume text without returning tokens. Returned lexemes expose `lexeme-kind`, `lexeme-text`, `lexeme-start`, `lexeme-end`, and `lexeme-channel`; the parser matches their kinds and keeps the lexeme objects in the tree. Node and parse-error offsets count the selected tokens, while lexeme offsets count source characters. Unmatched input signals `lexical-error` with `lexical-error-position` and `lexical-error-character`.
+
+### Channels
+
+Rules use the `:default` channel unless they specify `:channel`. Tokens on other channels remain in the lexer's output, so callers can inspect them. `parse` consumes only `:default` tokens unless given `:channels`, a list of channel names, or `:all`:
+
+```lisp
+(defparameter *lexer*
+  (cnvrs:compile-lexer
+   '((:name (+ (range #\a #\z)))
+     (:space (+ (one-of " ")) :channel :trivia))))
+
+(funcall *lexer* "x ")  ; => lexemes on :default and :trivia
+(cnvrs:parse (cnvrs:compile-grammar '((start :name)) :lexer *lexer*) "x ")
+                           ; => parses the :name token
+```
+
+A hand-written lexer can set `:channel` in `make-lexeme`. Plain token values and lexemes without an explicit channel belong to `:default`. `:skip t` drops a token entirely, regardless of its channel. Pass `:channels '(:default :trivia)` to parse both, or `:channels :all` to parse every channel.
 
 ## Parse errors and recovery
 

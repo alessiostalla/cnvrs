@@ -311,6 +311,53 @@
     (check (and (= (length tokens) 1)
                 (eq (cnvrs:lexeme-kind (aref tokens 0)) :integer))
            "lexer rule reference and longest match"))
+  (let* ((lexer (cnvrs:compile-lexer
+                 '((:a "a")
+                   (:space (+ (one-of " ")) :channel :trivia)
+                   (:b "b")
+                   (:ignored "!" :channel :trivia :skip t))))
+         (tokens (funcall lexer "a b!"))
+         (grammar (cnvrs:compile-grammar
+                   '((start (and :a :b))) :lexer lexer)))
+    (check (equal (map 'list #'cnvrs:lexeme-channel tokens)
+                  '(:default :trivia :default))
+           "generated lexer retains named channels and skips tokens")
+    (check (equal (mapcar #'cnvrs:lexeme-kind
+                          (cnvrs:node-children (cnvrs:parse grammar "a b!")))
+                  '(:a :b))
+           "parser selects default channel")
+    (let ((all-grammar (cnvrs:compile-grammar
+                        '((start (and :a :space :b))) :lexer lexer)))
+      (check (equal (mapcar #'cnvrs:lexeme-kind
+                            (cnvrs:node-children
+                             (cnvrs:parse all-grammar "a b!" :channels :all)))
+                    '(:a :space :b))
+             "parser can include every channel")
+      (check (equal (mapcar #'cnvrs:lexeme-kind
+                            (cnvrs:node-children
+                             (cnvrs:parse all-grammar "a b!"
+                                          :channels '(:default :trivia))))
+                    '(:a :space :b))
+             "parser can select named channels")))
+  (let* ((handwritten (lambda (source)
+                        (declare (ignore source))
+                        (vector (cnvrs:make-lexeme :kind :comment :text "#"
+                                                   :start 0 :end 1
+                                                   :channel :comments)
+                                :a)))
+         (grammar (cnvrs:compile-grammar '((start :a)) :lexer handwritten)))
+    (check (equal (cnvrs:node-children (cnvrs:parse grammar "#a")) '(:a))
+           "hand-written lexer channels are filtered")
+    (check (eq (cnvrs:lexeme-channel
+                (first (cnvrs:node-children
+                        (cnvrs:parse
+                         (cnvrs:compile-grammar '((start :comment)) :lexer handwritten)
+                         "#a" :channels '(:comments)))))
+               :comments)
+           "hand-written lexer channel can be selected"))
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-lexer '((:a "a" :channel 17))))
+         "lexer channel name must be a symbol")
   (check (signals cnvrs:grammar-error
            (cnvrs:compile-lexer '((:empty (* #\a)))))
          "zero-length lexer rule rejected")

@@ -137,21 +137,32 @@
 
 (defun compile-lexer (definitions)
   "Compile Lisp-form lexer rules into a function from strings to lexeme vectors.
-Rules are (kind expression &key skip). The longest match wins; ties use rule order."
+Rules are (kind expression &key skip channel). The longest match wins;
+ties use rule order."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of lexer rules"))
   (let ((patterns (make-hash-table :test 'eq))
         (states (make-array 0 :adjustable t :fill-pointer 0))
         (start nil)
         (kinds nil)
-        (skips nil))
+        (skips nil)
+        (channels nil))
     (dolist (definition definitions)
       (unless (and (consp definition)
-                   (member (length definition) '(2 4))
+                   (>= (length definition) 2)
+                   (evenp (length definition))
                    (symbolp (first definition))
-                   (or (= (length definition) 2)
-                       (eq (third definition) :skip)))
-        (grammar-fail "Expected (kind expression &key skip), got ~S" definition))
+                   (loop with seen = nil
+                         for (key value) on (cddr definition) by #'cddr
+                         always (and (member key '(:skip :channel))
+                                     (not (member key seen))
+                                     (prog1
+                                         (if (eq key :skip)
+                                             (member value '(nil t))
+                                             (and (symbolp value) value))
+                                       (push key seen)))))
+        (grammar-fail "Expected (kind expression &key skip channel), got ~S"
+                      definition))
       (when (gethash (first definition) patterns)
         (grammar-fail "Duplicate lexer rule ~S" (first definition)))
       (setf (gethash (first definition) patterns) (second definition)))
@@ -164,9 +175,11 @@ Rules are (kind expression &key skip). The longest match wins; ties use rule ord
         (lx-compile (second definition) patterns states entry exit)
         (setf (lx-state-accept (aref states exit)) index)
         (push (first definition) kinds)
-        (push (fourth definition) skips)))
+        (push (getf (cddr definition) :skip) skips)
+        (push (getf (cddr definition) :channel :default) channels)))
     (setf kinds (coerce (nreverse kinds) 'vector)
-          skips (coerce (nreverse skips) 'vector))
+          skips (coerce (nreverse skips) 'vector)
+          channels (coerce (nreverse channels) 'vector))
     (when (lx-best-accept states (lx-closure states (list start)))
       (grammar-fail "Lexer rules must consume at least one character"))
     (lambda (source)
@@ -188,7 +201,8 @@ Rules are (kind expression &key skip). The longest match wins; ties use rule ord
             (unless (aref skips best-rule)
               (push (make-lexeme :kind (aref kinds best-rule)
                                  :text (subseq source position best-end)
-                                 :start position :end best-end)
+                                 :start position :end best-end
+                                 :channel (aref channels best-rule))
                     output))
             (setf position best-end)))
         (coerce (nreverse output) 'vector)))))

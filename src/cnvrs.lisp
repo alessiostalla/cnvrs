@@ -4,7 +4,7 @@
   (:export #:compile-grammar #:compile-lexer #:parse #:grammar-error #:parse-error
            #:lexical-error #:lexical-error-position #:lexical-error-character
            #:make-lexeme #:lexeme-p #:lexeme-kind #:lexeme-text
-           #:lexeme-start #:lexeme-end
+           #:lexeme-start #:lexeme-end #:lexeme-channel
            #:parse-error-position #:parse-error-token #:parse-error-expected
            #:mismatched-token #:no-viable-alternative #:unexpected-input
            #:parse-error-rule #:+end-of-input+
@@ -42,9 +42,11 @@
 (define-condition unexpected-input (parse-error) ())
 
 (defstruct node rule children start end)
-(defstruct lexeme kind text start end)
+(defstruct lexeme kind text start end (channel :default))
 (defun token-key (token)
   (if (lexeme-p token) (lexeme-kind token) token))
+(defun token-channel (token)
+  (if (lexeme-p token) (lexeme-channel token) :default))
 (defstruct inserted-token expected position)
 (defun inserted-token-value (token)
   (inserted-token-expected token))
@@ -386,16 +388,26 @@ supplied, maps source input to tokens before parsing."
    :test #'equal))
 
 (defun parse (grammar tokens &key (start (grammar-start-rule grammar)) recover
-                              (lexer (grammar-lexer grammar)))
+                              (lexer (grammar-lexer grammar))
+                              (channels '(:default)))
   "Parse TOKENS, returning a NODE and a list of RECOVERY records.
 Strict parsing is the default. LEXER, when supplied, maps the source to a
-token sequence before parsing. With RECOVER true, single-token deletion,
+token sequence before parsing. CHANNELS selects which lexeme channels to
+parse; :ALL selects every channel. With RECOVER true, single-token deletion,
 insertion, and choice resynchronization are attempted. Handlers may invoke
 the restarts at each error site to make a different local repair."
   (unless (gethash start (grammar-starts grammar))
     (grammar-fail "Unknown start rule ~S" start))
-  (let* ((input (coerce (if lexer (funcall (coerce lexer 'function) tokens) tokens)
+  (unless (or (eq channels :all) (listp channels))
+    (error 'type-error :datum channels :expected-type '(or list (eql :all))))
+  (let* ((lexed (coerce (if lexer (funcall (coerce lexer 'function) tokens) tokens)
                         'vector))
+         (input (if (eq channels :all)
+                    lexed
+                    (remove-if-not (lambda (token)
+                                     (member (token-channel token) channels
+                                             :test #'equal))
+                                   lexed)))
          (position 0)
          (state-id (gethash start (grammar-starts grammar)))
          (stack nil)
