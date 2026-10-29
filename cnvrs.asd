@@ -3,7 +3,8 @@
   :serial t
   :in-order-to ((asdf:test-op (asdf:test-op "cnvrs/tests")))
   :components ((:file "src/cnvrs")
-               (:file "src/lexer")))
+               (:file "src/lexer")
+               (:file "src/macros")))
 
 (asdf:defsystem #:cnvrs/tests
   :depends-on (#:cnvrs)

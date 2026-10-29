@@ -4,6 +4,51 @@
 
 (in-package #:cnvrs/tests)
 
+(cnvrs:define-parser *inline-parser* (:kind :parser :start start)
+  (cnvrs:defrule start (and :open item :close))
+  (cnvrs:defrule item :name))
+
+(cnvrs:define-parser *package-parser* (:kind :parser :start start))
+(cnvrs:in-parser *package-parser*)
+(cnvrs:defrule start (and item :end))
+(cnvrs:defrule item :name)
+
+(cnvrs:define-parser *inline-lexer* (:kind :lexer)
+  (cnvrs:defrule :space (+ (one-of " ")) :skip t)
+  (cnvrs:defrule :name (+ (range #\a #\z))))
+
+(cnvrs:define-parser *package-lexer* (:kind :lexer))
+(cnvrs:in-parser *package-lexer*)
+(cnvrs:defrule :number (+ (range #\0 #\9)))
+(cnvrs:defrule :space (+ (one-of " ")) :skip t)
+
+(cnvrs:define-parser *inline-combined* (:kind :combined :start start)
+  (cnvrs:defrule start (and :name :equals :number))
+  (cnvrs:defrule :name (+ (range #\a #\z)))
+  (cnvrs:defrule :equals #\=)
+  (cnvrs:defrule :number (+ (range #\0 #\9))))
+
+(cnvrs:define-parser *package-combined* (:kind :combined :start assignment))
+(cnvrs:in-parser *package-combined*)
+(cnvrs:defrule assignment (and :let :name :equals :number))
+(cnvrs:defrule :space (+ (one-of " ")) :skip t)
+(cnvrs:defrule :let "let")
+(cnvrs:defrule :name (+ (range #\a #\z)))
+(cnvrs:defrule :equals #\=)
+(cnvrs:defrule :number (+ (range #\0 #\9)))
+
+(cnvrs:define-parser *bare-parser* (:kind :parser)
+  (start (and :a :b)))
+
+(cnvrs:define-parser *external-lexer-parser*
+    (:kind :parser :lexer (cnvrs:compile-lexer '((:word (+ (range #\a #\z)))))
+     :start start)
+  (cnvrs:defrule start :word))
+
+(cnvrs:define-parser *symbol-lexer-combined* (:kind :combined)
+  (cnvrs:defrule start (token word))
+  (cnvrs:defrule word (+ (range #\a #\z)) :lexer t))
+
 (defvar *checks* 0)
 
 (defun check (condition description)
@@ -16,6 +61,61 @@
 
 (defun run-tests ()
   (setf *checks* 0)
+  (check (cnvrs:parser-definition-p *inline-parser*)
+         "single-form parser definition")
+  (check (eq (cnvrs:node-rule
+               (cnvrs:parse *inline-parser* '(:open :name :close))) 'start)
+         "single-form parser grammar")
+  (check (eq (cnvrs:node-rule
+               (first (cnvrs:node-children
+                       (cnvrs:parse *package-parser* '(:name :end)))))
+             'item)
+         "package-style parser with forward reference")
+  (check (equal (map 'list #'cnvrs:lexeme-kind
+                     (cnvrs:lex *inline-lexer* "a bc"))
+                '(:name :name))
+         "single-form lexer grammar")
+  (check (equal (map 'list #'cnvrs:lexeme-kind
+                     (cnvrs:lex *package-lexer* "12 3"))
+                '(:number :number))
+         "package-style lexer grammar")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:parse *inline-lexer* "abc"))
+         "lexer grammar cannot be parsed as a parser")
+  (check (equal (mapcar #'cnvrs:lexeme-kind
+                        (cnvrs:node-children
+                         (cnvrs:parse *inline-combined* "x=42")))
+                '(:name :equals :number))
+         "single-form combined grammar")
+  (check (equal (mapcar #'cnvrs:lexeme-kind
+                        (cnvrs:node-children
+                         (cnvrs:parse *package-combined* "let x = 42")))
+                '(:let :name :equals :number))
+         "package-style combined grammar")
+  (check (equal (cnvrs:node-children
+                 (cnvrs:parse *bare-parser* '(:a :b))) '(:a :b))
+         "bare rule forms inside define-parser")
+  (check (eq (cnvrs:lexeme-kind
+               (first (cnvrs:node-children
+                       (cnvrs:parse *external-lexer-parser* "hello"))))
+             :word)
+         "parser macro accepts external lexer option")
+  (check (eq (cnvrs:lexeme-kind
+               (first (cnvrs:node-children
+                       (cnvrs:parse *symbol-lexer-combined* "hello"))))
+             'word)
+         "combined grammar explicit symbol lexer rule")
+  (eval '(cnvrs:define-parser *mutable-parser* (:kind :parser)
+           (cnvrs:defrule start :a)))
+  (check (eq (cnvrs:node-rule
+               (cnvrs:parse (symbol-value '*mutable-parser*) '(:a))) 'start)
+         "incremental definition compiles on use")
+  (eval '(cnvrs:in-parser *mutable-parser*))
+  (eval '(cnvrs:defrule extra :b))
+  (check (eq (cnvrs:node-rule
+               (cnvrs:parse (symbol-value '*mutable-parser*) '(:b)
+                            :start 'extra)) 'extra)
+         "new rule invalidates an already compiled definition")
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and #\a (* #\b) #\c)))))
          (tree (cnvrs:parse grammar "abbbc")))

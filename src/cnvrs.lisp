@@ -1,7 +1,9 @@
 (defpackage #:cnvrs
   (:use #:cl)
   (:shadow #:parse-error)
-  (:export #:compile-grammar #:compile-lexer #:parse #:grammar-error #:parse-error
+  (:export #:compile-grammar #:compile-lexer #:parse #:lex
+           #:define-parser #:in-parser #:defrule #:parser-definition-p
+           #:grammar-error #:parse-error
            #:lexical-error #:lexical-error-position #:lexical-error-character
            #:make-lexeme #:lexeme-p #:lexeme-kind #:lexeme-text
            #:lexeme-start #:lexeme-end #:lexeme-channel
@@ -59,6 +61,8 @@
   (rewrites (make-hash-table :test 'eq))
   (decisions (make-hash-table))
   (sll-decisions (make-hash-table)))
+(defstruct parser-definition name kind start lexer (rules nil) compiled)
+(declaim (ftype function ensure-parser-compiled))
 
 (defun grammar-fail (control &rest arguments)
   (error 'grammar-error :message (apply #'format nil control arguments)))
@@ -489,15 +493,22 @@ supplied, maps source input to tokens before parsing."
                         collect (transition-value edge)))
    :test #'equal))
 
-(defun parse (grammar tokens &key (start (grammar-start-rule grammar)) recover
-                              (lexer (grammar-lexer grammar))
+(defun parse (grammar tokens &key start recover
+                              (lexer nil lexer-supplied-p)
                               (channels '(:default)))
   "Parse TOKENS, returning a NODE and a list of RECOVERY records.
 Strict parsing is the default. LEXER, when supplied, maps the source to a
 token sequence before parsing. CHANNELS selects which lexeme channels to
 parse; :ALL selects every channel. With RECOVER true, single-token deletion,
 insertion, and choice resynchronization are attempted. Handlers may invoke
-the restarts at each error site to make a different local repair."
+  the restarts at each error site to make a different local repair."
+  (when (parser-definition-p grammar)
+    (when (eq (parser-definition-kind grammar) :lexer)
+      (grammar-fail "Use LEX to run a lexer grammar"))
+    (setf grammar (ensure-parser-compiled grammar)))
+  (setf start (or start (grammar-start-rule grammar)))
+  (unless lexer-supplied-p
+    (setf lexer (grammar-lexer grammar)))
   (unless (gethash start (grammar-starts grammar))
     (grammar-fail "Unknown start rule ~S" start))
   (unless (or (eq channels :all) (listp channels))

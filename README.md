@@ -28,6 +28,41 @@ CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is 
 | `(token value)` | Match a token with `equal` |
 | Character, string, number, or keyword | Literal token |
 
+## Defining grammars with macros
+
+`define-parser` declares a grammar in one form. The first form after its name is an optional plist with `:kind`, `:start`, and `:lexer`; the remaining forms are rules. Rules may be written as `(defrule name expression ...)` or simply `(name expression ...)`:
+
+```lisp
+(cnvrs:define-parser *assignment* (:kind :combined :start assignment)
+  (cnvrs:defrule assignment (and :let :name :equals :number))
+  (cnvrs:defrule :space (+ (one-of " ")) :skip t)
+  (cnvrs:defrule :let "let")
+  (cnvrs:defrule :name (+ (range #\a #\z)))
+  (cnvrs:defrule :equals #\=)
+  (cnvrs:defrule :number (+ (range #\0 #\9))))
+
+(cnvrs:parse *assignment* "let x = 42")
+```
+
+The incremental style separates the declaration from its rules. `in-parser` selects the definition receiving subsequent top-level `defrule` forms, much like `in-package` selects a package:
+
+```lisp
+(cnvrs:define-parser *words* (:kind :lexer))
+(cnvrs:in-parser *words*)
+(cnvrs:defrule :space (+ (one-of " ")) :skip t)
+(cnvrs:defrule :word (+ (range #\a #\z)))
+
+(cnvrs:lex *words* "one two")
+```
+
+| Kind | Rules and use |
+| --- | --- |
+| `:parser` (default) | All rules are parser rules. `parse` accepts token sequences; an optional `:lexer` option attaches an existing lexer function. |
+| `:lexer` | All rules are lexer rules. `lex` accepts a source string and returns lexemes. |
+| `:combined` | Ordinary symbol names define parser rules; keyword names define lexer rules. Use `:lexer t` on a rule to give a lexer rule an ordinary symbol name. `parse` lexes and parses source strings. |
+
+`:start` selects a parser rule; otherwise the first parser rule is the start. Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. Definitions compile in the current Lisp image on first use, allowing forward references in the incremental style. Adding a rule invalidates the compiled definition. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
+
 ### Direct left recursion
 
 An alternative may start with its own rule name. Recursive alternatives are listed from lowest to highest precedence; repetitions of one alternative associate to the left. Wrap an alternative in `(right ...)` to associate to the right:
