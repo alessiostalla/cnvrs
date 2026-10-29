@@ -3,9 +3,18 @@
   (:shadow #:parse-error)
   (:export #:compile-grammar #:parse #:grammar-error #:parse-error
            #:parse-error-position #:parse-error-token #:parse-error-expected
+           #:mismatched-token #:no-viable-alternative #:unexpected-input
+           #:parse-error-rule #:+end-of-input+
+           #:insert-tokens #:delete-tokens
+           #:choose-alternative
+           #:discard-input #:recovery-p #:recovery-action #:recovery-condition
+           #:recovery-token #:inserted-token-p #:inserted-token-expected
+           #:inserted-token-value #:inserted-token-position
            #:node-rule #:node-children #:node-start #:node-end))
 
 (in-package #:cnvrs)
+
+(defparameter +end-of-input+ (gensym "END-OF-INPUT-"))
 
 (define-condition grammar-error (error)
   ((message :initarg :message :reader grammar-error-message))
@@ -15,16 +24,27 @@
 (define-condition parse-error (error)
   ((position :initarg :position :reader parse-error-position)
    (token :initarg :token :reader parse-error-token)
-   (expected :initarg :expected :reader parse-error-expected))
+   (expected :initarg :expected :reader parse-error-expected)
+   (rule :initarg :rule :reader parse-error-rule))
   (:report (lambda (condition stream)
-             (format stream "Parse error at token ~D (~S); expected ~S"
+             (format stream "Parse error in ~S at token ~D (~S); expected ~S"
+                     (parse-error-rule condition)
                      (parse-error-position condition)
                      (parse-error-token condition)
                      (parse-error-expected condition)))))
 
+(define-condition mismatched-token (parse-error)
+  ((next-state :initarg :next-state :reader mismatch-next-state)))
+(define-condition no-viable-alternative (parse-error) ())
+(define-condition unexpected-input (parse-error) ())
+
 (defstruct node rule children start end)
+(defstruct inserted-token expected position)
+(defun inserted-token-value (token)
+  (inserted-token-expected token))
+(defstruct recovery action condition token)
 (defstruct transition kind target value)
-(defstruct state id (edges nil) stop-rule)
+(defstruct state id (edges nil) stop-rule exit-alternative)
 (defstruct configuration state stack alternative)
 (defstruct dfa-state configurations alternatives accepted (edges (make-hash-table :test 'equal)))
 (defstruct grammar states starts stops start-rule
@@ -150,11 +170,13 @@
          (compile-expression grammar part branch exit))))
     (:optional
      (let ((branch (new-state grammar)))
+       (setf (state-exit-alternative (aref (grammar-states grammar) entry)) 1)
        (add-edge grammar entry :epsilon branch)
        (add-edge grammar entry :epsilon exit)
        (compile-expression grammar (second expression) branch exit)))
     (:star
      (let ((branch (new-state grammar)) (body-end (new-state grammar)))
+       (setf (state-exit-alternative (aref (grammar-states grammar) entry)) 1)
        (add-edge grammar entry :epsilon branch)
        (add-edge grammar entry :epsilon exit)
        (compile-expression grammar (second expression) branch body-end)
@@ -301,8 +323,12 @@ Bare symbols name rules; other atoms are literal tokens."
           (return (first alternatives)))
         (when (or (null alternatives) (= position length))
           (return (or (first (dfa-state-accepted dfa))
-                      (first alternatives)
-                      0))))
+                      (let ((exit (state-exit-alternative
+                                   (aref (grammar-states grammar) state-id))))
+                        (and (= position length)
+                             (member exit alternatives)
+                             exit))
+                      (first alternatives)))))
       (setf dfa (advance-dfa grammar dfa (aref tokens position)))
       (incf position))))
 
@@ -342,53 +368,231 @@ Bare symbols name rules; other atoms are literal tokens."
     (otherwise (make-configuration :state (transition-target edge)
                                    :stack stack :alternative alternative))))
 
-(defun parse (grammar tokens &key (start (grammar-start-rule grammar)))
-  "Parse a sequence of tokens, returning a tree of NODE structs.
-Each rule call creates a node. Every input token must be consumed."
+(defun possible-tokens (grammar configurations)
+  (remove-duplicates
+   (loop for configuration in (closure grammar configurations)
+         for state = (aref (grammar-states grammar)
+                           (configuration-state configuration))
+         append (loop for edge in (state-edges state)
+                      when (eq (transition-kind edge) :token)
+                        collect (transition-value edge)))
+   :test #'equal))
+
+(defun parse (grammar tokens &key (start (grammar-start-rule grammar)) recover)
+  "Parse TOKENS, returning a NODE and a list of RECOVERY records.
+Strict parsing is the default. With RECOVER true, single-token deletion,
+insertion, and choice resynchronization are attempted. Handlers may invoke
+the restarts at each error site to make a different local repair."
   (unless (gethash start (grammar-starts grammar))
     (grammar-fail "Unknown start rule ~S" start))
   (let* ((input (coerce tokens 'vector))
          (position 0)
          (state-id (gethash start (grammar-starts grammar)))
          (stack nil)
-         (frames (list (list start 0 nil))))
-    (labels ((fail (expected)
-               (error 'parse-error :position position
-                      :token (if (< position (length input))
-                                 (aref input position) :eof)
-                      :expected expected)))
-      (loop
-        (let* ((state (aref (grammar-states grammar) state-id))
-               (stop (state-stop-rule state)))
-          (when stop
-            (let* ((frame (pop frames))
-                   (completed (make-node :rule (first frame)
-                                         :start (second frame) :end position
-                                         :children (nreverse (third frame)))))
-              (if stack
-                  (progn
-                    (push completed (third (first frames)))
-                    (setf state-id (pop stack)))
-                  (progn
-                    (unless (= position (length input)) (fail :eof))
-                    (return completed)))))
-          (unless stop
-            (let* ((edges (state-edges state))
-                   (edge (if (= (length edges) 1)
-                             (first edges)
-                             (nth (predict grammar state-id stack input position) edges))))
-              (unless edge (fail :transition))
-              (case (transition-kind edge)
-                (:epsilon (setf state-id (transition-target edge)))
-                (:call
-                 (push (transition-target edge) stack)
-                 (push (list (transition-value edge) position nil) frames)
-                 (setf state-id (gethash (transition-value edge)
-                                         (grammar-starts grammar))))
-                (:token
-                 (unless (and (< position (length input))
-                              (equal (aref input position) (transition-value edge)))
-                   (fail (transition-value edge)))
-                 (push (aref input position) (third (first frames)))
-                 (incf position)
-                 (setf state-id (transition-target edge)))))))))))
+         (frames (list (list start 0 nil)))
+         (pending nil)
+         (recoveries nil)
+         (automatic-insert-position -1)
+         (automatic-insert-count 0))
+    (labels ((record (action condition token)
+               (push (make-recovery :action action :condition condition
+                                    :token token)
+                     recoveries))
+             (has-token-p ()
+               (or pending (< position (length input))))
+             (current-value ()
+               (cond (pending (inserted-token-value (first pending)))
+                     ((< position (length input)) (aref input position))
+                     (t +end-of-input+)))
+             (next-value ()
+               (cond ((rest pending)
+                      (inserted-token-value (second pending)))
+                     (pending
+                      (if (< position (length input))
+                          (aref input position) +end-of-input+))
+                     ((< (1+ position) (length input))
+                      (aref input (1+ position)))
+                     (t +end-of-input+)))
+             (consume-current ()
+               (if pending (pop pending)
+                   (prog1 (aref input position) (incf position))))
+             (available-count ()
+               (+ (length pending) (- (length input) position)))
+             (delete-current (count condition)
+               (unless (and (integerp count) (<= 1 count)
+                            (<= count (available-count)))
+                 (error "DELETE-TOKENS count ~S exceeds the ~D available tokens"
+                        count (available-count)))
+               (record :delete-tokens condition
+                       (loop repeat count collect (consume-current))))
+             (remaining-values ()
+               (coerce (append (mapcar #'inserted-token-value pending)
+                               (coerce (subseq input position) 'list))
+                       'vector))
+             (predict-current ()
+               (if pending
+                   (predict grammar state-id stack (remaining-values) 0)
+                   (predict grammar state-id stack input position)))
+             (inject (values condition &optional (required nil required-p))
+               (let ((items (coerce values 'list)))
+                 (unless items (error "INSERT-TOKENS requires a nonempty sequence"))
+                 (when (and required-p (not (equal (first items) required)))
+                   (error "First inserted token ~S does not match expected ~S"
+                          (first items) required))
+                 (when (and (typep condition 'no-viable-alternative)
+                            (not (member (first items)
+                                         (parse-error-expected condition)
+                                         :test #'equal)))
+                   (error "First inserted token ~S cannot start this choice"
+                          (first items)))
+                 (let ((markers (mapcar (lambda (value)
+                                          (make-inserted-token
+                                           :expected value :position position))
+                                        items)))
+                   (setf pending (append markers pending))
+                   (record :insert-tokens condition markers))))
+             (can-insert-before-current-p (target)
+               (and (has-token-p)
+                    (member (current-value)
+                            (possible-tokens grammar
+                                             (list (make-configuration
+                                                    :state target :stack stack
+                                                    :alternative 0)))
+                            :test #'equal))))
+      (handler-bind
+          ((mismatched-token
+             (lambda (condition)
+               (when recover
+                 (let ((expected (parse-error-expected condition)))
+                   (cond ((and (has-token-p)
+                               (equal (next-value) expected))
+                          (invoke-restart 'delete-tokens))
+                         ((or (not (has-token-p))
+                              (can-insert-before-current-p
+                               (mismatch-next-state condition)))
+                          (unless (= position automatic-insert-position)
+                            (setf automatic-insert-position position
+                                  automatic-insert-count 0))
+                          (when (< automatic-insert-count
+                                   (length (grammar-states grammar)))
+                            (incf automatic-insert-count)
+                            (invoke-restart 'insert-tokens))))))))
+           (no-viable-alternative
+             (lambda (condition)
+               (declare (ignore condition))
+               (when recover
+                 (if (has-token-p)
+                     (invoke-restart 'delete-tokens)
+                     (invoke-restart 'choose-alternative 0)))))
+           (unexpected-input
+             (lambda (condition)
+               (declare (ignore condition))
+               (when recover (invoke-restart 'discard-input)))))
+        (loop
+          (let* ((state (aref (grammar-states grammar) state-id))
+                 (stop (state-stop-rule state)))
+            (when stop
+              (let* ((frame (pop frames))
+                     (completed (make-node :rule (first frame)
+                                           :start (second frame) :end position
+                                           :children (nreverse (third frame)))))
+                (if stack
+                    (progn
+                      (push completed (third (first frames)))
+                      (setf state-id (pop stack)))
+                    (progn
+                      (when (has-token-p)
+                        (let ((condition (make-condition
+                                          'unexpected-input :position position
+                                          :token (current-value)
+                                          :expected +end-of-input+
+                                          :rule start)))
+                          (restart-case (error condition)
+                            (discard-input ()
+                              :report "Discard all remaining input."
+                              (record :discard-input condition
+                                      (remaining-values))
+                              (setf pending nil
+                                    position (length input))))))
+                      (return (values completed (nreverse recoveries)))))))
+            (unless stop
+              (let* ((edges (state-edges state))
+                     (index (if (= (length edges) 1)
+                                0 (predict-current))))
+                (when (null index)
+                  (let ((condition
+                          (make-condition
+                           'no-viable-alternative :position position
+                           :token (current-value)
+                           :rule (first (first frames))
+                           :expected
+                           (possible-tokens
+                            grammar
+                            (loop for edge in edges for alternative from 0
+                                  collect (configuration-after-edge
+                                           grammar edge stack alternative))))))
+                    (multiple-value-bind (action value)
+                        (restart-case (error condition)
+                          (delete-tokens (&optional (count 1))
+                            :report "Delete input tokens and retry the choice."
+                            :test (lambda (condition)
+                                    (declare (ignore condition))
+                                    (has-token-p))
+                            (values :delete-many count))
+                          (insert-tokens (&optional values)
+                            :report "Insert a sequence of tokens before this choice."
+                            (values :insert-many values))
+                          (choose-alternative (alternative)
+                            :report "Choose a numbered alternative."
+                            (values :choose alternative)))
+                      (case action
+                        (:delete-many
+                         (delete-current value condition))
+                        (:insert-many
+                         (inject value condition))
+                        (:choose
+                         (unless (and (integerp value) (<= 0 value)
+                                      (< value (length edges)))
+                           (error "Invalid alternative ~S" value))
+                         (record :choose-alternative condition value)
+                         (setf index value))))))
+                (when index
+                  (let ((edge (nth index edges)))
+                    (case (transition-kind edge)
+                      (:epsilon (setf state-id (transition-target edge)))
+                      (:call
+                       (push (transition-target edge) stack)
+                       (push (list (transition-value edge) position nil) frames)
+                       (setf state-id (gethash (transition-value edge)
+                                               (grammar-starts grammar))))
+                      (:token
+                       (let ((expected (transition-value edge)))
+                         (if (and (has-token-p)
+                                  (equal (current-value) expected))
+                             (progn
+                               (push (consume-current) (third (first frames)))
+                               (setf state-id (transition-target edge)))
+                             (let ((condition
+                                     (make-condition
+                                      'mismatched-token :position position
+                                      :token (current-value)
+                                      :expected expected
+                                      :rule (first (first frames))
+                                      :next-state (transition-target edge))))
+                               (multiple-value-bind (action value)
+                                   (restart-case (error condition)
+                                     (insert-tokens (&optional values)
+                                       :report "Insert tokens; without arguments, insert the expected token."
+                                       (values :insert-many
+                                               (or values (list expected))))
+                                     (delete-tokens (&optional (count 1))
+                                       :report "Delete input tokens and retry."
+                                       :test (lambda (condition)
+                                               (declare (ignore condition))
+                                               (has-token-p))
+                                       (values :delete-many count)))
+                                 (ecase action
+                                   (:insert-many
+                                    (inject value condition expected))
+                                   (:delete-many
+                                    (delete-current value condition)))))))))))))))))))
