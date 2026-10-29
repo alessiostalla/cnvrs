@@ -19,6 +19,31 @@
       (push key seen)))
   options)
 
+(defun rule-with-mode (form mode)
+  (let* ((defrule-p (and (consp form) (eq (first form) 'defrule)))
+         (body (if defrule-p (rest form) form)))
+    (unless (and (consp body) (consp (rest body)))
+      (grammar-fail "WITH-MODE expects rule forms, got ~S" form))
+    (let ((options (cddr body)))
+      (when (plist-key-p options :mode)
+        (unless (eq (getf options :mode) mode)
+          (grammar-fail "Rule ~S has :MODE ~S inside WITH-MODE ~S"
+                        (first body) (getf options :mode) mode))
+        (return-from rule-with-mode form)))
+    (if defrule-p
+        (append form (list :mode mode))
+        (append body (list :mode mode)))))
+
+(defun expand-mode-rule-forms (forms &optional mode)
+  (loop for form in forms append
+    (if (and (consp form) (eq (first form) 'with-mode))
+        (destructuring-bind (operator new-mode &rest nested) form
+          (declare (ignore operator))
+          (unless (and (symbolp new-mode) new-mode)
+            (grammar-fail "WITH-MODE requires a mode name, got ~S" new-mode))
+          (expand-mode-rule-forms nested new-mode))
+        (list (if mode (rule-with-mode form mode) form)))))
+
 (defun normalize-rule-form (form kind)
   (let* ((body (if (and (consp form)
                         (symbolp (first form))
@@ -27,11 +52,13 @@
                    form)))
     (unless (and (consp body) (>= (length body) 2)
                  (symbolp (first body)))
-      (grammar-fail "Expected (defrule name expression &key lexer skip channel), got ~S"
+      (grammar-fail "Expected (defrule name expression &key lexer skip channel mode push-mode pop-mode set-mode), got ~S"
                     form))
     (let* ((name (first body))
            (expression (second body))
-           (options (checked-options (cddr body) '(:lexer :skip :channel)
+           (options (checked-options (cddr body)
+                                     '(:lexer :skip :channel :mode
+                                       :push-mode :pop-mode :set-mode)
                                      (format nil "rule ~S" name)))
            (lexer-option (getf options :lexer :unspecified))
            (lexer-p (case kind
@@ -48,11 +75,16 @@
       (when (and (not lexer-p) (keywordp name))
         (grammar-fail "Parser rule name cannot be a keyword: ~S" name))
       (when (and (not lexer-p)
-                 (or (member :skip options) (member :channel options)))
+                 (some (lambda (key) (plist-key-p options key))
+                       '(:skip :channel :mode :push-mode :pop-mode :set-mode)))
         (grammar-fail "Lexer options on parser rule ~S" name))
       (list name expression lexer-p
             (getf options :skip nil)
-            (getf options :channel :default)))))
+            (getf options :channel :default)
+            (getf options :mode :default)
+            (getf options :push-mode nil)
+            (getf options :pop-mode nil)
+            (getf options :set-mode nil)))))
 
 (defun register-parser-rule (definition form)
   (unless (parser-definition-p definition)
@@ -90,9 +122,14 @@
   (or (parser-definition-compiled definition)
       (let ((parser-rules nil) (lexer-rules nil))
         (dolist (rule (parser-definition-rules definition))
-          (destructuring-bind (name expression lexer-p skip channel) rule
+          (destructuring-bind (name expression lexer-p skip channel mode
+                               push-mode pop-mode set-mode) rule
             (if lexer-p
-                (push (list name expression :skip skip :channel channel)
+                (push (append (list name expression :skip skip :channel channel
+                                    :mode mode)
+                              (when push-mode (list :push-mode push-mode))
+                              (when pop-mode (list :pop-mode pop-mode))
+                              (when set-mode (list :set-mode set-mode)))
                       lexer-rules)
                 (push (list name expression) parser-rules))))
         (setf parser-rules (nreverse parser-rules)
@@ -137,7 +174,8 @@
 (defmacro define-parser (name &body body)
   "Define NAME as a parser definition. The first body form may be a plist
 (:KIND :PARSER|:LEXER|:COMBINED :DEFAULT-RULE rule :LEXER function).
-Remaining forms are DEFRULE forms or (name expression ...) rule forms."
+Remaining forms are DEFRULE forms, (name expression ...) rule forms, or
+WITH-MODE blocks containing lexer rules."
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (let* ((options (if (and body (parser-option-list-p (first body)))
@@ -148,7 +186,8 @@ Remaining forms are DEFRULE forms or (name expression ...) rule forms."
          (default-rule (getf options :default-rule nil))
          (lexer (getf options :lexer nil)))
     `(defparameter ,name
-       (make-defined-parser ',name ',kind ',default-rule ,lexer ',body))))
+       (make-defined-parser ',name ',kind ',default-rule ,lexer
+                            ',(expand-mode-rule-forms body)))))
 
 (defmacro in-parser (name)
   "Select the parser definition receiving subsequent top-level DEFRULE forms."
@@ -164,3 +203,15 @@ Remaining forms are DEFRULE forms or (name expression ...) rule forms."
     (grammar-fail "DEFRULE requires an earlier IN-PARSER form"))
   `(eval-when (:load-toplevel :execute)
      (register-parser-rule (symbol-value ',*current-parser-name*) ',form)))
+
+(defmacro with-mode (mode &body rules)
+  "Define RULES in lexer MODE within an incremental IN-PARSER definition.
+Also accepted inside DEFINE-PARSER, where rules may omit DEFRULE."
+  (unless (and (symbolp mode) mode)
+    (grammar-fail "WITH-MODE requires a mode name, got ~S" mode))
+  `(progn
+     ,@(mapcar (lambda (form)
+                 (if (and (consp form) (eq (first form) 'defrule))
+                     form
+                     (cons 'defrule form)))
+               (expand-mode-rule-forms rules mode))))

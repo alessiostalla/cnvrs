@@ -22,6 +22,19 @@
 (cnvrs:defrule :number (+ (range #\0 #\9)))
 (cnvrs:defrule :space (+ (one-of " ")) :skip t)
 
+(cnvrs:define-parser *mode-package-lexer* (:kind :lexer))
+(cnvrs:in-parser *mode-package-lexer*)
+(cnvrs:defrule :open #\< :push-mode :tag :skip t)
+(cnvrs:with-mode :tag
+  (cnvrs:defrule :tag (+ (range #\a #\z)))
+  (cnvrs:defrule :close #\> :pop-mode t :skip t))
+
+(cnvrs:define-parser *mode-inline-lexer* (:kind :lexer)
+  (:open #\< :push-mode :tag :skip t)
+  (cnvrs:with-mode :tag
+    (:tag (+ (range #\a #\z)))
+    (:close #\> :pop-mode t :skip t)))
+
 (cnvrs:define-parser *inline-combined* (:kind :combined :default-rule start)
   (cnvrs:defrule start (and :name :equals :number))
   (cnvrs:defrule :name (+ (range #\a #\z)))
@@ -49,6 +62,15 @@
 (cnvrs:define-parser *symbol-lexer-combined* (:kind :combined)
   (cnvrs:defrule start (token word))
   (cnvrs:defrule word (+ (range #\a #\z)) :lexer t))
+
+(cnvrs:define-parser *mode-combined* (:kind :combined)
+  (cnvrs:defrule start (and :word :string-text :word))
+  (cnvrs:defrule :word (+ (range #\a #\z)))
+  (cnvrs:defrule :space #\Space :skip t)
+  (cnvrs:defrule :open #\" :skip t :push-mode :string)
+  (cnvrs:with-mode :string
+    (cnvrs:defrule :string-text (+ (range #\a #\z)))
+    (cnvrs:defrule :close #\" :skip t :pop-mode t)))
 
 (defvar *checks* 0)
 
@@ -103,6 +125,19 @@
                      (cnvrs:lex *package-lexer* "12 3"))
                 '(:number :number))
          "package-style lexer grammar")
+  (check (equal (map 'list #'cnvrs:lexeme-kind
+                     (cnvrs:lex *mode-package-lexer* "<name>"))
+                '(:tag))
+         "package-style with-mode defines lexer rules")
+  (check (equal (map 'list #'cnvrs:lexeme-kind
+                     (cnvrs:lex *mode-inline-lexer* "<name>"))
+                '(:tag))
+         "inline with-mode accepts bare lexer rules")
+  (check (signals cnvrs:grammar-error
+           (macroexpand-1
+            '(cnvrs:with-mode :tag
+               (cnvrs:defrule :name #\a :mode :other))))
+         "with-mode rejects a conflicting rule mode")
   (check (signals cnvrs:grammar-error
            (cnvrs:parse *inline-lexer* "abc"))
          "lexer grammar cannot be parsed as a parser")
@@ -129,6 +164,52 @@
                        (cnvrs:parse *symbol-lexer-combined* "hello"))))
              'word)
          "combined grammar explicit symbol lexer rule")
+  (check (equal (mapcar #'cnvrs:lexeme-kind
+                        (cnvrs:node-children
+                         (cnvrs:parse *mode-combined* "a \"bc\" d")))
+                '(:word :string-text :word))
+         "combined grammar uses lexer modes")
+  (let* ((lexer (cnvrs:compile-lexer
+                 '((:open #\" :push-mode :string)
+                   (:word (+ (range #\a #\z)) :mode :string)
+                   (:brace-open #\{ :mode :string
+                    :push-mode :interpolation)
+                   (:name (+ (range #\a #\z)) :mode :interpolation)
+                   (:brace-close #\} :mode :interpolation :pop-mode t)
+                   (:close #\" :mode :string :pop-mode t)
+                   (:outside (+ (range #\a #\z))))))
+         (tokens (funcall lexer "\"ab{cd}ef\"gh")))
+    (check (equal (map 'list #'cnvrs:lexeme-kind tokens)
+                  '(:open :word :brace-open :name :brace-close :word
+                    :close :outside))
+           "pushed lexer modes restore their callers")
+    (check (equal (map 'list #'cnvrs:lexeme-text tokens)
+                  '("\"" "ab" "{" "cd" "}" "ef" "\"" "gh"))
+           "mode-specific tokens retain source text"))
+  (let ((lexer (cnvrs:compile-lexer
+                '((:open #\< :set-mode :tag)
+                  (:tag (+ (range #\a #\z)) :mode :tag)
+                  (:close #\> :mode :tag :set-mode :default)
+                  (:word (+ (range #\a #\z)))))))
+    (check (equal (map 'list #'cnvrs:lexeme-kind
+                       (funcall lexer "<ab>cd"))
+                  '(:open :tag :close :word))
+           "set-mode changes the active mode without a stack"))
+  (check (signals cnvrs:lexer-mode-error
+           (funcall (cnvrs:compile-lexer '((:close #\] :pop-mode t))) "]"))
+         "pop-mode on an empty stack signals a mode error")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-lexer '((:open #\" :push-mode :missing))))
+         "mode action target must have a lexer rule")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-lexer '((:open #\< :push-mode :tag
+                                   :set-mode :tag)
+                                  (:tag #\a :mode :tag))))
+         "lexer rule cannot perform multiple mode actions")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-lexer '((:default #\a)
+                                  (:empty (? #\b) :mode :other))))
+         "rules in nondefault modes must consume input")
   (eval '(cnvrs:define-parser *mutable-parser* (:kind :parser)
            (cnvrs:defrule start :a)))
   (check (eq (cnvrs:node-rule

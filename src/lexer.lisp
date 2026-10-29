@@ -8,6 +8,13 @@
                      (lexical-error-character condition)
                      (lexical-error-position condition)))))
 
+(define-condition lexer-mode-error (lexical-error)
+  ((mode :initarg :mode :reader lexer-mode-error-mode))
+  (:report (lambda (condition stream)
+             (format stream "Cannot pop lexer mode ~S at character ~D: mode stack is empty"
+                     (lexer-mode-error-mode condition)
+                     (lexical-error-position condition)))))
+
 (defstruct lx-state (edges nil) accept)
 (defstruct lx-edge kind target value)
 
@@ -137,16 +144,21 @@
 
 (defun compile-lexer (definitions)
   "Compile Lisp-form lexer rules into a function from strings to lexeme vectors.
-Rules are (kind expression &key skip channel). The longest match wins;
-ties use rule order."
+Rules are (kind expression &key skip channel mode push-mode pop-mode set-mode).
+MODE selects the active mode for a rule, defaulting to :DEFAULT. A matched
+rule may change modes, including when it is skipped. The longest match wins;
+ties use rule order among rules in the current mode."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of lexer rules"))
   (let ((patterns (make-hash-table :test 'eq))
         (states (make-array 0 :adjustable t :fill-pointer 0))
-        (start nil)
+        (mode-starts (make-hash-table :test 'eq))
         (kinds nil)
         (skips nil)
-        (channels nil))
+        (channels nil)
+        (push-modes nil)
+        (pop-modes nil)
+        (set-modes nil))
     (dolist (definition definitions)
       (unless (and (consp definition)
                    (>= (length definition) 2)
@@ -154,40 +166,74 @@ ties use rule order."
                    (symbolp (first definition))
                    (loop with seen = nil
                          for (key value) on (cddr definition) by #'cddr
-                         always (and (member key '(:skip :channel))
+                         always (and (member key '(:skip :channel :mode
+                                                   :push-mode :pop-mode
+                                                   :set-mode))
                                      (not (member key seen))
                                      (prog1
-                                         (if (eq key :skip)
-                                             (member value '(nil t))
-                                             (and (symbolp value) value))
+                                         (case key
+                                           ((:skip :pop-mode)
+                                            (member value '(nil t)))
+                                           (otherwise
+                                            (and (symbolp value) value)))
                                        (push key seen)))))
-        (grammar-fail "Expected (kind expression &key skip channel), got ~S"
+        (grammar-fail "Invalid lexer rule or options: ~S"
                       definition))
+      (let* ((options (cddr definition))
+             (actions (count-if (lambda (key) (plist-key-p options key))
+                                '(:push-mode :pop-mode :set-mode))))
+        (when (> actions 1)
+          (grammar-fail "Lexer rule ~S has more than one mode action"
+                        (first definition)))
+        (when (and (plist-key-p options :pop-mode)
+                   (not (eq (getf options :pop-mode) t)))
+          (grammar-fail ":POP-MODE must be T in lexer rule ~S"
+                        (first definition))))
       (when (gethash (first definition) patterns)
         (grammar-fail "Duplicate lexer rule ~S" (first definition)))
-      (setf (gethash (first definition) patterns) (second definition)))
+      (setf (gethash (first definition) patterns) (second definition))
+      (let ((mode (getf (cddr definition) :mode :default)))
+        (unless (gethash mode mode-starts)
+          (setf (gethash mode mode-starts) (lx-new-state states)))))
+    (unless (gethash :default mode-starts)
+      (grammar-fail "A lexer needs at least one rule in :DEFAULT mode"))
     (dolist (definition definitions)
-      (lx-validate (second definition) patterns (list (first definition))))
-    (setf start (lx-new-state states))
+      (lx-validate (second definition) patterns (list (first definition)))
+      (dolist (key '(:push-mode :set-mode))
+        (when (and (plist-key-p (cddr definition) key)
+                   (not (gethash (getf (cddr definition) key) mode-starts)))
+          (grammar-fail "Lexer rule ~S targets undefined mode ~S"
+                        (first definition) (getf (cddr definition) key)))))
     (loop for definition in definitions for index from 0 do
       (let ((entry (lx-new-state states)) (exit (lx-new-state states)))
-        (lx-edge states start :epsilon entry)
+        (lx-edge states (gethash (getf (cddr definition) :mode :default)
+                                 mode-starts)
+                 :epsilon entry)
         (lx-compile (second definition) patterns states entry exit)
         (setf (lx-state-accept (aref states exit)) index)
         (push (first definition) kinds)
         (push (getf (cddr definition) :skip) skips)
-        (push (getf (cddr definition) :channel :default) channels)))
+        (push (getf (cddr definition) :channel :default) channels)
+        (push (getf (cddr definition) :push-mode) push-modes)
+        (push (getf (cddr definition) :pop-mode) pop-modes)
+        (push (getf (cddr definition) :set-mode) set-modes)))
     (setf kinds (coerce (nreverse kinds) 'vector)
           skips (coerce (nreverse skips) 'vector)
-          channels (coerce (nreverse channels) 'vector))
-    (when (lx-best-accept states (lx-closure states (list start)))
-      (grammar-fail "Lexer rules must consume at least one character"))
+          channels (coerce (nreverse channels) 'vector)
+          push-modes (coerce (nreverse push-modes) 'vector)
+          pop-modes (coerce (nreverse pop-modes) 'vector)
+          set-modes (coerce (nreverse set-modes) 'vector))
+    (maphash (lambda (mode start)
+               (declare (ignore mode))
+               (when (lx-best-accept states (lx-closure states (list start)))
+                 (grammar-fail "Lexer rules must consume at least one character")))
+             mode-starts)
     (lambda (source)
       (unless (stringp source)
         (error 'type-error :datum source :expected-type 'string))
-      (let ((position 0) (output nil))
+      (let ((position 0) (output nil) (mode :default) (mode-stack nil))
         (loop while (< position (length source)) do
-          (let ((active (lx-closure states (list start)))
+          (let ((active (lx-closure states (list (gethash mode mode-starts))))
                 (best-end nil) (best-rule nil))
             (loop for offset from position below (length source) do
               (setf active (lx-step states active (char source offset)))
@@ -204,5 +250,15 @@ ties use rule order."
                                  :start position :end best-end
                                  :channel (aref channels best-rule))
                     output))
+            (cond ((aref push-modes best-rule)
+                   (push mode mode-stack)
+                   (setf mode (aref push-modes best-rule)))
+                  ((aref pop-modes best-rule)
+                   (unless mode-stack
+                     (error 'lexer-mode-error :position position
+                            :character (char source position) :mode mode))
+                   (setf mode (pop mode-stack)))
+                  ((aref set-modes best-rule)
+                   (setf mode (aref set-modes best-rule))))
             (setf position best-end)))
         (coerce (nreverse output) 'vector)))))

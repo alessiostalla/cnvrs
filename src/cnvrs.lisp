@@ -2,9 +2,11 @@
   (:use #:cl)
   (:shadow #:parse-error)
   (:export #:compile-grammar #:compile-lexer #:parse #:lex
-           #:define-parser #:in-parser #:defrule #:parser-definition-p
+           #:define-parser #:in-parser #:defrule #:with-mode
+           #:parser-definition-p
            #:grammar-error #:parse-error
            #:lexical-error #:lexical-error-position #:lexical-error-character
+           #:lexer-mode-error #:lexer-mode-error-mode
            #:make-lexeme #:lexeme-p #:lexeme-kind #:lexeme-text
            #:lexeme-start #:lexeme-end #:lexeme-channel
            #:parse-error-position #:parse-error-token #:parse-error-expected
@@ -66,6 +68,10 @@
 
 (defun grammar-fail (control &rest arguments)
   (error 'grammar-error :message (apply #'format nil control arguments)))
+
+(defun plist-key-p (plist key)
+  (loop for tail on plist by #'cddr
+        thereis (eq (first tail) key)))
 
 (defun expression-kind (expression)
   (cond ((atom expression)

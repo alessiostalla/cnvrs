@@ -121,6 +121,28 @@ Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call w
 
 The generated lexer takes the longest match at each source position. Equal-length matches use the earlier rule. Skipped rules consume text without returning tokens. Returned lexemes expose `lexeme-kind`, `lexeme-text`, `lexeme-start`, `lexeme-end`, and `lexeme-channel`; the parser matches their kinds and keeps the lexeme objects in the tree. Node and parse-error offsets count the selected tokens, while lexeme offsets count source characters. Unmatched input signals `lexical-error` with `lexical-error-position` and `lexical-error-character`.
 
+### Lexer modes
+
+Lexer rules belong to `:default` mode unless they specify `:mode`. Only rules in the current mode can match. A rule may use one of `:push-mode`, `:pop-mode t`, or `:set-mode` to change modes after it matches. Mode actions also run for `:skip t` rules. These options work in `compile-lexer` definitions and in lexer rules declared with `defrule`, including combined grammars. In the macro layer, `(with-mode mode rules...)` assigns one mode to a group of lexer rules. It works inside `define-parser` and after `in-parser`.
+
+```lisp
+(cnvrs:define-parser *quoted-words* (:kind :lexer)
+  (cnvrs:defrule :word (+ (range #\a #\z)))
+  (cnvrs:defrule :space #\Space :skip t)
+  (cnvrs:defrule :open #\" :push-mode :string :skip t)
+  (cnvrs:with-mode :string
+    (cnvrs:defrule :text (+ (range #\a #\z)))
+    (cnvrs:defrule :close #\" :pop-mode t :skip t)))
+
+(map 'list #'cnvrs:lexeme-kind
+     (cnvrs:lex *quoted-words* "one \"two\" three"))
+; => (:WORD :TEXT :WORD)
+```
+
+`push-mode` saves the current mode, and `pop-mode` restores it, so nested mode changes work. `set-mode` switches directly without using the stack. Every target mode must have a rule, and popping an empty mode stack signals `lexer-mode-error`, a subclass of `lexical-error` with a `lexer-mode-error-mode` reader.
+
+For an incremental definition, use `(in-parser *quoted-words*)` followed by a top-level `(cnvrs:with-mode :string (cnvrs:defrule ...) ...)`. Within `define-parser`, the block also accepts bare `(name expression ...)` rule forms. An explicit `:mode` on a rule inside the block must match the block's mode.
+
 ### Channels
 
 Rules use the `:default` channel unless they specify `:channel`. Tokens on other channels remain in the lexer's output, so callers can inspect them. `parse` consumes only `:default` tokens unless given `:channels`, a list of channel names, or `:all`:
