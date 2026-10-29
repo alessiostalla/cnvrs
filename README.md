@@ -28,6 +28,22 @@ CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is 
 | `(token value)` | Match a token with `equal` |
 | Character, string, number, or keyword | Literal token |
 
+### Direct left recursion
+
+An alternative may start with its own rule name. Recursive alternatives are listed from lowest to highest precedence; repetitions of one alternative associate to the left. Wrap an alternative in `(right ...)` to associate to the right:
+
+```lisp
+(defparameter *expr*
+  (cnvrs:compile-grammar
+   '((expr (or (and expr :+ expr)
+               (and expr :* expr)
+               (right (and expr :^ expr))
+               (and :open expr :close)
+               :number)))))
+```
+
+Here multiplication binds more tightly than addition, and exponentiation binds more tightly than both. The result contains nested `expr` nodes with the original rule name and token offsets. A recursive alternative can also be postfix, such as `(and expr :bang)`. A rule needs at least one non-left-recursive base alternative, and every recursive suffix must consume input. Indirect left recursion and cycles that consume no input remain invalid.
+
 `parse` accepts a sequence of tokens: a string is a sequence of characters, while a list or vector can contain arbitrary token values. It consumes the whole input and returns `node` structs. Each node has a rule name, ordered children, and start/end token offsets. Children are literal tokens or nodes for referenced rules. Invalid grammars signal `cnvrs:grammar-error`.
 
 ## Lexing
@@ -132,7 +148,7 @@ At a token mismatch, no argument to `insert-tokens` inserts the expected token. 
 
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. At a choice or repetition, prediction explores graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
-This initial implementation rejects left-recursive or zero-consumption rule cycles and repetitions whose body can match empty input. It has no semantic actions, direct-left-recursion rewrite, or external grammar syntax. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. File compilation and an external grammar syntax are future work.
+Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. It has no semantic actions or external grammar syntax. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. File compilation and an external grammar syntax are future work.
 
 ## Tests
 

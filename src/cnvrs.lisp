@@ -13,7 +13,7 @@
            #:discard-input #:recovery-p #:recovery-action #:recovery-condition
            #:recovery-token #:inserted-token-p #:inserted-token-expected
            #:inserted-token-value #:inserted-token-position
-           #:node-rule #:node-children #:node-start #:node-end))
+           #:node-p #:node-rule #:node-children #:node-start #:node-end))
 
 (in-package #:cnvrs)
 
@@ -56,6 +56,7 @@
 (defstruct configuration state stack alternative)
 (defstruct dfa-state configurations alternatives accepted (edges (make-hash-table :test 'equal)))
 (defstruct grammar states starts stops start-rule lexer
+  (rewrites (make-hash-table :test 'eq))
   (decisions (make-hash-table))
   (sll-decisions (make-hash-table)))
 
@@ -146,6 +147,99 @@
                  (setf (gethash rule done) t))))
       (dolist (definition definitions) (visit (first definition))))))
 
+(defun direct-left-alternative (rule alternative)
+  (let* ((right (and (consp alternative)
+                     (symbolp (first alternative))
+                     (string= (symbol-name (first alternative)) "RIGHT")))
+         (body (if right (second alternative) alternative))
+         (parts (if (eq (expression-kind body) :sequence)
+                    (rest body) (list body))))
+    (when right
+      (unless (= (length alternative) 2)
+        (grammar-fail "RIGHT requires one alternative: ~S" alternative)))
+    (if (eq (first parts) rule)
+        (progn
+          (unless (rest parts)
+            (grammar-fail "Left-recursive alternative must consume input: ~S" alternative))
+          (values (rest parts) right))
+        (progn
+          (when right
+            (grammar-fail "RIGHT requires a direct left-recursive alternative: ~S"
+                          alternative))
+          (values nil nil)))))
+
+(defun rewrite-left-recursion (definitions)
+  (let ((rewrites (make-hash-table :test 'eq))
+        (output nil))
+    (dolist (definition definitions)
+      (destructuring-bind (rule expression) definition
+        (let ((bases nil) (recursive nil)
+              (alternatives (if (eq (expression-kind expression) :choice)
+                                (rest expression) (list expression))))
+          (dolist (alternative alternatives)
+            (multiple-value-bind (suffix right)
+                (direct-left-alternative rule alternative)
+              (if suffix
+                  (push (list suffix right) recursive)
+                  (push alternative bases))))
+          (if (null recursive)
+              (push definition output)
+              (progn
+                (unless bases
+                  (grammar-fail "Left-recursive rule ~S needs a base alternative" rule))
+                (setf bases (nreverse bases)
+                      recursive (nreverse recursive))
+                (let* ((primary (gensym "PRIMARY-"))
+                       (higher primary)
+                       (generated (list (list primary
+                                              (if (rest bases) (cons 'or bases)
+                                                  (first bases))))))
+                  (setf (gethash primary rewrites) (list :primary rule))
+                  (dolist (alternative (reverse recursive))
+                    (destructuring-bind (suffix right) alternative
+                      (let* ((level (gensym "LEVEL-"))
+                             (suffix-rule (gensym "SUFFIX-"))
+                             (parts (copy-list suffix)))
+                        (when (eq (car (last parts)) rule)
+                          (setf (car (last parts)) (if right level higher)))
+                        (push (list suffix-rule
+                                    (if (rest parts) (cons 'and parts) (first parts)))
+                              generated)
+                        (push (list level (list 'and higher (list '* suffix-rule)))
+                              generated)
+                        (setf (gethash suffix-rule rewrites) (list :suffix rule)
+                              (gethash level rewrites) (list :level rule)
+                              higher level))))
+                  (setf (gethash rule rewrites) (list :wrapper rule))
+                  (push (list rule higher) output)
+                  (dolist (item (nreverse generated)) (push item output))))))))
+    (values (nreverse output) rewrites)))
+
+(defun normalize-rewritten-node (node rewrites)
+  (if (not (node-p node))
+      node
+      (let* ((children (mapcar (lambda (child)
+                                 (normalize-rewritten-node child rewrites))
+                               (node-children node)))
+             (rewrite (gethash (node-rule node) rewrites)))
+        (case (first rewrite)
+          (:wrapper (first children))
+          (:primary (make-node :rule (second rewrite) :children children
+                               :start (node-start node) :end (node-end node)))
+          (:level
+           (reduce (lambda (left suffix)
+                     (make-node :rule (second rewrite)
+                                :children (cons left (node-children suffix))
+                                :start (node-start left) :end (node-end suffix)))
+                   (rest children) :initial-value (first children)))
+          (:suffix (make-node :rule (node-rule node) :children children
+                              :start (node-start node) :end (node-end node)))
+          (otherwise (make-node :rule (node-rule node) :children children
+                                :start (node-start node) :end (node-end node)))))))
+
+(defun visible-rule (grammar rule)
+  (or (second (gethash rule (grammar-rewrites grammar))) rule))
+
 (defun new-state (grammar &optional stop-rule)
   (let* ((states (grammar-states grammar))
          (id (length states)))
@@ -198,12 +292,15 @@
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), and (TOKEN value).
+Direct left-recursive alternatives are ordered from low to high precedence;
+(RIGHT alternative) gives a recursive alternative right associativity.
 Bare symbols name rules; other atoms are literal tokens. LEXER, when
 supplied, maps source input to tokens before parsing."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let ((names (make-hash-table :test 'eq))
-        (nullable (make-hash-table :test 'eq)))
+        (nullable (make-hash-table :test 'eq))
+        (rewrites nil))
     (dolist (definition definitions)
       (unless (and (listp definition) (= (length definition) 2)
                    (symbolp (first definition)) (not (keywordp (first definition))))
@@ -213,6 +310,10 @@ supplied, maps source input to tokens before parsing."
       (setf (gethash (first definition) names) t))
     (setf start (or start (first (first definitions))))
     (unless (gethash start names) (grammar-fail "Unknown start rule ~S" start))
+    (multiple-value-setq (definitions rewrites)
+      (rewrite-left-recursion definitions))
+    (dolist (definition definitions)
+      (setf (gethash (first definition) names) t))
     (dolist (definition definitions)
       (validate-expression (second definition) names))
     (loop with changed = t while changed do
@@ -226,7 +327,8 @@ supplied, maps source input to tokens before parsing."
     (let ((grammar (make-grammar :states (make-array 0 :adjustable t :fill-pointer 0)
                                  :starts (make-hash-table :test 'eq)
                                  :stops (make-hash-table :test 'eq)
-                                 :start-rule start :lexer lexer)))
+                                 :start-rule start :lexer lexer
+                                 :rewrites rewrites)))
       (dolist (definition definitions)
         (setf (gethash (first definition) (grammar-starts grammar)) (new-state grammar)
               (gethash (first definition) (grammar-stops grammar))
@@ -536,7 +638,12 @@ the restarts at each error site to make a different local repair."
                                       (remaining-values))
                               (setf pending nil
                                     position (length input))))))
-                      (return (values completed (nreverse recoveries)))))))
+                      (return (values (if (zerop (hash-table-count
+                                                 (grammar-rewrites grammar)))
+                                          completed
+                                          (normalize-rewritten-node
+                                           completed (grammar-rewrites grammar)))
+                                      (nreverse recoveries)))))))
             (unless stop
               (let* ((edges (state-edges state))
                      (index (if (= (length edges) 1)
@@ -546,7 +653,7 @@ the restarts at each error site to make a different local repair."
                           (make-condition
                            'no-viable-alternative :position position
                            :token (current-value)
-                           :rule (first (first frames))
+                           :rule (visible-rule grammar (first (first frames)))
                            :expected
                            (possible-tokens
                             grammar
@@ -599,7 +706,7 @@ the restarts at each error site to make a different local repair."
                                       'mismatched-token :position position
                                       :token (current-value)
                                       :expected expected
-                                      :rule (first (first frames))
+                                      :rule (visible-rule grammar (first (first frames)))
                                       :next-state (transition-target edge))))
                                (multiple-value-bind (action value)
                                    (restart-case (error condition)

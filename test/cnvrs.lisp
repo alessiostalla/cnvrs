@@ -67,9 +67,51 @@
   (check (signals cnvrs:grammar-error
             (cnvrs:compile-grammar '((start (and (? #\a) (* (? #\b)))))))
          "nullable repetition")
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((expr (or (and expr :+ expr)
+                               (and expr :* expr)
+                               (and :open expr :close)
+                               :n)))))
+         (tree (cnvrs:parse grammar '(:n :+ :n :* :n))))
+    (check (equal (mapcar (lambda (child)
+                            (if (cnvrs:node-p child) (cnvrs:node-rule child) child))
+                          (cnvrs:node-children tree))
+                  '(expr :+ expr))
+           "direct left recursion retains rule nodes")
+    (check (eq (second (cnvrs:node-children
+                        (third (cnvrs:node-children tree)))) :*)
+           "later recursive alternative has higher precedence")
+    (check (eq (second (cnvrs:node-children
+                        (cnvrs:parse grammar '(:n :* :n :+ :n)))) :+)
+           "precedence works in both orders")
+    (check (eq (second (cnvrs:node-children
+                        (cnvrs:parse grammar '(:open :n :+ :n :close :* :n))))
+               :*)
+           "parenthesized base can contain a full expression"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((expr (or (right (and expr :^ expr)) :n)))))
+         (tree (cnvrs:parse grammar '(:n :^ :n :^ :n))))
+    (check (eq (second (cnvrs:node-children
+                        (third (cnvrs:node-children tree)))) :^)
+           "right associative recursive alternative"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((expr (or (and expr :bang) :n)))))
+         (tree (cnvrs:parse grammar '(:n :bang :bang))))
+    (check (and (eq (second (cnvrs:node-children tree)) :bang)
+                (cnvrs:node-p (first (cnvrs:node-children tree)))
+                (= (cnvrs:node-end tree) 3))
+           "postfix alternative folds left and preserves offsets")
+    (handler-case (cnvrs:parse grammar '(:n :bang :bad))
+      (cnvrs:parse-error (condition)
+        (check (eq (cnvrs:parse-error-rule condition) 'expr)
+               "rewritten rule reports original name"))))
   (check (signals cnvrs:grammar-error
-            (cnvrs:compile-grammar '((start (or (and start #\a) #\b)))))
-         "left recursion")
+           (cnvrs:compile-grammar '((expr (or (and expr (? :bang)) :n)))))
+         "nullable recursive suffix rejected")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-grammar '((a (or (and b :x) :n))
+                                    (b a))))
+         "indirect left recursion remains invalid")
   (let ((grammar (cnvrs:compile-grammar
                   '((start (and #\a #\b #\c))))))
     (check (signals cnvrs:mismatched-token (cnvrs:parse grammar "ac"))
