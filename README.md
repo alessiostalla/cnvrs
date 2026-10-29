@@ -17,7 +17,7 @@ CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is 
 (cnvrs:node-children *tree*)  ; => tokens and nested ITEM nodes
 ```
 
-`compile-grammar` takes a list of `(rule-name expression)` pairs. The first rule is the start rule unless `:start` names another. Expressions resemble Esrap forms:
+`compile-grammar` takes a list of `(rule-name expression)` pairs. The first rule is the default entry rule unless `:default-rule` names another. `parse` can start from any parser rule using `:rule`. Expressions resemble Esrap forms:
 
 | Form | Meaning |
 | --- | --- |
@@ -30,11 +30,12 @@ CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is 
 
 ## Defining grammars with macros
 
-`define-parser` declares a grammar in one form. The first form after its name is an optional plist with `:kind`, `:start`, and `:lexer`; the remaining forms are rules. Rules may be written as `(defrule name expression ...)` or simply `(name expression ...)`:
+`define-parser` declares a grammar in one form. The first form after its name is an optional plist with `:kind`, `:default-rule`, and `:lexer`; the remaining forms are rules. Rules may be written as `(defrule name expression ...)` or simply `(name expression ...)`:
 
 ```lisp
-(cnvrs:define-parser *assignment* (:kind :combined :start assignment)
-  (cnvrs:defrule assignment (and :let :name :equals :number))
+(cnvrs:define-parser *assignment* (:kind :combined)
+  (cnvrs:defrule assignment (and :let :name :equals value))
+  (cnvrs:defrule value :number)
   (cnvrs:defrule :space (+ (one-of " ")) :skip t)
   (cnvrs:defrule :let "let")
   (cnvrs:defrule :name (+ (range #\a #\z)))
@@ -42,6 +43,7 @@ CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is 
   (cnvrs:defrule :number (+ (range #\0 #\9))))
 
 (cnvrs:parse *assignment* "let x = 42")
+(cnvrs:parse *assignment* "42" :rule 'value) ; starts at any named parser rule
 ```
 
 The incremental style separates the declaration from its rules. `in-parser` selects the definition receiving subsequent top-level `defrule` forms, much like `in-package` selects a package:
@@ -61,7 +63,9 @@ The incremental style separates the declaration from its rules. `in-parser` sele
 | `:lexer` | All rules are lexer rules. `lex` accepts a source string and returns lexemes. |
 | `:combined` | Ordinary symbol names define parser rules; keyword names define lexer rules. Use `:lexer t` on a rule to give a lexer rule an ordinary symbol name. `parse` lexes and parses source strings. |
 
-`:start` selects a parser rule; otherwise the first parser rule is the start. Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. Definitions compile in the current Lisp image on first use, allowing forward references in the incremental style. Adding a rule invalidates the compiled definition. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
+`:default-rule` only changes the rule used when `parse` is called without `:rule`; otherwise the first parser rule is the default. Every `parse` call may select any parser rule with `:rule`, whether the grammar was built with `compile-grammar` or `define-parser`. Only the selected entry rule must consume the entire input by default, even if its definition does not mention EOF. Calls to that same rule from within other rules have no EOF requirement. Use `:require-eof nil` to accept a prefix and inspect `node-end` for the position reached. This EOF check happens at parse time and does not alter the rule. The older `parse :start` argument remains an alias for `:rule`.
+
+Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. Definitions compile in the current Lisp image on first use, allowing forward references in the incremental style. Adding a rule invalidates the compiled definition. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
 
 ### Direct left recursion
 

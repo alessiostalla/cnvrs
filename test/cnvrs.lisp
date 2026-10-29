@@ -4,11 +4,11 @@
 
 (in-package #:cnvrs/tests)
 
-(cnvrs:define-parser *inline-parser* (:kind :parser :start start)
+(cnvrs:define-parser *inline-parser* (:kind :parser :default-rule start)
   (cnvrs:defrule start (and :open item :close))
   (cnvrs:defrule item :name))
 
-(cnvrs:define-parser *package-parser* (:kind :parser :start start))
+(cnvrs:define-parser *package-parser* (:kind :parser :default-rule item))
 (cnvrs:in-parser *package-parser*)
 (cnvrs:defrule start (and item :end))
 (cnvrs:defrule item :name)
@@ -22,13 +22,14 @@
 (cnvrs:defrule :number (+ (range #\0 #\9)))
 (cnvrs:defrule :space (+ (one-of " ")) :skip t)
 
-(cnvrs:define-parser *inline-combined* (:kind :combined :start start)
+(cnvrs:define-parser *inline-combined* (:kind :combined :default-rule start)
   (cnvrs:defrule start (and :name :equals :number))
   (cnvrs:defrule :name (+ (range #\a #\z)))
   (cnvrs:defrule :equals #\=)
   (cnvrs:defrule :number (+ (range #\0 #\9))))
 
-(cnvrs:define-parser *package-combined* (:kind :combined :start assignment))
+(cnvrs:define-parser *package-combined*
+    (:kind :combined :default-rule assignment))
 (cnvrs:in-parser *package-combined*)
 (cnvrs:defrule assignment (and :let :name :equals :number))
 (cnvrs:defrule :space (+ (one-of " ")) :skip t)
@@ -42,7 +43,7 @@
 
 (cnvrs:define-parser *external-lexer-parser*
     (:kind :parser :lexer (cnvrs:compile-lexer '((:word (+ (range #\a #\z)))))
-     :start start)
+     :default-rule start)
   (cnvrs:defrule start :word))
 
 (cnvrs:define-parser *symbol-lexer-combined* (:kind :combined)
@@ -67,10 +68,33 @@
                (cnvrs:parse *inline-parser* '(:open :name :close))) 'start)
          "single-form parser grammar")
   (check (eq (cnvrs:node-rule
-               (first (cnvrs:node-children
-                       (cnvrs:parse *package-parser* '(:name :end)))))
+              (cnvrs:parse *inline-parser* '(:name) :rule 'item)) 'item)
+         "any parser rule can be an entry rule")
+  (check (signals cnvrs:unexpected-input
+           (cnvrs:parse *inline-parser* '(:name :close) :rule 'item))
+         "entry rule requires end of input by default")
+  (let ((tree (cnvrs:parse *inline-parser* '(:name :close)
+                           :rule 'item :require-eof nil)))
+    (check (eq (cnvrs:node-rule tree) 'item)
+           "entry rule prefix parse")
+    (check (= (cnvrs:node-end tree) 1)
+           "prefix parse ends after the selected rule"))
+  (check (signals cnvrs:grammar-error
+           (cnvrs:parse *inline-parser* '(:name) :rule 'missing))
+         "unknown entry rule")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:parse *inline-parser* '(:name)
+                        :rule 'item :start 'start))
+         "conflicting entry rule aliases")
+  (check (eq (cnvrs:node-rule
+              (first (cnvrs:node-children
+                       (cnvrs:parse *package-parser* '(:name :end)
+                                    :rule 'start))))
              'item)
          "package-style parser with forward reference")
+  (check (eq (cnvrs:node-rule
+              (cnvrs:parse *package-parser* '(:name))) 'item)
+         "macro default-rule chooses a nonfirst parser rule")
   (check (equal (map 'list #'cnvrs:lexeme-kind
                      (cnvrs:lex *inline-lexer* "a bc"))
                 '(:name :name))
@@ -114,8 +138,12 @@
   (eval '(cnvrs:defrule extra :b))
   (check (eq (cnvrs:node-rule
                (cnvrs:parse (symbol-value '*mutable-parser*) '(:b)
-                            :start 'extra)) 'extra)
+                            :rule 'extra)) 'extra)
          "new rule invalidates an already compiled definition")
+  (check (eq (cnvrs:node-rule
+              (cnvrs:parse (symbol-value '*mutable-parser*) '(:b)
+                           :start 'extra)) 'extra)
+         "legacy start keyword remains supported")
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and #\a (* #\b) #\c)))))
          (tree (cnvrs:parse grammar "abbbc")))
@@ -125,6 +153,28 @@
     (check (= (cnvrs:node-end tree) 5) "end position")
     (check (signals cnvrs:parse-error (cnvrs:parse grammar "abbd"))
            "unexpected token"))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((document (and item #\!))
+                    (item #\a))
+                  :default-rule 'item)))
+    (check (eq (cnvrs:node-rule
+                (cnvrs:parse grammar "a")) 'item)
+           "compile-grammar default-rule chooses a nonfirst rule")
+    (check (eq (cnvrs:node-rule
+                (first (cnvrs:node-children
+                        (cnvrs:parse grammar "a!" :rule 'document))))
+               'item)
+           "nested rule invocation does not require EOF")
+    (check (eq (cnvrs:node-rule
+                (cnvrs:parse grammar "a" :rule 'item)) 'item)
+           "compiled grammar supports any entry rule")
+    (check (signals cnvrs:unexpected-input
+             (cnvrs:parse grammar "a!" :rule 'item))
+           "compiled grammar entry rule enforces EOF")
+    (check (= (cnvrs:node-end
+               (cnvrs:parse grammar "a!" :rule 'item
+                            :require-eof nil)) 1)
+           "compiled grammar can parse a prefix"))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (or (and #\a #\b #\c)
                                 (and #\a #\b #\d))))))

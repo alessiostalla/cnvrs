@@ -57,11 +57,11 @@
 (defstruct state id (edges nil) stop-rule exit-alternative)
 (defstruct configuration state stack alternative)
 (defstruct dfa-state configurations alternatives accepted (edges (make-hash-table :test 'equal)))
-(defstruct grammar states starts stops start-rule lexer
+(defstruct grammar states starts stops default-rule lexer
   (rewrites (make-hash-table :test 'eq))
   (decisions (make-hash-table))
   (sll-decisions (make-hash-table)))
-(defstruct parser-definition name kind start lexer (rules nil) compiled)
+(defstruct parser-definition name kind default-rule lexer (rules nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
 
 (defun grammar-fail (control &rest arguments)
@@ -292,14 +292,15 @@
        (compile-expression grammar (second expression) entry loop-state)
        (compile-expression grammar (list '* (second expression)) loop-state exit)))))
 
-(defun compile-grammar (definitions &key start lexer)
+(defun compile-grammar (definitions &key default-rule lexer)
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), and (TOKEN value).
 Direct left-recursive alternatives are ordered from low to high precedence;
 (RIGHT alternative) gives a recursive alternative right associativity.
-Bare symbols name rules; other atoms are literal tokens. LEXER, when
-supplied, maps source input to tokens before parsing."
+Bare symbols name rules; other atoms are literal tokens. DEFAULT-RULE chooses
+the entry rule used by PARSE when no :RULE is supplied; otherwise the first
+definition is used. LEXER maps source input to tokens before parsing."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let ((names (make-hash-table :test 'eq))
@@ -312,8 +313,9 @@ supplied, maps source input to tokens before parsing."
       (when (gethash (first definition) names)
         (grammar-fail "Duplicate rule ~S" (first definition)))
       (setf (gethash (first definition) names) t))
-    (setf start (or start (first (first definitions))))
-    (unless (gethash start names) (grammar-fail "Unknown start rule ~S" start))
+    (setf default-rule (or default-rule (first (first definitions))))
+    (unless (gethash default-rule names)
+      (grammar-fail "Unknown default rule ~S" default-rule))
     (multiple-value-setq (definitions rewrites)
       (rewrite-left-recursion definitions))
     (dolist (definition definitions)
@@ -331,7 +333,7 @@ supplied, maps source input to tokens before parsing."
     (let ((grammar (make-grammar :states (make-array 0 :adjustable t :fill-pointer 0)
                                  :starts (make-hash-table :test 'eq)
                                  :stops (make-hash-table :test 'eq)
-                                 :start-rule start :lexer lexer
+                                 :default-rule default-rule :lexer lexer
                                  :rewrites rewrites)))
       (dolist (definition definitions)
         (setf (gethash (first definition) (grammar-starts grammar)) (new-state grammar)
@@ -493,20 +495,24 @@ supplied, maps source input to tokens before parsing."
                         collect (transition-value edge)))
    :test #'equal))
 
-(defun parse (grammar tokens &key start recover
+(defun parse (grammar tokens &key rule start (require-eof t) recover
                               (lexer nil lexer-supplied-p)
                               (channels '(:default)))
   "Parse TOKENS, returning a NODE and a list of RECOVERY records.
-Strict parsing is the default. LEXER, when supplied, maps the source to a
+RULE selects any parser rule; START is a compatibility alias. By default,
+the selected rule must consume all input, even without explicit EOF in its
+definition. Set REQUIRE-EOF to NIL to allow a prefix parse. LEXER maps the source to a
 token sequence before parsing. CHANNELS selects which lexeme channels to
 parse; :ALL selects every channel. With RECOVER true, single-token deletion,
 insertion, and choice resynchronization are attempted. Handlers may invoke
-  the restarts at each error site to make a different local repair."
+the restarts at each error site to make a different local repair."
   (when (parser-definition-p grammar)
     (when (eq (parser-definition-kind grammar) :lexer)
       (grammar-fail "Use LEX to run a lexer grammar"))
     (setf grammar (ensure-parser-compiled grammar)))
-  (setf start (or start (grammar-start-rule grammar)))
+  (when (and rule start (not (eq rule start)))
+    (grammar-fail "Conflicting :RULE ~S and :START ~S" rule start))
+  (setf start (or rule start (grammar-default-rule grammar)))
   (unless lexer-supplied-p
     (setf lexer (grammar-lexer grammar)))
   (unless (gethash start (grammar-starts grammar))
@@ -636,7 +642,7 @@ insertion, and choice resynchronization are attempted. Handlers may invoke
                       (push completed (third (first frames)))
                       (setf state-id (pop stack)))
                     (progn
-                      (when (has-token-p)
+                      (when (and require-eof (has-token-p))
                         (let ((condition (make-condition
                                           'unexpected-input :position position
                                           :token (current-value)

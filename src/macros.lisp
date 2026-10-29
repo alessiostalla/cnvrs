@@ -4,7 +4,7 @@
 
 (defun parser-option-list-p (form)
   (and (consp form)
-       (member (first form) '(:kind :start :lexer))))
+       (member (first form) '(:kind :default-rule :lexer))))
 
 (defun checked-options (options allowed context)
   (unless (and (listp options) (evenp (length options)))
@@ -68,19 +68,20 @@
           (parser-definition-compiled definition) nil)
     name))
 
-(defun make-defined-parser (name kind start lexer forms)
+(defun make-defined-parser (name kind default-rule lexer forms)
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (unless (member kind '(:parser :lexer :combined))
     (grammar-fail "Unknown grammar kind ~S" kind))
-  (when (and (eq kind :lexer) start)
-    (grammar-fail "A lexer grammar has no parser start rule"))
+  (when (and (eq kind :lexer) default-rule)
+    (grammar-fail "A lexer grammar has no default parser rule"))
   (when (and (eq kind :lexer) lexer)
     (grammar-fail "A lexer grammar defines its own lexer rules"))
   (when (and (eq kind :combined) lexer)
     (grammar-fail "A combined grammar defines its lexer rules in the same form"))
   (let ((definition (make-parser-definition
-                     :name name :kind kind :start start :lexer lexer)))
+                     :name name :kind kind :default-rule default-rule
+                     :lexer lexer)))
     (dolist (form forms)
       (register-parser-rule definition form))
     definition))
@@ -109,7 +110,8 @@
                            (parser-definition-name definition)))
            (setf (parser-definition-compiled definition)
                  (compile-grammar parser-rules
-                                  :start (parser-definition-start definition)
+                                  :default-rule
+                                  (parser-definition-default-rule definition)
                                   :lexer (parser-definition-lexer definition))))
           (:combined
            (unless (and lexer-rules parser-rules)
@@ -117,7 +119,8 @@
                            (parser-definition-name definition)))
            (setf (parser-definition-compiled definition)
                  (compile-grammar parser-rules
-                                  :start (parser-definition-start definition)
+                                  :default-rule
+                                  (parser-definition-default-rule definition)
                                   :lexer (compile-lexer lexer-rules))))))))
 
 (defun lex (parser source)
@@ -133,19 +136,19 @@
 
 (defmacro define-parser (name &body body)
   "Define NAME as a parser definition. The first body form may be a plist
-(:KIND :PARSER|:LEXER|:COMBINED :START rule :LEXER function).
+(:KIND :PARSER|:LEXER|:COMBINED :DEFAULT-RULE rule :LEXER function).
 Remaining forms are DEFRULE forms or (name expression ...) rule forms."
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (let* ((options (if (and body (parser-option-list-p (first body)))
                       (pop body) nil))
-         (options (checked-options options '(:kind :start :lexer)
+         (options (checked-options options '(:kind :default-rule :lexer)
                                    (format nil "parser ~S" name)))
          (kind (getf options :kind :parser))
-         (start (getf options :start nil))
+         (default-rule (getf options :default-rule nil))
          (lexer (getf options :lexer nil)))
     `(defparameter ,name
-       (make-defined-parser ',name ',kind ',start ,lexer ',body))))
+       (make-defined-parser ',name ',kind ',default-rule ,lexer ',body))))
 
 (defmacro in-parser (name)
   "Select the parser definition receiving subsequent top-level DEFRULE forms."
