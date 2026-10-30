@@ -1,5 +1,8 @@
 (in-package #:cnvrs)
 
+(defstruct compiled-lexer states mode-starts kinds skips channels
+  push-modes pop-modes set-modes function matcher)
+
 (define-condition lexical-error (error)
   ((position :initarg :position :reader lexical-error-position)
    (character :initarg :character :reader lexical-error-character))
@@ -160,7 +163,7 @@
         finally (return (and matches (apply #'min matches)))))
 
 (defun compile-lexer (definitions)
-  "Compile Lisp-form lexer rules into a function from strings to lexeme vectors.
+  "Compile Lisp-form lexer rules into an inspectable lexer object.
 Rules are (kind expression &key skip channel mode push-mode pop-mode set-mode).
 MODE selects the active mode for a rule, defaulting to :DEFAULT. A matched
 rule may change modes, including when it is skipped. The longest match wins;
@@ -259,7 +262,7 @@ index for one token without consuming the rest of the source."
                        (setf best-end (1+ offset) best-rule rule))))
                  (values (and best-rule (aref kinds best-rule))
                          best-end best-rule))))
-      (values
+      (let ((function
        (lambda (source)
          (unless (stringp source)
            (error 'type-error :datum source :expected-type 'string))
@@ -287,5 +290,10 @@ index for one token without consuming the rest of the source."
                      ((aref set-modes best-rule)
                       (setf mode (aref set-modes best-rule))))
                (setf position best-end)))
-           (coerce (nreverse output) 'vector)))
-       #'match-one))))
+           (coerce (nreverse output) 'vector)))))
+        (let ((lexer (make-compiled-lexer
+                      :states states :mode-starts mode-starts :kinds kinds
+                      :skips skips :channels channels :push-modes push-modes
+                      :pop-modes pop-modes :set-modes set-modes
+                      :function function :matcher #'match-one)))
+          (values lexer #'match-one))))))

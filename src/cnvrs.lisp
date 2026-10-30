@@ -2,6 +2,19 @@
   (:use #:cl)
   (:shadow #:parse-error)
   (:export #:compile-grammar #:compile-lexer #:parse #:lex
+           #:ensure-compiled #:clone-compiled #:clear-cache
+           #:grammar-p #:grammar-states #:grammar-starts #:grammar-stops
+           #:grammar-default-rule #:grammar-lexer #:grammar-rewrites
+           #:grammar-decisions #:grammar-sll-decisions
+           #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
+           #:transition-kind #:transition-target #:transition-value
+           #:compiled-lexer-p #:compiled-lexer-states
+           #:compiled-lexer-mode-starts #:compiled-lexer-kinds
+           #:compiled-lexer-skips #:compiled-lexer-channels
+           #:compiled-lexer-push-modes #:compiled-lexer-pop-modes
+           #:compiled-lexer-set-modes
+           #:lx-state-edges #:lx-state-accept
+           #:lx-edge-kind #:lx-edge-target #:lx-edge-value
            #:define-parser #:in-parser #:defrule #:with-mode
            #:parser-definition-p #:lexer-matcher
            #:grammar-error #:parse-error
@@ -63,7 +76,7 @@
   (rewrites (make-hash-table :test 'eq))
   (decisions (make-hash-table))
   (sll-decisions (make-hash-table)))
-(defstruct parser-definition name kind default-rule lexer (rules nil) compiled matcher)
+(defstruct parser-definition name kind default-rule lexer (rules nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
 
 (defun grammar-fail (control &rest arguments)
@@ -525,7 +538,7 @@ the restarts at each error site to make a different local repair."
     (grammar-fail "Unknown start rule ~S" start))
   (unless (or (eq channels :all) (listp channels))
     (error 'type-error :datum channels :expected-type '(or list (eql :all))))
-  (let* ((lexed (coerce (if lexer (funcall (coerce lexer 'function) tokens) tokens)
+  (let* ((lexed (coerce (if lexer (lex lexer tokens) tokens)
                         'vector))
          (input (if (eq channels :all)
                     lexed

@@ -87,7 +87,7 @@ Here multiplication binds more tightly than addition, and exponentiation binds m
 
 ## Lexing
 
-Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call with `parse`'s `:lexer` argument. A lexer is a function designator taking the source and returning a list or vector of tokens. A hand-written lexer can return plain values, `cnvrs:lexeme` objects made with `make-lexeme`, or both:
+Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call with `parse`'s `:lexer` argument. A lexer can be a compiled lexer object or a hand-written function designator taking the source and returning a list or vector of tokens. A hand-written lexer can return plain values, `cnvrs:lexeme` objects made with `make-lexeme`, or both:
 
 ```lisp
 (defparameter *lexer*
@@ -100,7 +100,7 @@ Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call w
 (cnvrs:parse *parser* "x")
 ```
 
-`compile-lexer` compiles lexer rules in the Lisp image and returns the same kind of function. Rules have the form `(kind expression &key skip channel)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, `(one-of "characters")`, `(not-one-of (#\a #\b ...))`, and `(any)`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected. A second return value matches one token at a given source position; `lexer-matcher` exposes it for macro-defined lexer grammars.
+`compile-lexer` compiles lexer rules in the Lisp image and returns a `compiled-lexer` structure. Pass it to `lex`, or attach it to a parser with `:lexer`. Rules have the form `(kind expression &key skip channel mode push-mode pop-mode set-mode)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, `(one-of "characters")`, `(not-one-of (#\a #\b ...))`, and `(any)`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected. A second return value matches one token at a given source position; `lexer-matcher` exposes it for compiled lexers and macro-defined lexer grammars. The compiled lexer itself is no longer a function designator, so use `lex` instead of `funcall`.
 
 ```lisp
 (defparameter *lexer*
@@ -153,7 +153,7 @@ Rules use the `:default` channel unless they specify `:channel`. Tokens on other
    '((:name (+ (range #\a #\z)))
      (:space (+ (one-of " ")) :channel :trivia))))
 
-(funcall *lexer* "x ")  ; => lexemes on :default and :trivia
+(cnvrs:lex *lexer* "x ")  ; => lexemes on :default and :trivia
 (cnvrs:parse (cnvrs:compile-grammar '((start :name)) :lexer *lexer*) "x ")
                            ; => parses the :name token
 ```
@@ -223,6 +223,20 @@ The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. At a choice or repetition, prediction explores graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
 Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. Compiling arbitrary `.g4` files into new CNVRS parsers remains future work.
+
+### Compiled objects and caches
+
+`compile-grammar` returns a `grammar` structure; `compile-lexer` returns a `compiled-lexer` structure. `define-parser` returns a definition that compiles on first use. Call `ensure-compiled` on a definition to compile it before parsing or lexing. It returns the same compiled object on later calls until a new `defrule` invalidates the definition.
+
+The exported `grammar-states`, `grammar-starts`, `grammar-stops`, and `grammar-lexer` accessors expose a parser's transition graph. `compiled-lexer-states`, `compiled-lexer-mode-starts`, and `compiled-lexer-kinds` expose a lexer's automaton. State and edge accessors are exported for inspection. Treat these graphs as immutable.
+
+`clone-compiled` accepts either kind of compiled object or a definition. A parser clone shares its immutable graph and starts with empty SLL and full-context prediction caches. A lexer clone shares its immutable automaton; lexers currently have no mutable prediction cache. A parser clone also clones an attached compiled lexer. `clear-cache` empties a parser's prediction caches and is a no-op for a compiled lexer. Do not clear a cache while another thread is using the same parser.
+
+```lisp
+(defparameter *ready* (cnvrs:ensure-compiled *assignment*))
+(defparameter *worker* (cnvrs:clone-compiled *ready*))
+(cnvrs:clear-cache *ready*)
+```
 
 ## Tests
 

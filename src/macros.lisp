@@ -139,10 +139,8 @@
            (unless lexer-rules
              (grammar-fail "Lexer grammar ~S has no rules"
                            (parser-definition-name definition)))
-           (multiple-value-bind (lexer matcher)
-               (compile-lexer lexer-rules)
-             (setf (parser-definition-compiled definition) lexer
-                   (parser-definition-matcher definition) matcher)))
+           (setf (parser-definition-compiled definition)
+                 (compile-lexer lexer-rules)))
           (:parser
            (unless parser-rules
              (grammar-fail "Parser grammar ~S has no rules"
@@ -172,17 +170,52 @@
                     (grammar-lexer compiled)
                     compiled)))
     (unless lexer (grammar-fail "No lexer is attached to ~S" parser))
-    (funcall (coerce lexer 'function) source)))
+    (if (compiled-lexer-p lexer)
+        (funcall (compiled-lexer-function lexer) source)
+        (funcall (coerce lexer 'function) source))))
 
 (defun lexer-matcher (parser)
-  "Return a one-token matcher for a lexer DEFINE-PARSER definition.
+  "Return a one-token matcher for a compiled lexer or lexer definition.
 The matcher takes source, character position, and mode, and returns kind,
 end position, and rule index."
-  (unless (and (parser-definition-p parser)
-               (eq (parser-definition-kind parser) :lexer))
-    (grammar-fail "Expected a lexer parser definition, got ~S" parser))
-  (ensure-parser-compiled parser)
-  (parser-definition-matcher parser))
+  (let ((compiled (ensure-compiled parser)))
+    (unless (compiled-lexer-p compiled)
+      (grammar-fail "Expected a compiled lexer or lexer definition, got ~S"
+                    parser))
+    (compiled-lexer-matcher compiled)))
+
+(defun ensure-compiled (parser)
+  "Return a compiled grammar or lexer, compiling a definition on first use."
+  (typecase parser
+    (parser-definition (ensure-parser-compiled parser))
+    (grammar parser)
+    (compiled-lexer parser)
+    (t (error 'type-error :datum parser
+              :expected-type '(or parser-definition grammar compiled-lexer)))))
+
+(defun clear-cache (parser)
+  "Discard learned parser prediction transitions. A compiled lexer has no cache."
+  (let ((compiled (ensure-compiled parser)))
+    (when (grammar-p compiled)
+      (clrhash (grammar-sll-decisions compiled))
+      (clrhash (grammar-decisions compiled)))
+    compiled))
+
+(defun clone-compiled (parser)
+  "Copy a compiled grammar with fresh prediction caches.
+The transition graph and lexer automaton are immutable and shared."
+  (let ((compiled (ensure-compiled parser)))
+    (typecase compiled
+      (grammar
+       (let ((copy (copy-grammar compiled)))
+         (setf (grammar-sll-decisions copy) (make-hash-table)
+               (grammar-decisions copy) (make-hash-table)
+               (grammar-lexer copy)
+               (if (compiled-lexer-p (grammar-lexer compiled))
+                   (clone-compiled (grammar-lexer compiled))
+                   (grammar-lexer compiled)))
+         copy))
+      (compiled-lexer (copy-compiled-lexer compiled)))))
 
 (defmacro define-parser (name &body body)
   "Define NAME as a parser definition. The first body form may be a plist
