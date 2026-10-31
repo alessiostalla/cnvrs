@@ -48,18 +48,46 @@
 (defgeneric cache-clear (cache))
 (defgeneric cache-count (cache))
 
-(defstruct hash-cache (table (make-hash-table :test 'equal)))
+(defparameter +flat-cache-key-marker+ (gensym "FLAT-CACHE-KEY-"))
+
+(defun flat-cache-key (head tail)
+  "Make a structural cache key from HEAD and a list of integer IDs."
+  (let ((key (make-array (+ 2 (length tail)))))
+    (setf (aref key 0) +flat-cache-key-marker+
+          (aref key 1) head)
+    (loop for value in tail
+          for index from 2
+          do (setf (aref key index) value))
+    key))
+
+(defun flat-cache-key-p (key)
+  (and (vectorp key) (plusp (length key))
+       (eq (aref key 0) +flat-cache-key-marker+)))
+
+(defstruct hash-cache
+  (table (make-hash-table :test 'equal))
+  flat-table)
 (defmethod make-cache ((backend (eql :hash-table)))
   (make-hash-cache))
 (defmethod cache-get-or-compute ((cache hash-cache) key thunk)
-  (multiple-value-bind (value present) (gethash key (hash-cache-table cache))
-    (if present value
-        (setf (gethash key (hash-cache-table cache)) (funcall thunk)))))
+  (let ((table (if (flat-cache-key-p key)
+                   (or (hash-cache-flat-table cache)
+                       (setf (hash-cache-flat-table cache)
+                             (make-hash-table :test 'equalp)))
+                   (hash-cache-table cache))))
+    (multiple-value-bind (value present) (gethash key table)
+      (if present value
+          (setf (gethash key table) (funcall thunk))))))
 (defmethod cache-clear ((cache hash-cache))
   (clrhash (hash-cache-table cache))
+  (when (hash-cache-flat-table cache)
+    (clrhash (hash-cache-flat-table cache)))
   cache)
 (defmethod cache-count ((cache hash-cache))
-  (hash-table-count (hash-cache-table cache)))
+  (+ (hash-table-count (hash-cache-table cache))
+     (if (hash-cache-flat-table cache)
+         (hash-table-count (hash-cache-flat-table cache))
+         0)))
 
 (defun cache-key-compare (a b)
   "Compare common cache key components without FSET's generic dispatch."
@@ -70,6 +98,16 @@
            (if (< a b) :less :greater))
           ((and (characterp a) (characterp b))
            (if (char< a b) :less :greater))
+          ((and (flat-cache-key-p a) (flat-cache-key-p b))
+           (loop for index from 1 below (min (length a) (length b))
+                 for left = (aref a index)
+                 for right = (aref b index)
+                 unless (= left right)
+                   do (return-from cache-key-compare
+                        (if (< left right) :less :greater)))
+           (cond ((< (length a) (length b)) :less)
+                 ((> (length a) (length b)) :greater)
+                 (t :equal)))
           ((and (consp a) (consp b))
            (do ((left a (cdr left))
                 (right b (cdr right))
@@ -576,7 +614,7 @@ TREE-BUILDER selects the parse-node construction strategy."
 (defun predict-full-context (grammar state-id stack tokens position)
   (let* ((cache (parser-decisions grammar))
          (dfa (cache-get-or-compute
-               cache (list state-id stack)
+               cache (flat-cache-key state-id stack)
                (lambda ()
                  (dfa-state-for grammar
                                 (loop for edge in (state-edges

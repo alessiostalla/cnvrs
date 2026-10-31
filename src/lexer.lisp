@@ -20,6 +20,7 @@
 
 (defstruct lx-state (edges nil) accept)
 (defstruct lx-edge kind target value)
+(defstruct lx-dfa-state active best-rule)
 
 (defun lx-new-state (states)
   (vector-push-extend (make-lx-state) states)
@@ -162,6 +163,10 @@
         when accept collect accept into matches
         finally (return (and matches (apply #'min matches)))))
 
+(defun lx-make-dfa-state (states active)
+  (make-lx-dfa-state :active active
+                     :best-rule (lx-best-accept states active)))
+
 (defun initialize-compiled-lexer (lexer)
   "Bind a compiled lexer's runtime functions to its own transition cache."
   (let ((states (compiled-lexer-states lexer))
@@ -174,17 +179,28 @@
         (set-modes (compiled-lexer-set-modes lexer))
         (cache (compiled-lexer-cache lexer)))
     (labels ((match-one (source position mode)
-               (let ((active (lx-closure states
-                                         (list (gethash mode mode-starts))))
+               (let ((dfa (cache-get-or-compute
+                           cache mode
+                           (lambda ()
+                             (lx-make-dfa-state
+                              states
+                              (lx-closure states
+                                          (list (gethash mode mode-starts)))))))
                      (best-end nil) (best-rule nil))
                  (loop for offset from position below (length source) do
-                   (let ((current active) (character (char source offset)))
-                     (setf active
+                   (let ((current dfa) (character (char source offset)))
+                     (setf dfa
                            (cache-get-or-compute
-                            cache (list current character)
-                            (lambda () (lx-step states current character)))))
-                   (when (null active) (return))
-                   (let ((rule (lx-best-accept states active)))
+                            cache (flat-cache-key
+                                   (char-code character)
+                                   (lx-dfa-state-active current))
+                            (lambda ()
+                              (lx-make-dfa-state
+                               states (lx-step states
+                                               (lx-dfa-state-active current)
+                                               character))))))
+                   (when (null (lx-dfa-state-active dfa)) (return))
+                   (let ((rule (lx-dfa-state-best-rule dfa)))
                      (when rule
                        (setf best-end (1+ offset) best-rule rule))))
                  (values (and best-rule (aref kinds best-rule))

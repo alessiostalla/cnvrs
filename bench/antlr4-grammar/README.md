@@ -98,8 +98,74 @@ The custom comparator made locked FSET 1.44× faster by this aggregate. Locked
 hash tables remain 1.74× faster than custom-compare locked FSET. These are
 single runs per configuration, and the sums weight larger files more heavily.
 
+## Flat array cache keys
+
+The lexer transition cache now uses a flat array containing a character code
+and active state IDs. The full-context parser decision cache uses a flat array
+containing a decision state ID and return stack IDs. The hash-table backend
+looks up these keys structurally in a separate `equalp` table; other keys keep
+their original `equal` behavior.
+
+Rerunning the seven-file benchmark on the same ARM64 SBCL and Java runtimes,
+with 10 warmups and seven batches of 20 Lisp parses (200 warmups and seven
+batches of 200 Java parses), gave these median milliseconds per parse:
+
+| Input | Flat locked FSET | Flat locked hash table | ANTLR4/Java |
+| --- | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 11.326 | 7.109 | 0.148 |
+| ANTLRv4Parser.g4 | 11.573 | 7.211 | 0.150 |
+| JavaLexer.g4 | 10.414 | 6.866 | 0.172 |
+| JavaParser.g4 | 34.124 | 21.410 | 0.503 |
+| JSON.g4 | 2.171 | 1.416 | 0.029 |
+| Python3Lexer.g4 | 13.811 | 8.365 | 0.189 |
+| Python3Parser.g4 | 25.389 | 16.178 | 0.323 |
+| Sum of per-file medians | 108.809 | 68.556 | 1.515 |
+
+Against the earlier list-key runs above, flat keys improved locked FSET's sum
+by about 8%; the locked hash-table sum was essentially unchanged. Java's sum
+was also close to its previous result. The new locked FSET and locked hash
+table sums are about 72× and 45× Java's sum, respectively.
+
+For `JavaParser.g4`, separate 100-iteration phase timings with locked FSET
+measured 26.6 ms for lexing and 7.1 ms for parsing pretokenized input. With
+locked hash tables, lexing took 17.7 ms. The SBCL CPU profile for the latter
+showed lexer epsilon closure and its newly allocated hash table among the
+largest self-time groups; array allocation and structural hashing also
+appeared. With FSET, key comparison remained a prominent cost. This suggests
+that repeated lexer state-set work and cache lookup are the main opportunities
+for narrowing the gap. The phase timings and sampled profiles do not by
+themselves assign the entire Lisp/Java difference to any one operation.
+
+## Cached lexer DFA start states
+
+The lexer now caches an initial DFA state for each mode in its pluggable
+cache. Each DFA state stores its epsilon-closed active states and best
+accepting rule. A transition-cache miss creates the next DFA state; a hit
+reuses it. Clearing or cloning the lexer gives it an empty cache, including
+the mode start states.
+
+With the same benchmark settings and corpus, the new results were:
+
+| Input | Locked FSET | Locked hash table | ANTLR4/Java |
+| --- | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 7.206 | 2.925 | 0.146 |
+| ANTLRv4Parser.g4 | 7.759 | 3.167 | 0.151 |
+| JavaLexer.g4 | 6.601 | 2.778 | 0.169 |
+| JavaParser.g4 | 22.458 | 9.193 | 0.499 |
+| JSON.g4 | 1.331 | 0.556 | 0.030 |
+| Python3Lexer.g4 | 8.973 | 3.547 | 0.188 |
+| Python3Parser.g4 | 16.605 | 6.796 | 0.325 |
+| Sum of per-file medians | 70.933 | 28.962 | 1.508 |
+
+Relative to the flat-key run, this cut the locked FSET sum by 35% and the
+locked hash-table sum by 58%. The remaining gaps are about 47× and 19× Java,
+respectively. In a separate warmed 100-iteration lexer-only timing on
+`JavaParser.g4`, locked hash-table lexing fell from 17.7 ms to 5.6 ms per
+iteration. Its new CPU profile no longer showed epsilon closure among the
+sampled hot spots; flat-key construction and structural hashing were prominent.
+
 Both harnesses load file contents before timing. Each timed iteration includes
-lexing and parsing. CNVRS reuses its compiled objects and default cache
+lexing and parsing. CNVRS reuses its compiled objects and selected cache
 backend, warmed across iterations; Java creates fresh
 lexer/parser objects per iteration and the JVM is warmed before timing. CNVRS
 uses `:tree-builder :none` for recognition mode and `:node` for tree mode;

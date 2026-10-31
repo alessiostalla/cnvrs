@@ -212,6 +212,22 @@
                (eq (cnvrs::cache-key-compare left right)
                    (fset:compare left right))))
            "specialized cache comparison agrees with FSET ordering"))
+  (dolist (backend '(:fset :hash-table))
+    (let ((cache (cnvrs:make-cache backend))
+          (computations 0))
+      (flet ((lookup (head tail)
+               (cnvrs:cache-get-or-compute
+                cache (cnvrs::flat-cache-key head tail)
+                (lambda () (incf computations)))))
+        (check (= (lookup 42 '(17 9)) (lookup 42 '(17 9)) 1)
+               "equal flat arrays share one cache entry")
+        (check (= (lookup 42 '(17 8)) 2)
+               "different flat array contents remain distinct")
+        (check (= (cnvrs:cache-count cache) 2)
+               "flat array entries count toward cache size")
+        (cnvrs:cache-clear cache)
+        (check (= (cnvrs:cache-count cache) 0)
+               "cache clear removes flat array entries"))))
   (dolist (backend '(:fset :hash-table (:locked :fset)
                      (:locked :hash-table)))
     (let* ((lexer (cnvrs:compile-lexer '((:a "a") (:b "b"))
@@ -226,6 +242,11 @@
                   (plusp (cnvrs:cache-count
                           (cnvrs:parser-sll-decisions grammar))))
              "lexer and parser both populate their caches")
+      (check (cnvrs::lx-dfa-state-p
+              (cnvrs:cache-get-or-compute
+               (cnvrs:compiled-lexer-cache lexer) :default
+               (lambda () :missing)))
+             "lexer caches its initial DFA state by mode")
       (let ((copy (cnvrs:clone-compiled grammar)))
         (check (and (equal (cnvrs:parser-cache-backend copy) backend)
                     (zerop (cnvrs:cache-count
@@ -239,7 +260,9 @@
                           (cnvrs:parser-sll-decisions grammar)))
                   (zerop (cnvrs:cache-count
                           (cnvrs:compiled-lexer-cache lexer))))
-             "one call clears parser and attached lexer caches")))
+             "one call clears parser and attached lexer caches")
+      (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex lexer "b") 0)) :b)
+             "cleared lexer rebuilds its DFA states")))
   (let* ((grammar (cnvrs:compile-grammar '((start (or :a :b)))))
          (copy (cnvrs:clone-compiled grammar :cache-backend :hash-table)))
     (check (and (equal (cnvrs:parser-cache-backend grammar)
