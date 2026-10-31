@@ -10,14 +10,9 @@
            #:parser-cache-backend #:compiled-lexer-cache-backend
            #:compiled-lexer-cache
            #:parser-p #:parser-states #:parser-starts #:parser-stops
-           #:grammar-p #:grammar-states #:grammar-starts #:grammar-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
-           #:grammar-default-rule #:grammar-lexer #:grammar-rewrites
            #:parser-tree-builder
-           #:grammar-tree-builder
            #:parser-decisions #:parser-sll-decisions
-           #:grammar-decisions #:grammar-sll-decisions
-           #:grammar-cache-backend
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
            #:transition-kind #:transition-target #:transition-value
            #:compiled-lexer-p #:compiled-lexer-states
@@ -169,18 +164,6 @@
   (rewrites (make-hash-table :test 'eq))
   (cache-backend '(:locked :fset))
   decisions sll-decisions)
-(deftype grammar () 'parser)
-(defun grammar-p (value) (parser-p value))
-(defun grammar-states (value) (parser-states value))
-(defun grammar-starts (value) (parser-starts value))
-(defun grammar-stops (value) (parser-stops value))
-(defun grammar-default-rule (value) (parser-default-rule value))
-(defun grammar-lexer (value) (parser-lexer value))
-(defun grammar-rewrites (value) (parser-rewrites value))
-(defun grammar-tree-builder (value) (parser-tree-builder value))
-(defun grammar-cache-backend (value) (parser-cache-backend value))
-(defun grammar-decisions (value) (parser-decisions value))
-(defun grammar-sll-decisions (value) (parser-sll-decisions value))
 (defstruct parser-definition name kind default-rule lexer cache-backend
   (tree-builder :node)
   (rules nil) compiled)

@@ -226,7 +226,7 @@ Compilation rewrites direct left recursion into precedence levels before buildin
 
 ### Compiled objects and caches
 
-`compile-grammar` returns a `parser` structure; `compile-lexer` returns a `compiled-lexer` structure. `define-parser` returns a definition that compiles on first use. Call `ensure-compiled` on a definition to compile it before parsing or lexing. It returns the same compiled object on later calls until a new `defrule` invalidates the definition. The old `grammar-p` and `grammar-*` readers remain as compatibility aliases.
+`compile-grammar` returns a `parser` structure; `compile-lexer` returns a `compiled-lexer` structure. `define-parser` returns a definition that compiles on first use. Call `ensure-compiled` on a definition to compile it before parsing or lexing. It returns the same compiled object on later calls until a new `defrule` invalidates the definition.
 
 The exported `parser-states`, `parser-starts`, `parser-stops`, and `parser-lexer` accessors expose a parser's transition graph. `compiled-lexer-states`, `compiled-lexer-mode-starts`, and `compiled-lexer-kinds` expose a lexer's automaton. State and edge accessors are exported for inspection. Treat these graphs as immutable.
 

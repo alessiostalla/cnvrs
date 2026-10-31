@@ -129,9 +129,8 @@
              "event-only builder records parsing without creating nodes"))
     (check (and (cnvrs:parser-p parser)
                 (eq (type-of parser) 'cnvrs::parser)
-                (eq (cnvrs:parser-states parser)
-                    (cnvrs:grammar-states parser)))
-           "compiled grammar is a parser structure with legacy accessors"))
+                (plusp (length (cnvrs:parser-states parser))))
+           "compiled grammar is a parser structure"))
   (let* ((parser (cnvrs:compile-grammar
                   '((expr (or (and expr :bang) :n)))))
          (sink (make-event-sink)))
@@ -172,7 +171,7 @@
     (check (cnvrs:node-p
             (cnvrs:parse grammar '(:name :end) :tree-builder :node))
            "parse can override a compiled grammar's tree builder")
-    (check (eq (cnvrs:grammar-tree-builder
+    (check (eq (cnvrs:parser-tree-builder
                 (cnvrs:clone-compiled grammar)) :alternate)
            "cloning preserves the tree builder"))
   (check (alternate-node-p
@@ -216,30 +215,30 @@
       (check (and (plusp (cnvrs:cache-count
                           (cnvrs:compiled-lexer-cache lexer)))
                   (plusp (cnvrs:cache-count
-                          (cnvrs:grammar-sll-decisions grammar))))
+                          (cnvrs:parser-sll-decisions grammar))))
              "lexer and parser both populate their caches")
       (let ((copy (cnvrs:clone-compiled grammar)))
-        (check (and (equal (cnvrs:grammar-cache-backend copy) backend)
+        (check (and (equal (cnvrs:parser-cache-backend copy) backend)
                     (zerop (cnvrs:cache-count
-                            (cnvrs:grammar-sll-decisions copy)))
+                            (cnvrs:parser-sll-decisions copy)))
                     (zerop (cnvrs:cache-count
                             (cnvrs:compiled-lexer-cache
-                             (cnvrs:grammar-lexer copy)))))
+                             (cnvrs:parser-lexer copy)))))
                "clone starts with independent parser and lexer caches"))
       (cnvrs:clear-cache grammar)
       (check (and (zerop (cnvrs:cache-count
-                          (cnvrs:grammar-sll-decisions grammar)))
+                          (cnvrs:parser-sll-decisions grammar)))
                   (zerop (cnvrs:cache-count
                           (cnvrs:compiled-lexer-cache lexer))))
              "one call clears parser and attached lexer caches")))
   (let* ((grammar (cnvrs:compile-grammar '((start (or :a :b)))))
          (copy (cnvrs:clone-compiled grammar :cache-backend :hash-table)))
-    (check (and (equal (cnvrs:grammar-cache-backend grammar)
+    (check (and (equal (cnvrs:parser-cache-backend grammar)
                        '(:locked :fset))
-                (eq (cnvrs:grammar-cache-backend copy) :hash-table)
+                (eq (cnvrs:parser-cache-backend copy) :hash-table)
                 (eq (cnvrs:node-rule (cnvrs:parse copy '(:b))) 'start))
            "cloning can select another cache backend"))
-  (check (eq (cnvrs:grammar-cache-backend
+  (check (eq (cnvrs:parser-cache-backend
               (cnvrs:ensure-compiled *hash-parser*)) :hash-table)
          "define-parser forwards the cache backend")
   (let ((grammar (cnvrs:compile-grammar '((start (or :a :b)))
@@ -247,7 +246,7 @@
     (check (and (eq (cnvrs:node-rule
                      (cnvrs:parse grammar '(:a))) 'start)
                 (plusp (cnvrs:cache-count
-                        (cnvrs:grammar-sll-decisions grammar))))
+                        (cnvrs:parser-sll-decisions grammar))))
            "custom cache factory participates in prediction"))
   (check (typep (cnvrs:make-cache '(:locked :test-cache))
                 'cnvrs::locked-cache)
@@ -282,25 +281,25 @@
     (check (eq (nth-value 0 (funcall (cnvrs:lexer-matcher lexer)
                                      "abc" 0 :default)) :name)
            "compiled lexer exposes its matcher"))
-  (check (cnvrs:grammar-p (cnvrs:ensure-compiled *inline-parser*))
+  (check (cnvrs:parser-p (cnvrs:ensure-compiled *inline-parser*))
          "parser definition can be compiled before parsing")
   (let ((grammar (cnvrs:compile-grammar '((start (or :a :b))))))
-    (check (and (cnvrs:grammar-p grammar)
-                (plusp (length (cnvrs:grammar-states grammar))))
+    (check (and (cnvrs:parser-p grammar)
+                (plusp (length (cnvrs:parser-states grammar))))
            "compiled grammar exposes its transition states")
     (cnvrs:parse grammar '(:a))
     (let ((copy (cnvrs:clone-compiled grammar)))
       (check (and (not (eq grammar copy))
-                  (eq (cnvrs:grammar-states grammar)
-                      (cnvrs:grammar-states copy))
+                  (eq (cnvrs:parser-states grammar)
+                      (cnvrs:parser-states copy))
                   (zerop (cnvrs:cache-count
-                          (cnvrs::grammar-sll-decisions copy)))
+                          (cnvrs::parser-sll-decisions copy)))
                   (plusp (cnvrs:cache-count
-                          (cnvrs::grammar-sll-decisions grammar))))
+                          (cnvrs::parser-sll-decisions grammar))))
              "parser clone shares its graph but starts with an empty cache")
       (cnvrs:clear-cache grammar)
       (check (zerop (cnvrs:cache-count
-                    (cnvrs::grammar-sll-decisions grammar)))
+                    (cnvrs::parser-sll-decisions grammar)))
              "parser prediction cache can be cleared")))
   (check (cnvrs:parser-definition-p *inline-parser*)
          "single-form parser definition")
@@ -490,7 +489,7 @@
                    (first (cnvrs:node-children tree))) '(#\a #\b))
            "caller context chooses longer alternative")
     (check (plusp (cnvrs:cache-count
-                   (cnvrs:grammar-decisions grammar)))
+                   (cnvrs:parser-decisions grammar)))
            "full-context prediction uses the selected cache backend")
     (check (equal (cnvrs:node-children
                    (first (cnvrs:node-children
