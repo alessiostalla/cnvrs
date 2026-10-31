@@ -8,7 +8,8 @@
                (:file "src/macros")
                (:file "src/antlr4-package")
                (:file "src/antlr4-parser")
-               (:file "src/antlr4")))
+               (:file "src/antlr4")
+               (:file "src/antlr4-convert")))
 
 (asdf:defsystem #:cnvrs/tests
   :depends-on (#:cnvrs)

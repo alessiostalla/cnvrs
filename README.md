@@ -207,22 +207,27 @@ At a token mismatch, no argument to `insert-tokens` inserts the expected token. 
 
 ## Parsing ANTLR4 grammars
 
-The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars-v4/tree/master/antlr/antlr4) is implemented in the `cnvrs/antlr4` package with CNVRS parser and lexer rules. The parser recognizes ANTLR4 grammar text:
+The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars-v4/tree/master/antlr/antlr4) is implemented in the `cnvrs/antlr4` package with CNVRS parser and lexer rules. `parse` converts supported `.g4` syntax into a CNVRS grammar definition:
 
 ```lisp
-(cnvrs/antlr4:parse "grammar Example; start : ID EOF; ID : [a-z]+;")
-;; => a GRAMMAR-SPEC node
+(let* ((grammar (cnvrs/antlr4:parse
+                 "grammar Example; start : ID EOF; ID : [a-z]+; WS : [ ]+ -> skip;"))
+       (compiled (cnvrs:ensure-compiled grammar)))
+  (cnvrs:parse compiled "hello"))
+;; => a START node
 ```
 
-`cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer rules handle strings, comments, whitespace, identifiers, keywords, and punctuation. The adaptor handles action blocks, brackets, and context-dependent identifier token types. In a lexer rule, brackets denote character sets; in a parser rule, they denote argument blocks. Pass a CNVRS rule symbol through `:rule` to select an entry rule.
+The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; compilation happens on first use. `cnvrs/antlr4:parse-tree` returns the ANTLR syntax tree and accepts `:rule` to select a grammar entry rule. `cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer adaptor handles action blocks, brackets, and context-dependent identifier token types.
 
-The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4` files offline. CNVRS does not compile arbitrary `.g4` files into new parsers; the ANTLR4 language grammar here is written in CNVRS forms.
+Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, literals, character ranges and sets, fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Constructs without CNVRS equivalents, including actions, predicates, imports, options, labels, and other lexer commands, raise `cnvrs:grammar-error` during conversion.
+
+The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4` syntax trees offline. Those grammars use ANTLR features outside the current conversion subset.
 
 ## Implementation
 
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. At a choice or repetition, prediction explores graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
-Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order. Compiling arbitrary `.g4` files into new CNVRS parsers remains future work.
+Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order.
 
 ### Compiled objects and caches
 

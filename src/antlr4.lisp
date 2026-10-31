@@ -240,6 +240,6 @@
                   (setf rule-context kind))))))))
       (coerce (nreverse result) 'vector))))
 
-(defun parse (source &key (rule 'grammar-spec))
-  "Parse ANTLR4 grammar SOURCE and return a CNVRS syntax tree."
+(defun parse-tree (source &key (rule 'grammar-spec))
+  "Parse ANTLR4 grammar SOURCE and return its syntax tree."
   (cnvrs:parse *parser* source :rule rule))

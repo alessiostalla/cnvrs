@@ -879,7 +879,7 @@ options {")))
                     '(:string_literal :ws :line_comment :ws :options))
              "declarative lexer handles strings, comments, and options"))
     (dolist (path (list parser-path lexer-path))
-      (let ((tree (cnvrs/antlr4:parse (uiop:read-file-string path))))
+      (let ((tree (cnvrs/antlr4:parse-tree (uiop:read-file-string path))))
         (check (eq (cnvrs:node-rule tree)
                    'cnvrs/antlr4::grammar-spec)
                (format nil "ANTLR4 parses ~A" (file-namestring path)))))
@@ -890,24 +890,56 @@ options {")))
              "parser-rule bracket starts an argument")
       (check (member :lexer_char_set kinds)
              "lexer-rule bracket is a character set")
-      (check (eq (cnvrs:node-rule (cnvrs/antlr4:parse source))
+      (check (eq (cnvrs:node-rule (cnvrs/antlr4:parse-tree source))
                  'cnvrs/antlr4::grammar-spec)
              "ANTLR4 parses grammar with arguments and character set")
       (check (signals cnvrs:parse-error
-               (cnvrs/antlr4:parse "grammar T; start : ID"))
+               (cnvrs/antlr4:parse-tree "grammar T; start : ID"))
              "ANTLR4 parser rejects missing rule terminator")
       (check (cnvrs:node-p
-              (cnvrs/antlr4:parse
+              (cnvrs/antlr4:parse-tree
                "grammar Café; règle : TOKEN; TOKEN : 'x';"))
              "ANTLR4 parser accepts Unicode identifiers")
       (check (cnvrs:node-p
-              (cnvrs/antlr4:parse
+              (cnvrs/antlr4:parse-tree
                "grammar T; r : ID { f(\"}\"); {g();} }; ID : 'x';"))
              "ANTLR4 adaptor balances nested actions and quoted braces")
       (check (cnvrs:node-p
-              (cnvrs/antlr4:parse
+              (cnvrs/antlr4:parse-tree
                "grammar T; r : ID { a=`}`; b=\"\"\"}\"\"\"; }; ID : 'x';"))
              "ANTLR4 adaptor handles backtick and triple quoted actions"))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "grammar Tiny; start : 'let' ID EOF; fragment LETTER : [a-z]; ID : LETTER+; WS : [ ]+ -> skip;"))
+           (compiled (cnvrs:ensure-compiled grammar)))
+      (check (cnvrs:parser-definition-p grammar)
+             "ANTLR4 conversion returns a grammar definition")
+      (check (cnvrs:parser-p compiled)
+             "ANTLR4 grammar compiles")
+      (check (eq (cnvrs:node-rule (cnvrs:parse grammar "let abc"))
+                 'cnvrs/antlr4::start)
+             "ANTLR4 grammar parses input")
+      (check (signals cnvrs:parse-error (cnvrs:parse grammar "let abc abc"))
+             "ANTLR4 grammar rejects invalid input"))
+    (let ((grammar (cnvrs/antlr4:parse "parser grammar Tokens; start : ID EOF;")))
+      (check (cnvrs:parser-p (cnvrs:ensure-compiled grammar))
+             "parser grammar compiles without an attached lexer"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "grammar Choice; start : ('a' | 'b')+ EOF;")))
+      (check (eq (cnvrs:node-rule (cnvrs:parse grammar "abba"))
+                 'cnvrs/antlr4::start)
+             "ANTLR4 grouped alternatives and suffix compile"))
+    (let ((grammar (cnvrs/antlr4:parse "lexer grammar Letters; A : 'a';")))
+      (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "aa"))
+                    '(:a :a))
+             "ANTLR4 lexer grammar compiles"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "lexer grammar Modes; OPEN : '<' -> pushMode(TAG); WORD : [a-z]+; mode TAG; CLOSE : '>' -> popMode; TEXT : [a-z]+;")))
+      (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "<abc>abc"))
+                    '(:open :text :close :word))
+             "ANTLR4 lexer modes and commands compile"))
+    (check (signals cnvrs:grammar-error
+             (cnvrs/antlr4:parse "grammar Actions; start : ID {run();}; ID : 'x';"))
+           "ANTLR4 conversion rejects unsupported actions")
     (let* ((tokens (cnvrs/antlr4:lex "// note
 grammar T;"))
            (channels (map 'list #'cnvrs:lexeme-channel tokens)))
