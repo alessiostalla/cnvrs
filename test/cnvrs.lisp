@@ -203,6 +203,15 @@
                       (cnvrs:make-cache '(:locked :fset)))
                      'cnvrs::fset-cache))
          "FSET storage and locking are separate cache layers")
+  (let ((keys (list nil -1 0 1 #\a #\b :a :b
+                    '(1 2) '(1 2 3) '(1 3)
+                    '((1 2) #\a) '((1 2) #\b)
+                    '(1 :a) '(1 :b) '(1 . :a) 1/2)))
+    (check (loop for left in keys always
+             (loop for right in keys always
+               (eq (cnvrs::cache-key-compare left right)
+                   (fset:compare left right))))
+           "specialized cache comparison agrees with FSET ordering"))
   (dolist (backend '(:fset :hash-table (:locked :fset)
                      (:locked :hash-table)))
     (let* ((lexer (cnvrs:compile-lexer '((:a "a") (:b "b"))

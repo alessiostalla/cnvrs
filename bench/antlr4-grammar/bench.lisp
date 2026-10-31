@@ -5,6 +5,22 @@
 (asdf:load-asd (truename "cnvrs.asd"))
 (asdf:load-system :cnvrs)
 
+(let ((backend (uiop:getenv "BENCH_CACHE_BACKEND")))
+  (when backend
+    (let ((designator
+            (cond ((equal backend "hash-table") :hash-table)
+                  ((equal backend "locked-hash-table") '(:locked :hash-table))
+                  ((equal backend "fset") :fset)
+                  ((equal backend "locked-fset") '(:locked :fset))
+                  (t (error "Unknown BENCH_CACHE_BACKEND: ~A" backend)))))
+      ;; The ANTLR4 adaptor obtains its matcher from *LEXER* on each call.
+      (setf cnvrs/antlr4:*lexer*
+            (cnvrs:clone-compiled cnvrs/antlr4:*lexer*
+                                  :cache-backend designator)
+            cnvrs/antlr4:*parser*
+            (cnvrs:clone-compiled cnvrs/antlr4:*parser*
+                                  :cache-backend designator)))))
+
 (defun median (values)
   (nth (floor (length values) 2) (sort values #'<)))
 

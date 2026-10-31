@@ -30,26 +30,28 @@ Tree construction was disabled for this table.
 
 | Input | CNVRS ms | ANTLR4/Java ms | CNVRS / Java |
 | --- | ---: | ---: | ---: |
-| ANTLRv4Lexer.g4 | 18.21 | 0.154 | 119× |
-| ANTLRv4Parser.g4 | 18.67 | 0.147 | 127× |
-| JavaLexer.g4 | 16.27 | 0.173 | 94× |
-| JavaParser.g4 | 53.14 | 0.492 | 108× |
-| JSON.g4 | 3.33 | 0.028 | 118× |
-| Python3Lexer.g4 | 21.71 | 0.184 | 118× |
-| Python3Parser.g4 | 38.91 | 0.320 | 122× |
+| ANTLRv4Lexer.g4 | 12.41 | 0.154 | 81× |
+| ANTLRv4Parser.g4 | 12.77 | 0.147 | 87× |
+| JavaLexer.g4 | 11.47 | 0.173 | 66× |
+| JavaParser.g4 | 37.02 | 0.492 | 75× |
+| JSON.g4 | 2.36 | 0.028 | 84× |
+| Python3Lexer.g4 | 14.95 | 0.184 | 81× |
+| Python3Parser.g4 | 27.25 | 0.320 | 85× |
 
-The sum of these per-file medians is 170.24 ms for CNVRS and 1.498 ms for
-Java, a 114× ratio. With tree construction enabled, the corresponding sums
-were 170.84 ms and 1.568 ms, a 109× ratio. The earlier x86-64 SBCL 2.0.2
-run under Rosetta took 224.65 ms summed over the same files, giving a 150×
-ratio. Use the native ARM64 result for the comparison; the two SBCL versions
-also differ, so the change cannot be attributed to architecture alone.
+The sum of these per-file medians is 118.21 ms for CNVRS and 1.498 ms for
+Java, a 79× ratio. With tree construction enabled, the corresponding sums
+were 120.65 ms and 1.568 ms, a 77× ratio. An earlier x86-64 SBCL 2.0.2
+run under Rosetta, before the custom comparator, took 224.65 ms summed over
+the same files, giving a 150× ratio against Java at that time. The runtime
+architecture, SBCL version, and comparator all changed, so the two CNVRS runs
+do not isolate any one of those effects.
 
 ## SBCL profile
 
-On `JavaParser.g4`, a warm single-threaded run using the default
-`(:locked :fset)` caches took about 53 ms per full parse. Profiling 200 full
-parses with SBCL's `sb-sprof` in CPU mode collected 4,680 samples. Its largest
+Before the custom FSET comparator, a warm single-threaded run on
+`JavaParser.g4` using the default `(:locked :fset)` caches took about 53 ms
+per full parse. Profiling 200 full parses with SBCL's `sb-sprof` in CPU mode
+collected 4,680 samples. Its largest
 self-sample groups were generic method dispatch (26.6%), FSET list and number
 comparisons (14.4% combined), and lexer NFA closure (4.6%). Samples are an
 approximation; generic dispatch includes calls from more than one subsystem.
@@ -60,13 +62,41 @@ for parsing an already tokenized vector. Lexing therefore accounts for about
 transition-cache key comparisons and repeated closure work, then to parser
 prediction-cache lookups.
 
-As a diagnostic check, cloning both the ANTLR4 lexer and parser with
-`(:locked :hash-table)` caches reduced the full-file timing to 20.8 ms; bare
-`:hash-table` caches gave 18.3 ms. Bare `:fset` gave 52.6 ms. This supports
-cache lookup and comparison cost as a major hot spot; it does not make the
-hash-table backend thread-safe without the lock wrapper. These timings came
-from one 100-iteration run per backend and are not a full statistical
-comparison.
+An experiment replacing CNVRS's per-lookup generic cache method calls with
+bound functions changed the seven-file no-tree sum from 170.24 to 169.07 ms
+(0.7%), a difference that may be measurement noise. That change was reverted.
+FSET supports a named key comparator for WB maps, so the current FSET backend
+uses a function specialized for common cache keys. In a subsequent 100-parse
+CPU profile of `JavaParser.g4`, the generic dispatch frame fell from 26.6% to
+2.2% of samples; the new comparator accounted for 28.6%. Those percentages
+come from separate sampling runs and are directional, while the elapsed-time
+measurements below show the overall effect.
+
+## Cache backend comparison
+
+Using native ARM64 SBCL 2.4.0 and the same seven files, each configuration ran
+in a fresh process. The two current-code runs cloned both the ANTLR4 lexer and
+parser to the named backend; the old FSET run used the default compiled objects
+before the comparator change. Each run used 10 warmup parses per file, then
+seven batches of 20 parses;
+the table gives the median milliseconds per parse with tree construction
+disabled. The old default-FSET column predates the custom comparator; the
+other two columns use the current code.
+
+| Input | Old locked FSET | Custom-compare locked FSET | Locked hash table |
+| --- | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 18.21 | 12.41 | 6.90 |
+| ANTLRv4Parser.g4 | 18.67 | 12.77 | 6.95 |
+| JavaLexer.g4 | 16.27 | 11.47 | 6.74 |
+| JavaParser.g4 | 53.14 | 37.02 | 20.96 |
+| JSON.g4 | 3.33 | 2.36 | 1.36 |
+| Python3Lexer.g4 | 21.71 | 14.95 | 8.18 |
+| Python3Parser.g4 | 38.91 | 27.25 | 16.91 |
+| Sum of per-file medians | 170.24 | 118.21 | 68.00 |
+
+The custom comparator made locked FSET 1.44× faster by this aggregate. Locked
+hash tables remain 1.74× faster than custom-compare locked FSET. These are
+single runs per configuration, and the sums weight larger files more heavily.
 
 Both harnesses load file contents before timing. Each timed iteration includes
 lexing and parsing. CNVRS reuses its compiled objects and default cache
@@ -136,3 +166,9 @@ PROFILE_CACHE_BACKEND=locked-hash-table "$SBCL_BIN" --script bench/antlr4-gramma
 On macOS, `sb-sprof`'s CPU mode can under-sample some threads; these runs
 profile the main parsing thread, and the sample counts should be read as
 directional evidence.
+
+To repeat a current-code cache comparison, run the Lisp benchmark command above four
+times with `BENCH_CACHE_BACKEND` set to `locked-fset`, `locked-hash-table`,
+`fset`, and `hash-table`. Each process clones both CNVRS's ANTLR4 lexer and
+parser so the selected backend applies to both. The old FSET column above
+requires the version before `cache-key-compare` was added.
