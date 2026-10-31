@@ -164,6 +164,39 @@ respectively. In a separate warmed 100-iteration lexer-only timing on
 iteration. Its new CPU profile no longer showed epsilon closure among the
 sampled hot spots; flat-key construction and structural hashing were prominent.
 
+## Direct lexer DFA edges
+
+Lexer DFA states now hold a lazily allocated 128-entry array of ASCII edges.
+Once an edge is populated, matching that character reads the array slot
+without constructing or hashing a flat key. A missing edge still uses the
+selected cache backend and builds the next DFA state as needed. Each state
+locks access to its edge array; the selected backend still determines the
+safety of the other cache operations. Non-ASCII characters continue through
+the cache backend.
+
+With the same seven inputs and benchmark settings, the medians were:
+
+| Input | Locked FSET | Locked hash table | ANTLR4/Java |
+| --- | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 2.202 | 1.414 | 0.146 |
+| ANTLRv4Parser.g4 | 2.944 | 1.790 | 0.151 |
+| JavaLexer.g4 | 2.711 | 1.581 | 0.169 |
+| JavaParser.g4 | 9.526 | 5.342 | 0.499 |
+| JSON.g4 | 0.571 | 0.321 | 0.030 |
+| Python3Lexer.g4 | 3.272 | 1.872 | 0.188 |
+| Python3Parser.g4 | 8.016 | 4.160 | 0.325 |
+| Sum of per-file medians | 29.242 | 16.481 | 1.508 |
+
+Compared with the cached-start-state run, this reduced the locked FSET sum
+by 59% and the locked hash-table sum by 43%. The remaining gaps against Java
+are about 19× and 11×. Java's parser uses context-independent SLL DFAs and
+reruns full-context ATN simulation after a conflict; CNVRS instead caches
+full-context start DFA states under flat keys of the decision state and return
+stack. Changing that policy would be a separate parser design experiment.
+Separate warmed timings for `JavaParser.g4` with locked hash tables now gave
+1.69 ms for lexing and 3.78 ms for parsing pretokenized input. The parser is
+the larger phase on that file after direct lexer edges were added.
+
 Both harnesses load file contents before timing. Each timed iteration includes
 lexing and parsing. CNVRS reuses its compiled objects and selected cache
 backend, warmed across iterations; Java creates fresh

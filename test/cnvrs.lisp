@@ -242,11 +242,15 @@
                   (plusp (cnvrs:cache-count
                           (cnvrs:parser-sll-decisions grammar))))
              "lexer and parser both populate their caches")
-      (check (cnvrs::lx-dfa-state-p
-              (cnvrs:cache-get-or-compute
-               (cnvrs:compiled-lexer-cache lexer) :default
-               (lambda () :missing)))
-             "lexer caches its initial DFA state by mode")
+      (let ((start (cnvrs:cache-get-or-compute
+                    (cnvrs:compiled-lexer-cache lexer) :default
+                    (lambda () :missing))))
+        (check (cnvrs::lx-dfa-state-p start)
+               "lexer caches its initial DFA state by mode")
+        (check (cnvrs::lx-dfa-state-p
+                (aref (cnvrs::lx-dfa-state-edges start)
+                      (char-code #\a)))
+               "ASCII lexer transitions use direct DFA edges"))
       (let ((copy (cnvrs:clone-compiled grammar)))
         (check (and (equal (cnvrs:parser-cache-backend copy) backend)
                     (zerop (cnvrs:cache-count
@@ -263,6 +267,11 @@
              "one call clears parser and attached lexer caches")
       (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex lexer "b") 0)) :b)
              "cleared lexer rebuilds its DFA states")))
+  (let* ((character (code-char #x03bb))
+         (lexer (cnvrs:compile-lexer (list (list :unicode character)))))
+    (check (= (length (cnvrs:lex lexer (make-string 2
+                                                :initial-element character))) 2)
+           "non-ASCII lexer transitions retain the cache fallback"))
   (let* ((grammar (cnvrs:compile-grammar '((start (or :a :b)))))
          (copy (cnvrs:clone-compiled grammar :cache-backend :hash-table)))
     (check (and (equal (cnvrs:parser-cache-backend grammar)

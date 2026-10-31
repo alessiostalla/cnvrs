@@ -20,7 +20,8 @@
 
 (defstruct lx-state (edges nil) accept)
 (defstruct lx-edge kind target value)
-(defstruct lx-dfa-state active best-rule)
+(defstruct lx-dfa-state active best-rule edges
+  (lock (bt:make-lock "CNVRS lexer DFA state")))
 
 (defun lx-new-state (states)
   (vector-push-extend (make-lx-state) states)
@@ -167,6 +168,27 @@
   (make-lx-dfa-state :active active
                      :best-rule (lx-best-accept states active)))
 
+(defun lx-next-dfa-state (states cache current character)
+  (let ((code (char-code character)))
+    (flet ((compute ()
+             (cache-get-or-compute
+              cache (flat-cache-key code (lx-dfa-state-active current))
+              (lambda ()
+                (lx-make-dfa-state
+                 states (lx-step states
+                                 (lx-dfa-state-active current)
+                                 character))))))
+      (if (< code 128)
+          (bt:with-lock-held ((lx-dfa-state-lock current))
+            (let ((edges (lx-dfa-state-edges current)))
+              (or (and edges (aref edges code))
+                  (let ((next (compute)))
+                    (unless edges
+                      (setf edges (make-array 128 :initial-element nil)
+                            (lx-dfa-state-edges current) edges))
+                    (setf (aref edges code) next)))))
+          (compute)))))
+
 (defun initialize-compiled-lexer (lexer)
   "Bind a compiled lexer's runtime functions to its own transition cache."
   (let ((states (compiled-lexer-states lexer))
@@ -188,17 +210,8 @@
                                           (list (gethash mode mode-starts)))))))
                      (best-end nil) (best-rule nil))
                  (loop for offset from position below (length source) do
-                   (let ((current dfa) (character (char source offset)))
-                     (setf dfa
-                           (cache-get-or-compute
-                            cache (flat-cache-key
-                                   (char-code character)
-                                   (lx-dfa-state-active current))
-                            (lambda ()
-                              (lx-make-dfa-state
-                               states (lx-step states
-                                               (lx-dfa-state-active current)
-                                               character))))))
+                   (setf dfa (lx-next-dfa-state
+                              states cache dfa (char source offset)))
                    (when (null (lx-dfa-state-active dfa)) (return))
                    (let ((rule (lx-dfa-state-best-rule dfa)))
                      (when rule
