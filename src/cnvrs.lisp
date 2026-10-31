@@ -3,12 +3,21 @@
   (:shadow #:parse-error)
   (:export #:compile-grammar #:compile-lexer #:parse #:lex
            #:ensure-compiled #:clone-compiled #:clear-cache
+           #:make-parse-node #:parse-node-components
+           #:parse-build-tree-p #:parse-rule-enter #:parse-token-consumed
+           #:parse-rule-exit
            #:make-cache #:cache-get-or-compute #:cache-clear #:cache-count
-           #:grammar-cache-backend #:compiled-lexer-cache-backend
+           #:parser-cache-backend #:compiled-lexer-cache-backend
            #:compiled-lexer-cache
+           #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:grammar-p #:grammar-states #:grammar-starts #:grammar-stops
+           #:parser-default-rule #:parser-lexer #:parser-rewrites
            #:grammar-default-rule #:grammar-lexer #:grammar-rewrites
+           #:parser-tree-builder
+           #:grammar-tree-builder
+           #:parser-decisions #:parser-sll-decisions
            #:grammar-decisions #:grammar-sll-decisions
+           #:grammar-cache-backend
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
            #:transition-kind #:transition-target #:transition-value
            #:compiled-lexer-p #:compiled-lexer-states
@@ -116,6 +125,33 @@
 (define-condition unexpected-input (parse-error) ())
 
 (defstruct node rule children start end)
+(defgeneric make-parse-node (builder rule children start end))
+(defgeneric parse-node-components (builder value))
+(defmethod make-parse-node ((builder (eql :node)) rule children start end)
+  (make-node :rule rule :children children :start start :end end))
+(defmethod parse-node-components ((builder (eql :node)) value)
+  (if (node-p value)
+      (values (node-rule value) (node-children value)
+              (node-start value) (node-end value) t)
+      (values nil nil nil nil nil)))
+(defgeneric parse-build-tree-p (builder))
+(defmethod parse-build-tree-p (builder)
+  (declare (ignore builder))
+  t)
+(defmethod parse-build-tree-p ((builder (eql :none)))
+  nil)
+(defgeneric parse-rule-enter (builder rule position))
+(defgeneric parse-token-consumed (builder token start end))
+(defgeneric parse-rule-exit (builder rule start end))
+(defmethod parse-rule-enter (builder rule position)
+  (declare (ignore builder rule position))
+  nil)
+(defmethod parse-token-consumed (builder token start end)
+  (declare (ignore builder token start end))
+  nil)
+(defmethod parse-rule-exit (builder rule start end)
+  (declare (ignore builder rule start end))
+  nil)
 (defstruct lexeme kind text start end (channel :default))
 (defun token-key (token)
   (if (lexeme-p token) (lexeme-kind token) token))
@@ -129,11 +165,24 @@
 (defstruct state id (edges nil) stop-rule exit-alternative)
 (defstruct configuration state stack alternative)
 (defstruct dfa-state configurations alternatives accepted edges)
-(defstruct grammar states starts stops default-rule lexer
+(defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
   (cache-backend '(:locked :fset))
   decisions sll-decisions)
+(deftype grammar () 'parser)
+(defun grammar-p (value) (parser-p value))
+(defun grammar-states (value) (parser-states value))
+(defun grammar-starts (value) (parser-starts value))
+(defun grammar-stops (value) (parser-stops value))
+(defun grammar-default-rule (value) (parser-default-rule value))
+(defun grammar-lexer (value) (parser-lexer value))
+(defun grammar-rewrites (value) (parser-rewrites value))
+(defun grammar-tree-builder (value) (parser-tree-builder value))
+(defun grammar-cache-backend (value) (parser-cache-backend value))
+(defun grammar-decisions (value) (parser-decisions value))
+(defun grammar-sll-decisions (value) (parser-sll-decisions value))
 (defstruct parser-definition name kind default-rule lexer cache-backend
+  (tree-builder :node)
   (rules nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
 
@@ -296,39 +345,48 @@
                   (dolist (item (nreverse generated)) (push item output))))))))
     (values (nreverse output) rewrites)))
 
-(defun normalize-rewritten-node (node rewrites)
-  (if (not (node-p node))
-      node
-      (let* ((children (mapcar (lambda (child)
-                                 (normalize-rewritten-node child rewrites))
-                               (node-children node)))
-             (rewrite (gethash (node-rule node) rewrites)))
-        (case (first rewrite)
-          (:wrapper (first children))
-          (:primary (make-node :rule (second rewrite) :children children
-                               :start (node-start node) :end (node-end node)))
-          (:level
-           (reduce (lambda (left suffix)
-                     (make-node :rule (second rewrite)
-                                :children (cons left (node-children suffix))
-                                :start (node-start left) :end (node-end suffix)))
-                   (rest children) :initial-value (first children)))
-          (:suffix (make-node :rule (node-rule node) :children children
-                              :start (node-start node) :end (node-end node)))
-          (otherwise (make-node :rule (node-rule node) :children children
-                                :start (node-start node) :end (node-end node)))))))
+(defun parse-node-children-for (builder node)
+  (nth-value 1 (parse-node-components builder node)))
+(defun parse-node-start-for (builder node)
+  (nth-value 2 (parse-node-components builder node)))
+(defun parse-node-end-for (builder node)
+  (nth-value 3 (parse-node-components builder node)))
+
+(defun normalize-rewritten-node (node rewrites builder)
+  (multiple-value-bind (rule original-children start end present)
+      (parse-node-components builder node)
+    (if (not present)
+        node
+        (let* ((children (mapcar (lambda (child)
+                                   (normalize-rewritten-node child rewrites
+                                                             builder))
+                                 original-children))
+               (rewrite (gethash rule rewrites)))
+          (case (first rewrite)
+            (:wrapper (first children))
+            (:primary (make-parse-node builder (second rewrite) children
+                                       start end))
+            (:level
+             (reduce (lambda (left suffix)
+                       (make-parse-node
+                        builder (second rewrite)
+                        (cons left (parse-node-children-for builder suffix))
+                        (parse-node-start-for builder left)
+                        (parse-node-end-for builder suffix)))
+                     (rest children) :initial-value (first children)))
+            (otherwise (make-parse-node builder rule children start end)))))))
 
 (defun visible-rule (grammar rule)
-  (or (second (gethash rule (grammar-rewrites grammar))) rule))
+  (or (second (gethash rule (parser-rewrites grammar))) rule))
 
 (defun new-state (grammar &optional stop-rule)
-  (let* ((states (grammar-states grammar))
+  (let* ((states (parser-states grammar))
          (id (length states)))
     (vector-push-extend (make-state :id id :stop-rule stop-rule) states)
     id))
 
 (defun add-edge (grammar from kind target &optional value)
-  (let ((state (aref (grammar-states grammar) from)))
+  (let ((state (aref (parser-states grammar) from)))
     (setf (state-edges state)
           (nconc (state-edges state)
                  (list (make-transition :kind kind :target target :value value))))))
@@ -353,13 +411,13 @@
          (compile-expression grammar part branch exit))))
     (:optional
      (let ((branch (new-state grammar)))
-       (setf (state-exit-alternative (aref (grammar-states grammar) entry)) 1)
+       (setf (state-exit-alternative (aref (parser-states grammar) entry)) 1)
        (add-edge grammar entry :epsilon branch)
        (add-edge grammar entry :epsilon exit)
        (compile-expression grammar (second expression) branch exit)))
     (:star
      (let ((branch (new-state grammar)) (body-end (new-state grammar)))
-       (setf (state-exit-alternative (aref (grammar-states grammar) entry)) 1)
+       (setf (state-exit-alternative (aref (parser-states grammar) entry)) 1)
        (add-edge grammar entry :epsilon branch)
        (add-edge grammar entry :epsilon exit)
        (compile-expression grammar (second expression) branch body-end)
@@ -370,7 +428,8 @@
        (compile-expression grammar (list '* (second expression)) loop-state exit)))))
 
 (defun compile-grammar (definitions &key default-rule lexer
-                                    (cache-backend '(:locked :fset)))
+                                    (cache-backend '(:locked :fset))
+                                    (tree-builder :node))
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), and (TOKEN value).
@@ -380,7 +439,8 @@ Bare symbols name rules; other atoms are literal tokens. DEFAULT-RULE chooses
 the entry rule used by PARSE when no :RULE is supplied; otherwise the first
 definition is used. LEXER maps source input to tokens before parsing.
 CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
-(:LOCKED backend). The default is (:LOCKED :FSET)."
+(:LOCKED backend). The default is (:LOCKED :FSET).
+TREE-BUILDER selects the parse-node construction strategy."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let ((names (make-hash-table :test 'eq))
@@ -410,22 +470,23 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
           (setf (gethash (first definition) nullable) t
                 changed t))))
     (validate-progress definitions nullable)
-    (let ((grammar (make-grammar :states (make-array 0 :adjustable t :fill-pointer 0)
+    (let ((grammar (make-parser :states (make-array 0 :adjustable t :fill-pointer 0)
                                  :starts (make-hash-table :test 'eq)
                                  :stops (make-hash-table :test 'eq)
                                  :default-rule default-rule :lexer lexer
+                                 :tree-builder tree-builder
                                  :rewrites rewrites
                                  :cache-backend cache-backend
                                  :decisions (make-cache cache-backend)
                                  :sll-decisions (make-cache cache-backend))))
       (dolist (definition definitions)
-        (setf (gethash (first definition) (grammar-starts grammar)) (new-state grammar)
-              (gethash (first definition) (grammar-stops grammar))
+        (setf (gethash (first definition) (parser-starts grammar)) (new-state grammar)
+              (gethash (first definition) (parser-stops grammar))
               (new-state grammar (first definition))))
       (dolist (definition definitions)
         (compile-expression grammar (second definition)
-                            (gethash (first definition) (grammar-starts grammar))
-                            (gethash (first definition) (grammar-stops grammar))))
+                            (gethash (first definition) (parser-starts grammar))
+                            (gethash (first definition) (parser-stops grammar))))
       grammar)))
 
 (defun configuration-key (configuration)
@@ -442,7 +503,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
              (key (configuration-key configuration)))
         (unless (gethash key seen)
           (setf (gethash key seen) t)
-          (let* ((state (aref (grammar-states grammar)
+          (let* ((state (aref (parser-states grammar)
                               (configuration-state configuration)))
                  (stack (configuration-stack configuration))
                  (alternative (configuration-alternative configuration)))
@@ -465,7 +526,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
                      (:call
                       (push (make-configuration
                              :state (gethash (transition-value edge)
-                                             (grammar-starts grammar))
+                                             (parser-starts grammar))
                              :stack (cons (transition-target edge) stack)
                              :alternative alternative)
                             pending))
@@ -479,14 +540,14 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
                               (mapcar #'configuration-alternative closed)) #'<))
          (accepted (sort (remove-duplicates
                           (loop for configuration in closed
-                                for state = (aref (grammar-states grammar)
+                                for state = (aref (parser-states grammar)
                                                   (configuration-state configuration))
                                 when (and (state-stop-rule state)
                                           (null (configuration-stack configuration)))
                                   collect (configuration-alternative configuration))) #'<)))
     (make-dfa-state :configurations closed
                     :alternatives alternatives :accepted accepted
-                    :edges (make-cache (grammar-cache-backend grammar)))))
+                    :edges (make-cache (parser-cache-backend grammar)))))
 
 (defun advance-dfa (grammar dfa token)
   (cache-get-or-compute
@@ -494,7 +555,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
    (lambda ()
      (dfa-state-for grammar
                     (loop for configuration in (dfa-state-configurations dfa)
-                          for state = (aref (grammar-states grammar)
+                          for state = (aref (parser-states grammar)
                                             (configuration-state configuration))
                           append (loop for edge in (state-edges state)
                                        when (and (eq (transition-kind edge) :token)
@@ -506,13 +567,13 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
                                                   (configuration-alternative configuration))))))))
 
 (defun predict-full-context (grammar state-id stack tokens position)
-  (let* ((cache (grammar-decisions grammar))
+  (let* ((cache (parser-decisions grammar))
          (dfa (cache-get-or-compute
                cache (list state-id stack)
                (lambda ()
                  (dfa-state-for grammar
                                 (loop for edge in (state-edges
-                                                   (aref (grammar-states grammar) state-id))
+                                                   (aref (parser-states grammar) state-id))
                                       for alternative from 0
                                       collect (configuration-after-edge
                                                grammar edge stack alternative))))))
@@ -524,7 +585,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
         (when (or (null alternatives) (= position length))
           (return (or (first (dfa-state-accepted dfa))
                       (let ((exit (state-exit-alternative
-                                   (aref (grammar-states grammar) state-id))))
+                                   (aref (parser-states grammar) state-id))))
                         (and (= position length)
                              (member exit alternatives)
                              exit))
@@ -537,13 +598,13 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
   ;; finish in that shortened context while another remains viable, the
   ;; result depends on the caller and prediction retries with the full stack.
   (let* ((start-position position)
-         (cache (grammar-sll-decisions grammar))
+         (cache (parser-sll-decisions grammar))
          (dfa (cache-get-or-compute
                cache state-id
                (lambda ()
                  (dfa-state-for grammar
                                 (loop for edge in (state-edges
-                                                   (aref (grammar-states grammar) state-id))
+                                                   (aref (parser-states grammar) state-id))
                                       for alternative from 0
                                       collect (configuration-after-edge
                                                grammar edge nil alternative))))))
@@ -563,7 +624,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
 (defun configuration-after-edge (grammar edge stack alternative)
   (case (transition-kind edge)
     (:call (make-configuration :state (gethash (transition-value edge)
-                                               (grammar-starts grammar))
+                                               (parser-starts grammar))
                                :stack (cons (transition-target edge) stack)
                                :alternative alternative))
     (otherwise (make-configuration :state (transition-target edge)
@@ -572,7 +633,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
 (defun possible-tokens (grammar configurations)
   (remove-duplicates
    (loop for configuration in (closure grammar configurations)
-         for state = (aref (grammar-states grammar)
+         for state = (aref (parser-states grammar)
                            (configuration-state configuration))
          append (loop for edge in (state-edges state)
                       when (eq (transition-kind edge) :token)
@@ -580,14 +641,16 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
    :test #'equal))
 
 (defun parse (grammar tokens &key rule start (require-eof t) recover
+                              (tree-builder nil tree-builder-supplied-p)
                               (lexer nil lexer-supplied-p)
                               (channels '(:default)))
-  "Parse TOKENS, returning a NODE and a list of RECOVERY records.
+  "Parse TOKENS, returning a tree and a list of RECOVERY records.
 RULE selects any parser rule; START is a compatibility alias. By default,
 the selected rule must consume all input, even without explicit EOF in its
 definition. Set REQUIRE-EOF to NIL to allow a prefix parse. LEXER maps the source to a
 token sequence before parsing. CHANNELS selects which lexeme channels to
-parse; :ALL selects every channel. With RECOVER true, single-token deletion,
+parse; :ALL selects every channel. TREE-BUILDER overrides the compiled
+grammar's node construction strategy for this call. With RECOVER true, single-token deletion,
 insertion, and choice resynchronization are attempted. Handlers may invoke
 the restarts at each error site to make a different local repair."
   (when (parser-definition-p grammar)
@@ -596,14 +659,17 @@ the restarts at each error site to make a different local repair."
     (setf grammar (ensure-parser-compiled grammar)))
   (when (and rule start (not (eq rule start)))
     (grammar-fail "Conflicting :RULE ~S and :START ~S" rule start))
-  (setf start (or rule start (grammar-default-rule grammar)))
+  (setf start (or rule start (parser-default-rule grammar)))
+  (unless tree-builder-supplied-p
+    (setf tree-builder (parser-tree-builder grammar)))
   (unless lexer-supplied-p
-    (setf lexer (grammar-lexer grammar)))
-  (unless (gethash start (grammar-starts grammar))
+    (setf lexer (parser-lexer grammar)))
+  (unless (gethash start (parser-starts grammar))
     (grammar-fail "Unknown start rule ~S" start))
   (unless (or (eq channels :all) (listp channels))
     (error 'type-error :datum channels :expected-type '(or list (eql :all))))
-  (let* ((lexed (coerce (if lexer (lex lexer tokens) tokens)
+  (let* ((build-tree-p (parse-build-tree-p tree-builder))
+         (lexed (coerce (if lexer (lex lexer tokens) tokens)
                         'vector))
          (input (if (eq channels :all)
                     lexed
@@ -612,13 +678,14 @@ the restarts at each error site to make a different local repair."
                                              :test #'equal))
                                    lexed)))
          (position 0)
-         (state-id (gethash start (grammar-starts grammar)))
+         (state-id (gethash start (parser-starts grammar)))
          (stack nil)
          (frames (list (list start 0 nil)))
          (pending nil)
          (recoveries nil)
          (automatic-insert-position -1)
          (automatic-insert-count 0))
+    (parse-rule-enter tree-builder (visible-rule grammar start) 0)
     (labels ((record (action condition token)
                (push (make-recovery :action action :condition condition
                                     :token token)
@@ -699,7 +766,7 @@ the restarts at each error site to make a different local repair."
                             (setf automatic-insert-position position
                                   automatic-insert-count 0))
                           (when (< automatic-insert-count
-                                   (length (grammar-states grammar)))
+                                   (length (parser-states grammar)))
                             (incf automatic-insert-count)
                             (invoke-restart 'insert-tokens))))))))
            (no-viable-alternative
@@ -714,16 +781,21 @@ the restarts at each error site to make a different local repair."
                (declare (ignore condition))
                (when recover (invoke-restart 'discard-input)))))
         (loop
-          (let* ((state (aref (grammar-states grammar) state-id))
+          (let* ((state (aref (parser-states grammar) state-id))
                  (stop (state-stop-rule state)))
             (when stop
               (let* ((frame (pop frames))
-                     (completed (make-node :rule (first frame)
-                                           :start (second frame) :end position
-                                           :children (nreverse (third frame)))))
+                     (completed (when build-tree-p
+                                  (make-parse-node tree-builder (first frame)
+                                                   (nreverse (third frame))
+                                                   (second frame) position))))
+                (parse-rule-exit tree-builder
+                                 (visible-rule grammar (first frame))
+                                 (second frame) position)
                 (if stack
                     (progn
-                      (push completed (third (first frames)))
+                      (when build-tree-p
+                        (push completed (third (first frames))))
                       (setf state-id (pop stack)))
                     (progn
                       (when (and require-eof (has-token-p))
@@ -739,11 +811,13 @@ the restarts at each error site to make a different local repair."
                                       (remaining-values))
                               (setf pending nil
                                     position (length input))))))
-                      (return (values (if (zerop (hash-table-count
-                                                 (grammar-rewrites grammar)))
-                                          completed
+                      (return (values (if (and build-tree-p
+                                               (plusp (hash-table-count
+                                                       (parser-rewrites grammar))))
                                           (normalize-rewritten-node
-                                           completed (grammar-rewrites grammar)))
+                                           completed (parser-rewrites grammar)
+                                           tree-builder)
+                                          completed)
                                       (nreverse recoveries)))))))
             (unless stop
               (let* ((edges (state-edges state))
@@ -793,14 +867,22 @@ the restarts at each error site to make a different local repair."
                       (:call
                        (push (transition-target edge) stack)
                        (push (list (transition-value edge) position nil) frames)
+                       (parse-rule-enter
+                        tree-builder
+                        (visible-rule grammar (transition-value edge)) position)
                        (setf state-id (gethash (transition-value edge)
-                                               (grammar-starts grammar))))
+                                               (parser-starts grammar))))
                       (:token
                        (let ((expected (transition-value edge)))
                          (if (and (has-token-p)
                                   (equal (token-key (current-value)) expected))
                              (progn
-                               (push (consume-current) (third (first frames)))
+                               (let ((start-position position)
+                                     (token (consume-current)))
+                                 (parse-token-consumed tree-builder token
+                                                       start-position position)
+                                 (when build-tree-p
+                                   (push token (third (first frames)))))
                                (setf state-id (transition-target edge)))
                              (let ((condition
                                      (make-condition

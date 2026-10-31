@@ -226,9 +226,9 @@ Compilation rewrites direct left recursion into precedence levels before buildin
 
 ### Compiled objects and caches
 
-`compile-grammar` returns a `grammar` structure; `compile-lexer` returns a `compiled-lexer` structure. `define-parser` returns a definition that compiles on first use. Call `ensure-compiled` on a definition to compile it before parsing or lexing. It returns the same compiled object on later calls until a new `defrule` invalidates the definition.
+`compile-grammar` returns a `parser` structure; `compile-lexer` returns a `compiled-lexer` structure. `define-parser` returns a definition that compiles on first use. Call `ensure-compiled` on a definition to compile it before parsing or lexing. It returns the same compiled object on later calls until a new `defrule` invalidates the definition. The old `grammar-p` and `grammar-*` readers remain as compatibility aliases.
 
-The exported `grammar-states`, `grammar-starts`, `grammar-stops`, and `grammar-lexer` accessors expose a parser's transition graph. `compiled-lexer-states`, `compiled-lexer-mode-starts`, and `compiled-lexer-kinds` expose a lexer's automaton. State and edge accessors are exported for inspection. Treat these graphs as immutable.
+The exported `parser-states`, `parser-starts`, `parser-stops`, and `parser-lexer` accessors expose a parser's transition graph. `compiled-lexer-states`, `compiled-lexer-mode-starts`, and `compiled-lexer-kinds` expose a lexer's automaton. State and edge accessors are exported for inspection. Treat these graphs as immutable.
 
 Both compilers accept `:cache-backend`. The storage backends are `:fset`, using persistent [FSET maps](https://fset.common-lisp.dev/Site/FSet-Tutorial.html), and `:hash-table`. Both are bare, unsynchronized strategies. Wrap either with `(:locked backend)` when a compiled parser or lexer will be shared across threads. The default is `(:locked :fset)`. The lexer caches automaton transitions; the parser caches SLL and full-context decisions and DFA transitions.
 
@@ -246,6 +246,31 @@ Custom backends specialize `make-cache` on a backend name and implement `cache-g
 (defparameter *shared-hash* (cnvrs:clone-compiled *ready*
                                                  :cache-backend '(:locked :hash-table)))
 ```
+
+### Parse tree builders
+
+The default `:node` builder returns `cnvrs:node` structures. Supply `:tree-builder` to `compile-grammar` or `define-parser` to choose another builder for a parser, or to `parse` to override it for one call. A clone retains its parser's builder. Use `:tree-builder :none` to recognize input without constructing a tree; the first return value of `parse` is then `NIL`, while the second still contains any recovery records.
+
+A custom builder implements two generic functions. `make-parse-node` receives the builder, rule name, ordered children, start token offset, and end token offset. Children are tokens, inserted-token markers from recovery, or nodes already produced by that builder. `parse-node-components` receives the builder and a value and returns five values: rule, children, start, end, and a true value if the value is one of its nodes. Return a false fifth value for tokens. The parser uses these methods when normalizing direct left recursion, so custom nodes retain the original rule names and tree shape.
+
+```lisp
+(defstruct my-node rule children start end)
+
+(defmethod cnvrs:make-parse-node ((builder (eql :my-node)) rule children start end)
+  (make-my-node :rule rule :children children :start start :end end))
+
+(defmethod cnvrs:parse-node-components ((builder (eql :my-node)) value)
+  (if (my-node-p value)
+      (values (my-node-rule value) (my-node-children value)
+              (my-node-start value) (my-node-end value) t)
+      (values nil nil nil nil nil)))
+
+(cnvrs:parse (cnvrs:compile-grammar '((start :name))
+                                    :tree-builder :my-node)
+             '(:name))
+```
+
+For an event-only strategy, specialize `parse-build-tree-p` to return `NIL` and implement any of `parse-rule-enter`, `parse-token-consumed`, and `parse-rule-exit`. No node or child list is built, and `make-parse-node` and `parse-node-components` are not called. The events include token offsets; inserted recovery tokens are reported through `parse-token-consumed`. Events follow the compiled rule traversal, so direct left recursion can produce additional enter and exit events for its rewritten levels.
 
 ## Tests
 
