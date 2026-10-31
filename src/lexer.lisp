@@ -1,7 +1,7 @@
 (in-package #:cnvrs)
 
 (defstruct compiled-lexer states mode-starts kinds skips channels
-  push-modes pop-modes set-modes function matcher)
+  push-modes pop-modes set-modes cache-backend cache function matcher)
 
 (define-condition lexical-error (error)
   ((position :initarg :position :reader lexical-error-position)
@@ -162,14 +162,75 @@
         when accept collect accept into matches
         finally (return (and matches (apply #'min matches)))))
 
-(defun compile-lexer (definitions)
+(defun initialize-compiled-lexer (lexer)
+  "Bind a compiled lexer's runtime functions to its own transition cache."
+  (let ((states (compiled-lexer-states lexer))
+        (mode-starts (compiled-lexer-mode-starts lexer))
+        (kinds (compiled-lexer-kinds lexer))
+        (skips (compiled-lexer-skips lexer))
+        (channels (compiled-lexer-channels lexer))
+        (push-modes (compiled-lexer-push-modes lexer))
+        (pop-modes (compiled-lexer-pop-modes lexer))
+        (set-modes (compiled-lexer-set-modes lexer))
+        (cache (compiled-lexer-cache lexer)))
+    (labels ((match-one (source position mode)
+               (let ((active (lx-closure states
+                                         (list (gethash mode mode-starts))))
+                     (best-end nil) (best-rule nil))
+                 (loop for offset from position below (length source) do
+                   (let ((current active) (character (char source offset)))
+                     (setf active
+                           (cache-get-or-compute
+                            cache (list current character)
+                            (lambda () (lx-step states current character)))))
+                   (when (null active) (return))
+                   (let ((rule (lx-best-accept states active)))
+                     (when rule
+                       (setf best-end (1+ offset) best-rule rule))))
+                 (values (and best-rule (aref kinds best-rule))
+                         best-end best-rule))))
+      (setf (compiled-lexer-matcher lexer) #'match-one
+            (compiled-lexer-function lexer)
+            (lambda (source)
+              (unless (stringp source)
+                (error 'type-error :datum source :expected-type 'string))
+              (let ((position 0) (output nil) (mode :default) (mode-stack nil))
+                (loop while (< position (length source)) do
+                  (multiple-value-bind (kind best-end best-rule)
+                      (match-one source position mode)
+                    (unless best-end
+                      (error 'lexical-error :position position
+                             :character (char source position)))
+                    (unless (aref skips best-rule)
+                      (push (make-lexeme :kind kind
+                                         :text (subseq source position best-end)
+                                         :start position :end best-end
+                                         :channel (aref channels best-rule))
+                            output))
+                    (cond ((aref push-modes best-rule)
+                           (push mode mode-stack)
+                           (setf mode (aref push-modes best-rule)))
+                          ((aref pop-modes best-rule)
+                           (unless mode-stack
+                             (error 'lexer-mode-error :position position
+                                    :character (char source position) :mode mode))
+                           (setf mode (pop mode-stack)))
+                          ((aref set-modes best-rule)
+                           (setf mode (aref set-modes best-rule))))
+                    (setf position best-end)))
+                (coerce (nreverse output) 'vector)))))
+    lexer))
+
+(defun compile-lexer (definitions &key (cache-backend '(:locked :fset)))
   "Compile Lisp-form lexer rules into an inspectable lexer object.
 Rules are (kind expression &key skip channel mode push-mode pop-mode set-mode).
 MODE selects the active mode for a rule, defaulting to :DEFAULT. A matched
 rule may change modes, including when it is skipped. The longest match wins;
 ties use rule order among rules in the current mode. The second return value
 is a matcher taking (source position mode), returning kind, end, and rule
-index for one token without consuming the rest of the source."
+index for one token without consuming the rest of the source.
+CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
+(:LOCKED backend). The default is (:LOCKED :FSET)."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of lexer rules"))
   (let ((patterns (make-hash-table :test 'eq))
@@ -250,50 +311,10 @@ index for one token without consuming the rest of the source."
                (when (lx-best-accept states (lx-closure states (list start)))
                  (grammar-fail "Lexer rules must consume at least one character")))
              mode-starts)
-    (labels ((match-one (source position mode)
-               (let ((active (lx-closure states
-                                         (list (gethash mode mode-starts))))
-                     (best-end nil) (best-rule nil))
-                 (loop for offset from position below (length source) do
-                   (setf active (lx-step states active (char source offset)))
-                   (when (null active) (return))
-                   (let ((rule (lx-best-accept states active)))
-                     (when rule
-                       (setf best-end (1+ offset) best-rule rule))))
-                 (values (and best-rule (aref kinds best-rule))
-                         best-end best-rule))))
-      (let ((function
-       (lambda (source)
-         (unless (stringp source)
-           (error 'type-error :datum source :expected-type 'string))
-         (let ((position 0) (output nil) (mode :default) (mode-stack nil))
-           (loop while (< position (length source)) do
-             (multiple-value-bind (kind best-end best-rule)
-                 (match-one source position mode)
-               (unless best-end
-                 (error 'lexical-error :position position
-                        :character (char source position)))
-               (unless (aref skips best-rule)
-                 (push (make-lexeme :kind kind
-                                    :text (subseq source position best-end)
-                                    :start position :end best-end
-                                    :channel (aref channels best-rule))
-                       output))
-               (cond ((aref push-modes best-rule)
-                      (push mode mode-stack)
-                      (setf mode (aref push-modes best-rule)))
-                     ((aref pop-modes best-rule)
-                      (unless mode-stack
-                        (error 'lexer-mode-error :position position
-                               :character (char source position) :mode mode))
-                      (setf mode (pop mode-stack)))
-                     ((aref set-modes best-rule)
-                      (setf mode (aref set-modes best-rule))))
-               (setf position best-end)))
-           (coerce (nreverse output) 'vector)))))
-        (let ((lexer (make-compiled-lexer
-                      :states states :mode-starts mode-starts :kinds kinds
-                      :skips skips :channels channels :push-modes push-modes
-                      :pop-modes pop-modes :set-modes set-modes
-                      :function function :matcher #'match-one)))
-          (values lexer #'match-one))))))
+    (let ((lexer (make-compiled-lexer
+                  :states states :mode-starts mode-starts :kinds kinds
+                  :skips skips :channels channels :push-modes push-modes
+                  :pop-modes pop-modes :set-modes set-modes
+                  :cache-backend cache-backend :cache (make-cache cache-backend))))
+      (initialize-compiled-lexer lexer)
+      (values lexer (compiled-lexer-matcher lexer)))))

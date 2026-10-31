@@ -1,5 +1,6 @@
 (asdf:defsystem #:cnvrs
   :description "In-image adaptive LL parsing of Lisp-form grammars"
+  :depends-on (#:fset #:bordeaux-threads)
   :serial t
   :in-order-to ((asdf:test-op (asdf:test-op "cnvrs/tests")))
   :components ((:file "src/cnvrs")

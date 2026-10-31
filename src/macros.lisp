@@ -4,7 +4,7 @@
 
 (defun parser-option-list-p (form)
   (and (consp form)
-       (member (first form) '(:kind :default-rule :lexer))))
+       (member (first form) '(:kind :default-rule :lexer :cache-backend))))
 
 (defun checked-options (options allowed context)
   (unless (and (listp options) (evenp (length options)))
@@ -100,7 +100,7 @@
           (parser-definition-compiled definition) nil)
     name))
 
-(defun make-defined-parser (name kind default-rule lexer forms)
+(defun make-defined-parser (name kind default-rule lexer cache-backend forms)
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (unless (member kind '(:parser :lexer :combined))
@@ -113,7 +113,7 @@
     (grammar-fail "A combined grammar defines its lexer rules in the same form"))
   (let ((definition (make-parser-definition
                      :name name :kind kind :default-rule default-rule
-                     :lexer lexer)))
+                     :lexer lexer :cache-backend cache-backend)))
     (dolist (form forms)
       (register-parser-rule definition form))
     definition))
@@ -140,7 +140,8 @@
              (grammar-fail "Lexer grammar ~S has no rules"
                            (parser-definition-name definition)))
            (setf (parser-definition-compiled definition)
-                 (compile-lexer lexer-rules)))
+                 (compile-lexer lexer-rules :cache-backend
+                                (parser-definition-cache-backend definition))))
           (:parser
            (unless parser-rules
              (grammar-fail "Parser grammar ~S has no rules"
@@ -149,7 +150,9 @@
                  (compile-grammar parser-rules
                                   :default-rule
                                   (parser-definition-default-rule definition)
-                                  :lexer (parser-definition-lexer definition))))
+                                  :lexer (parser-definition-lexer definition)
+                                  :cache-backend
+                                  (parser-definition-cache-backend definition))))
           (:combined
            (unless (and lexer-rules parser-rules)
              (grammar-fail "Combined grammar ~S needs lexer and parser rules"
@@ -158,7 +161,11 @@
                  (compile-grammar parser-rules
                                   :default-rule
                                   (parser-definition-default-rule definition)
-                                  :lexer (compile-lexer lexer-rules)))))
+                                  :lexer (compile-lexer lexer-rules :cache-backend
+                                                        (parser-definition-cache-backend
+                                                         definition))
+                                  :cache-backend
+                                  (parser-definition-cache-backend definition)))))
         (parser-definition-compiled definition))))
 
 (defun lex (parser source)
@@ -194,45 +201,61 @@ end position, and rule index."
               :expected-type '(or parser-definition grammar compiled-lexer)))))
 
 (defun clear-cache (parser)
-  "Discard learned parser prediction transitions. A compiled lexer has no cache."
+  "Clear every cache owned by a compiled grammar or lexer."
   (let ((compiled (ensure-compiled parser)))
-    (when (grammar-p compiled)
-      (clrhash (grammar-sll-decisions compiled))
-      (clrhash (grammar-decisions compiled)))
+    (typecase compiled
+      (grammar
+       (cache-clear (grammar-sll-decisions compiled))
+       (cache-clear (grammar-decisions compiled))
+       (when (compiled-lexer-p (grammar-lexer compiled))
+         (clear-cache (grammar-lexer compiled))))
+      (compiled-lexer (cache-clear (compiled-lexer-cache compiled))))
     compiled))
 
-(defun clone-compiled (parser)
-  "Copy a compiled grammar with fresh prediction caches.
+(defun clone-compiled (parser &key cache-backend)
+  "Copy a compiled grammar or lexer with independent, empty caches.
 The transition graph and lexer automaton are immutable and shared."
   (let ((compiled (ensure-compiled parser)))
     (typecase compiled
       (grammar
-       (let ((copy (copy-grammar compiled)))
-         (setf (grammar-sll-decisions copy) (make-hash-table)
-               (grammar-decisions copy) (make-hash-table)
+       (let* ((copy (copy-grammar compiled))
+              (backend (or cache-backend (grammar-cache-backend compiled))))
+         (setf (grammar-cache-backend copy) backend
+               (grammar-sll-decisions copy) (make-cache backend)
+               (grammar-decisions copy) (make-cache backend)
                (grammar-lexer copy)
                (if (compiled-lexer-p (grammar-lexer compiled))
-                   (clone-compiled (grammar-lexer compiled))
+                   (clone-compiled (grammar-lexer compiled)
+                                   :cache-backend backend)
                    (grammar-lexer compiled)))
          copy))
-      (compiled-lexer (copy-compiled-lexer compiled)))))
+      (compiled-lexer
+       (let* ((copy (copy-compiled-lexer compiled))
+              (backend (or cache-backend
+                           (compiled-lexer-cache-backend compiled))))
+         (setf (compiled-lexer-cache-backend copy) backend
+               (compiled-lexer-cache copy) (make-cache backend))
+         (initialize-compiled-lexer copy))))))
 
 (defmacro define-parser (name &body body)
   "Define NAME as a parser definition. The first body form may be a plist
-(:KIND :PARSER|:LEXER|:COMBINED :DEFAULT-RULE rule :LEXER function).
+(:KIND :PARSER|:LEXER|:COMBINED :DEFAULT-RULE rule :LEXER function
+ :CACHE-BACKEND :HASH-TABLE|:FSET|(:LOCKED backend)).
 Remaining forms are DEFRULE forms, (name expression ...) rule forms, or
 WITH-MODE blocks containing lexer rules."
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (let* ((options (if (and body (parser-option-list-p (first body)))
                       (pop body) nil))
-         (options (checked-options options '(:kind :default-rule :lexer)
+         (options (checked-options options '(:kind :default-rule :lexer
+                                             :cache-backend)
                                    (format nil "parser ~S" name)))
          (kind (getf options :kind :parser))
          (default-rule (getf options :default-rule nil))
-         (lexer (getf options :lexer nil)))
+         (lexer (getf options :lexer nil))
+         (cache-backend (getf options :cache-backend '(:locked :fset))))
     `(defparameter ,name
-       (make-defined-parser ',name ',kind ',default-rule ,lexer
+       (make-defined-parser ',name ',kind ',default-rule ,lexer ',cache-backend
                             ',(expand-mode-rule-forms body)))))
 
 (defmacro in-parser (name)

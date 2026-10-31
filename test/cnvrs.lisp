@@ -54,6 +54,9 @@
 (cnvrs:define-parser *bare-parser* (:kind :parser)
   (start (and :a :b)))
 
+(cnvrs:define-parser *hash-parser* (:kind :parser :cache-backend :hash-table)
+  (start (or :a :b)))
+
 (cnvrs:define-parser *external-lexer-parser*
     (:kind :parser :lexer (cnvrs:compile-lexer '((:word (+ (range #\a #\z)))))
      :default-rule start)
@@ -82,8 +85,82 @@
   `(handler-case (progn ,form nil)
      (,condition () t)))
 
+(defmethod cnvrs:make-cache ((backend (eql :test-cache)))
+  (declare (ignore backend))
+  (cnvrs:make-cache :hash-table))
+
 (defun run-tests ()
   (setf *checks* 0)
+  (check (and (typep (cnvrs:make-cache :fset) 'cnvrs::fset-cache)
+              (typep (cnvrs:make-cache '(:locked :fset))
+                     'cnvrs::locked-cache)
+              (typep (cnvrs::locked-cache-inner
+                      (cnvrs:make-cache '(:locked :fset)))
+                     'cnvrs::fset-cache))
+         "FSET storage and locking are separate cache layers")
+  (dolist (backend '(:fset :hash-table (:locked :fset)
+                     (:locked :hash-table)))
+    (let* ((lexer (cnvrs:compile-lexer '((:a "a") (:b "b"))
+                                        :cache-backend backend))
+           (grammar (cnvrs:compile-grammar '((start (or :a :b)))
+                                           :lexer lexer
+                                           :cache-backend backend)))
+      (check (eq (cnvrs:node-rule (cnvrs:parse grammar "a")) 'start)
+             "both cache backends parse compiled lexer output")
+      (check (and (plusp (cnvrs:cache-count
+                          (cnvrs:compiled-lexer-cache lexer)))
+                  (plusp (cnvrs:cache-count
+                          (cnvrs:grammar-sll-decisions grammar))))
+             "lexer and parser both populate their caches")
+      (let ((copy (cnvrs:clone-compiled grammar)))
+        (check (and (equal (cnvrs:grammar-cache-backend copy) backend)
+                    (zerop (cnvrs:cache-count
+                            (cnvrs:grammar-sll-decisions copy)))
+                    (zerop (cnvrs:cache-count
+                            (cnvrs:compiled-lexer-cache
+                             (cnvrs:grammar-lexer copy)))))
+               "clone starts with independent parser and lexer caches"))
+      (cnvrs:clear-cache grammar)
+      (check (and (zerop (cnvrs:cache-count
+                          (cnvrs:grammar-sll-decisions grammar)))
+                  (zerop (cnvrs:cache-count
+                          (cnvrs:compiled-lexer-cache lexer))))
+             "one call clears parser and attached lexer caches")))
+  (let* ((grammar (cnvrs:compile-grammar '((start (or :a :b)))))
+         (copy (cnvrs:clone-compiled grammar :cache-backend :hash-table)))
+    (check (and (equal (cnvrs:grammar-cache-backend grammar)
+                       '(:locked :fset))
+                (eq (cnvrs:grammar-cache-backend copy) :hash-table)
+                (eq (cnvrs:node-rule (cnvrs:parse copy '(:b))) 'start))
+           "cloning can select another cache backend"))
+  (check (eq (cnvrs:grammar-cache-backend
+              (cnvrs:ensure-compiled *hash-parser*)) :hash-table)
+         "define-parser forwards the cache backend")
+  (let ((grammar (cnvrs:compile-grammar '((start (or :a :b)))
+                                        :cache-backend :test-cache)))
+    (check (and (eq (cnvrs:node-rule
+                     (cnvrs:parse grammar '(:a))) 'start)
+                (plusp (cnvrs:cache-count
+                        (cnvrs:grammar-sll-decisions grammar))))
+           "custom cache factory participates in prediction"))
+  (check (typep (cnvrs:make-cache '(:locked :test-cache))
+                'cnvrs::locked-cache)
+         "lock wrapper composes with a custom backend")
+  (dolist (backend '((:locked :fset) (:locked :hash-table)))
+    (let* ((lexer (cnvrs:compile-lexer '((:a "a") (:b "b"))
+                                        :cache-backend backend))
+           (grammar (cnvrs:compile-grammar '((start (or :a :b)))
+                                           :lexer lexer :cache-backend backend))
+           (threads (loop repeat 6 collect
+                      (bt:make-thread
+                       (lambda ()
+                         (loop repeat 100
+                               always (eq (cnvrs:node-rule
+                                           (cnvrs:parse grammar "ab"
+                                                        :require-eof nil))
+                                          'start)))))))
+      (check (every #'identity (mapcar #'bt:join-thread threads))
+             "lock wrapper supports concurrent parser and lexer use")))
   (let* ((lexer (cnvrs:ensure-compiled *inline-lexer*))
          (copy (cnvrs:clone-compiled lexer)))
     (check (and (cnvrs:compiled-lexer-p lexer)
@@ -110,13 +187,13 @@
       (check (and (not (eq grammar copy))
                   (eq (cnvrs:grammar-states grammar)
                       (cnvrs:grammar-states copy))
-                  (zerop (hash-table-count
+                  (zerop (cnvrs:cache-count
                           (cnvrs::grammar-sll-decisions copy)))
-                  (plusp (hash-table-count
+                  (plusp (cnvrs:cache-count
                           (cnvrs::grammar-sll-decisions grammar))))
              "parser clone shares its graph but starts with an empty cache")
       (cnvrs:clear-cache grammar)
-      (check (zerop (hash-table-count
+      (check (zerop (cnvrs:cache-count
                     (cnvrs::grammar-sll-decisions grammar)))
              "parser prediction cache can be cleared")))
   (check (cnvrs:parser-definition-p *inline-parser*)
@@ -306,6 +383,9 @@
     (check (equal (cnvrs:node-children
                    (first (cnvrs:node-children tree))) '(#\a #\b))
            "caller context chooses longer alternative")
+    (check (plusp (cnvrs:cache-count
+                   (cnvrs:grammar-decisions grammar)))
+           "full-context prediction uses the selected cache backend")
     (check (equal (cnvrs:node-children
                    (first (cnvrs:node-children
                            (cnvrs:parse grammar "ab")))) '(#\a))

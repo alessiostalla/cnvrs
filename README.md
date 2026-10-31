@@ -222,7 +222,7 @@ The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4
 
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. At a choice or repetition, prediction explores graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
-Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order. The DFA caches live on the compiled grammar object, so sharing one object across threads requires synchronization. Compiling arbitrary `.g4` files into new CNVRS parsers remains future work.
+Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order. Compiling arbitrary `.g4` files into new CNVRS parsers remains future work.
 
 ### Compiled objects and caches
 
@@ -230,12 +230,21 @@ Compilation rewrites direct left recursion into precedence levels before buildin
 
 The exported `grammar-states`, `grammar-starts`, `grammar-stops`, and `grammar-lexer` accessors expose a parser's transition graph. `compiled-lexer-states`, `compiled-lexer-mode-starts`, and `compiled-lexer-kinds` expose a lexer's automaton. State and edge accessors are exported for inspection. Treat these graphs as immutable.
 
-`clone-compiled` accepts either kind of compiled object or a definition. A parser clone shares its immutable graph and starts with empty SLL and full-context prediction caches. A lexer clone shares its immutable automaton; lexers currently have no mutable prediction cache. A parser clone also clones an attached compiled lexer. `clear-cache` empties a parser's prediction caches and is a no-op for a compiled lexer. Do not clear a cache while another thread is using the same parser.
+Both compilers accept `:cache-backend`. The storage backends are `:fset`, using persistent [FSET maps](https://fset.common-lisp.dev/Site/FSet-Tutorial.html), and `:hash-table`. Both are bare, unsynchronized strategies. Wrap either with `(:locked backend)` when a compiled parser or lexer will be shared across threads. The default is `(:locked :fset)`. The lexer caches automaton transitions; the parser caches SLL and full-context decisions and DFA transitions.
+
+`clone-compiled` accepts either kind of compiled object or a definition. A clone shares its immutable graph and starts with independent, empty caches. A parser clone also clones an attached compiled lexer. Pass `:cache-backend` to choose a different backend for the clone. `clear-cache` is the single public clearing operation: on a parser it clears both parser decision caches and its attached compiled lexer's cache; on a lexer it clears its transition cache. Use a locked backend when clearing an object during active use.
+
+Custom backends specialize `make-cache` on a backend name and implement `cache-get-or-compute`, `cache-clear`, and `cache-count` for the returned cache object. `cache-get-or-compute` must return the stored value or compute, store, and return one value for an absent key. The generic `(:locked backend)` wrapper also works with custom backends.
 
 ```lisp
 (defparameter *ready* (cnvrs:ensure-compiled *assignment*))
 (defparameter *worker* (cnvrs:clone-compiled *ready*))
 (cnvrs:clear-cache *ready*)
+
+(defparameter *local* (cnvrs:clone-compiled *ready*
+                                           :cache-backend :hash-table))
+(defparameter *shared-hash* (cnvrs:clone-compiled *ready*
+                                                 :cache-backend '(:locked :hash-table)))
 ```
 
 ## Tests

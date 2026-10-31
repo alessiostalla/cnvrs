@@ -3,6 +3,9 @@
   (:shadow #:parse-error)
   (:export #:compile-grammar #:compile-lexer #:parse #:lex
            #:ensure-compiled #:clone-compiled #:clear-cache
+           #:make-cache #:cache-get-or-compute #:cache-clear #:cache-count
+           #:grammar-cache-backend #:compiled-lexer-cache-backend
+           #:compiled-lexer-cache
            #:grammar-p #:grammar-states #:grammar-starts #:grammar-stops
            #:grammar-default-rule #:grammar-lexer #:grammar-rewrites
            #:grammar-decisions #:grammar-sll-decisions
@@ -33,6 +36,60 @@
            #:node-p #:node-rule #:node-children #:node-start #:node-end))
 
 (in-package #:cnvrs)
+
+;; Backends can be added by specializing MAKE-CACHE on a new backend name
+;; and implementing these three operations for the returned cache object.
+(defgeneric make-cache (backend))
+(defgeneric cache-get-or-compute (cache key thunk))
+(defgeneric cache-clear (cache))
+(defgeneric cache-count (cache))
+
+(defstruct hash-cache (table (make-hash-table :test 'equal)))
+(defmethod make-cache ((backend (eql :hash-table)))
+  (make-hash-cache))
+(defmethod cache-get-or-compute ((cache hash-cache) key thunk)
+  (multiple-value-bind (value present) (gethash key (hash-cache-table cache))
+    (if present value
+        (setf (gethash key (hash-cache-table cache)) (funcall thunk)))))
+(defmethod cache-clear ((cache hash-cache))
+  (clrhash (hash-cache-table cache))
+  cache)
+(defmethod cache-count ((cache hash-cache))
+  (hash-table-count (hash-cache-table cache)))
+
+(defstruct fset-cache (map (fset:empty-map)))
+(defmethod make-cache ((backend (eql :fset)))
+  (make-fset-cache))
+(defmethod cache-get-or-compute ((cache fset-cache) key thunk)
+  (multiple-value-bind (value present) (fset:lookup (fset-cache-map cache) key)
+    (if present value
+        (let ((value (funcall thunk)))
+          (setf (fset-cache-map cache)
+                (fset:with (fset-cache-map cache) key value))
+          value))))
+(defmethod cache-clear ((cache fset-cache))
+  (setf (fset-cache-map cache) (fset:empty-map))
+  cache)
+(defmethod cache-count ((cache fset-cache))
+  (fset:size (fset-cache-map cache)))
+
+(defstruct locked-cache inner (lock (bt:make-lock "CNVRS cache")))
+(defmethod make-cache ((backend cons))
+  (unless (and (eq (first backend) :locked)
+               (consp (rest backend))
+               (null (cddr backend)))
+    (error "Expected (:LOCKED backend), got ~S" backend))
+  (make-locked-cache :inner (make-cache (second backend))))
+(defmethod cache-get-or-compute ((cache locked-cache) key thunk)
+  (bt:with-lock-held ((locked-cache-lock cache))
+    (cache-get-or-compute (locked-cache-inner cache) key thunk)))
+(defmethod cache-clear ((cache locked-cache))
+  (bt:with-lock-held ((locked-cache-lock cache))
+    (cache-clear (locked-cache-inner cache)))
+  cache)
+(defmethod cache-count ((cache locked-cache))
+  (bt:with-lock-held ((locked-cache-lock cache))
+    (cache-count (locked-cache-inner cache))))
 
 (defparameter +end-of-input+ (gensym "END-OF-INPUT-"))
 
@@ -71,12 +128,13 @@
 (defstruct transition kind target value)
 (defstruct state id (edges nil) stop-rule exit-alternative)
 (defstruct configuration state stack alternative)
-(defstruct dfa-state configurations alternatives accepted (edges (make-hash-table :test 'equal)))
+(defstruct dfa-state configurations alternatives accepted edges)
 (defstruct grammar states starts stops default-rule lexer
   (rewrites (make-hash-table :test 'eq))
-  (decisions (make-hash-table))
-  (sll-decisions (make-hash-table)))
-(defstruct parser-definition name kind default-rule lexer (rules nil) compiled)
+  (cache-backend '(:locked :fset))
+  decisions sll-decisions)
+(defstruct parser-definition name kind default-rule lexer cache-backend
+  (rules nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
 
 (defun grammar-fail (control &rest arguments)
@@ -311,7 +369,8 @@
        (compile-expression grammar (second expression) entry loop-state)
        (compile-expression grammar (list '* (second expression)) loop-state exit)))))
 
-(defun compile-grammar (definitions &key default-rule lexer)
+(defun compile-grammar (definitions &key default-rule lexer
+                                    (cache-backend '(:locked :fset)))
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), and (TOKEN value).
@@ -319,7 +378,9 @@ Direct left-recursive alternatives are ordered from low to high precedence;
 (RIGHT alternative) gives a recursive alternative right associativity.
 Bare symbols name rules; other atoms are literal tokens. DEFAULT-RULE chooses
 the entry rule used by PARSE when no :RULE is supplied; otherwise the first
-definition is used. LEXER maps source input to tokens before parsing."
+definition is used. LEXER maps source input to tokens before parsing.
+CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
+(:LOCKED backend). The default is (:LOCKED :FSET)."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let ((names (make-hash-table :test 'eq))
@@ -353,7 +414,10 @@ definition is used. LEXER maps source input to tokens before parsing."
                                  :starts (make-hash-table :test 'eq)
                                  :stops (make-hash-table :test 'eq)
                                  :default-rule default-rule :lexer lexer
-                                 :rewrites rewrites)))
+                                 :rewrites rewrites
+                                 :cache-backend cache-backend
+                                 :decisions (make-cache cache-backend)
+                                 :sll-decisions (make-cache cache-backend))))
       (dolist (definition definitions)
         (setf (gethash (first definition) (grammar-starts grammar)) (new-state grammar)
               (gethash (first definition) (grammar-stops grammar))
@@ -421,37 +485,37 @@ definition is used. LEXER maps source input to tokens before parsing."
                                           (null (configuration-stack configuration)))
                                   collect (configuration-alternative configuration))) #'<)))
     (make-dfa-state :configurations closed
-                    :alternatives alternatives :accepted accepted)))
+                    :alternatives alternatives :accepted accepted
+                    :edges (make-cache (grammar-cache-backend grammar)))))
 
 (defun advance-dfa (grammar dfa token)
-  (multiple-value-bind (cached present) (gethash (token-key token) (dfa-state-edges dfa))
-    (if present cached
-        (setf (gethash (token-key token) (dfa-state-edges dfa))
-              (dfa-state-for grammar
-                             (loop for configuration in (dfa-state-configurations dfa)
-                                   for state = (aref (grammar-states grammar)
-                                                     (configuration-state configuration))
-                                   append (loop for edge in (state-edges state)
-                                                when (and (eq (transition-kind edge) :token)
-                                                          (equal (token-key token) (transition-value edge)))
-                                                  collect (make-configuration
-                                                           :state (transition-target edge)
-                                                           :stack (configuration-stack configuration)
-                                                           :alternative
-                                                           (configuration-alternative configuration)))))))))
+  (cache-get-or-compute
+   (dfa-state-edges dfa) (token-key token)
+   (lambda ()
+     (dfa-state-for grammar
+                    (loop for configuration in (dfa-state-configurations dfa)
+                          for state = (aref (grammar-states grammar)
+                                            (configuration-state configuration))
+                          append (loop for edge in (state-edges state)
+                                       when (and (eq (transition-kind edge) :token)
+                                                 (equal (token-key token) (transition-value edge)))
+                                         collect (make-configuration
+                                                  :state (transition-target edge)
+                                                  :stack (configuration-stack configuration)
+                                                  :alternative
+                                                  (configuration-alternative configuration))))))))
 
 (defun predict-full-context (grammar state-id stack tokens position)
-  (let* ((cache (or (gethash state-id (grammar-decisions grammar))
-                    (setf (gethash state-id (grammar-decisions grammar))
-                          (make-hash-table :test 'equal))))
-         (dfa (or (gethash stack cache)
-                  (setf (gethash stack cache)
-                        (dfa-state-for grammar
-                                       (loop for edge in (state-edges
-                                                          (aref (grammar-states grammar) state-id))
-                                             for alternative from 0
-                                             collect (configuration-after-edge
-                                                      grammar edge stack alternative))))))
+  (let* ((cache (grammar-decisions grammar))
+         (dfa (cache-get-or-compute
+               cache (list state-id stack)
+               (lambda ()
+                 (dfa-state-for grammar
+                                (loop for edge in (state-edges
+                                                   (aref (grammar-states grammar) state-id))
+                                      for alternative from 0
+                                      collect (configuration-after-edge
+                                               grammar edge stack alternative))))))
          (length (length tokens)))
     (loop
       (let ((alternatives (dfa-state-alternatives dfa)))
@@ -474,14 +538,15 @@ definition is used. LEXER maps source input to tokens before parsing."
   ;; result depends on the caller and prediction retries with the full stack.
   (let* ((start-position position)
          (cache (grammar-sll-decisions grammar))
-         (dfa (or (gethash state-id cache)
-                  (setf (gethash state-id cache)
-                        (dfa-state-for grammar
-                                       (loop for edge in (state-edges
-                                                          (aref (grammar-states grammar) state-id))
-                                             for alternative from 0
-                                             collect (configuration-after-edge
-                                                      grammar edge nil alternative))))))
+         (dfa (cache-get-or-compute
+               cache state-id
+               (lambda ()
+                 (dfa-state-for grammar
+                                (loop for edge in (state-edges
+                                                   (aref (grammar-states grammar) state-id))
+                                      for alternative from 0
+                                      collect (configuration-after-edge
+                                               grammar edge nil alternative))))))
          (length (length tokens)))
     (loop
       (let ((alternatives (dfa-state-alternatives dfa)))
