@@ -63,6 +63,12 @@
           do (setf (aref key index) value))
     key))
 
+(defun parser-context-key (head stack)
+  "Use a small pair for shallow stacks and a flat array for deeper ones."
+  (if (null (cdr stack))
+      (cons head (first stack))
+      (flat-cache-key head stack)))
+
 (defun flat-cache-key-p (key)
   (and (vectorp key) (plusp (length key))
        (eq (aref key 0) +flat-cache-key-marker+)))
@@ -227,7 +233,7 @@
 (defstruct dfa-state configurations alternatives accepted edges)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
-  (cache-backend '(:locked :fset))
+  (cache-backend :hash-table)
   (full-context-strategy :cached) full-context-start
   decisions sll-decisions direct-decisions)
 (defstruct parser-definition name kind default-rule lexer cache-backend
@@ -479,7 +485,7 @@
        (compile-expression grammar (list '* (second expression)) loop-state exit)))))
 
 (defun compile-grammar (definitions &key default-rule lexer
-                                    (cache-backend '(:locked :fset))
+                                    (cache-backend :hash-table)
                                     (full-context-strategy :cached)
                                     (tree-builder :node))
   "Compile Lisp-form rule definitions into an in-memory parser.
@@ -491,7 +497,7 @@ Bare symbols name rules; other atoms are literal tokens. DEFAULT-RULE chooses
 the entry rule used by PARSE when no :RULE is supplied; otherwise the first
 definition is used. LEXER maps source input to tokens before parsing.
 CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
-(:LOCKED backend). The default is (:LOCKED :FSET).
+(:LOCKED backend). The default is :HASH-TABLE.
 TREE-BUILDER selects the parse-node construction strategy.
 FULL-CONTEXT-STRATEGY selects :CACHED (the default), :RECOMPUTE, or a
 function of (parser state-id return-stack) that returns a start DFA state."
@@ -636,7 +642,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
 
 (defun cached-full-context-start (grammar state-id stack)
   (cache-get-or-compute
-   (parser-decisions grammar) (flat-cache-key state-id stack)
+   (parser-decisions grammar) (parser-context-key state-id stack)
    (lambda () (make-full-context-start grammar state-id stack))))
 
 (defun resolve-full-context-strategy (strategy)
@@ -740,14 +746,26 @@ function of (parser state-id return-stack) that returns a start DFA state."
             (setf (state-direct-lookahead state)
                   (or table (and nullable (not overlap) :contextual))))))
 
-(defun contextual-direct-lookahead (grammar state-id stack)
-  (cache-get-or-compute
-   (parser-direct-decisions grammar) (flat-cache-key state-id stack)
-   (lambda ()
-     (or (direct-lookahead-table grammar
-                                 (aref (parser-states grammar) state-id)
-                                 stack)
-         :unavailable))))
+(defun contextual-direct-lookahead (grammar state-id stack context-hash)
+  (let* ((cache (parser-direct-decisions grammar))
+         (entry (cache-get-or-compute
+                 cache (cons state-id context-hash)
+                 (lambda ()
+                   (cons stack
+                         (or (direct-lookahead-table
+                              grammar (aref (parser-states grammar) state-id)
+                              stack)
+                             :unavailable))))))
+    (if (equal stack (car entry))
+        (cdr entry)
+        ;; The rolling hash is only a filter; collisions retain exact keys.
+        (cache-get-or-compute
+         cache (flat-cache-key state-id stack)
+         (lambda ()
+           (or (direct-lookahead-table grammar
+                                       (aref (parser-states grammar) state-id)
+                                       stack)
+               :unavailable))))))
 
 (defun possible-tokens (grammar configurations)
   (remove-duplicates
@@ -799,12 +817,14 @@ the restarts at each error site to make a different local repair."
          (position 0)
          (state-id (gethash start (parser-starts grammar)))
          (stack nil)
-         (frames (list (list start 0 nil)))
+         (context-hash 0)
+         (frames (list (vector start 0 nil 0)))
          (pending nil)
          (recoveries nil)
          (automatic-insert-position -1)
          (automatic-insert-count 0))
-    (parse-rule-enter tree-builder (visible-rule grammar start) 0)
+    (unless (eq tree-builder :none)
+      (parse-rule-enter tree-builder (visible-rule grammar start) 0))
     (labels ((record (action condition token)
                (push (make-recovery :action action :condition condition
                                     :token token)
@@ -841,11 +861,11 @@ the restarts at each error site to make a different local repair."
                                (coerce (subseq input position) 'list))
                        'vector))
              (predict-current ()
-               (let* ((choice (state-direct-lookahead
-                               (aref (parser-states grammar) state-id)))
+               (let* ((state (aref (parser-states grammar) state-id))
+                      (choice (state-direct-lookahead state))
                       (table (if (eq choice :contextual)
                                  (contextual-direct-lookahead
-                                  grammar state-id stack)
+                                  grammar state-id stack context-hash)
                                  choice))
                       (direct (and (hash-table-p table) (has-token-p)
                                    (gethash (token-key (current-value)) table))))
@@ -915,16 +935,18 @@ the restarts at each error site to make a different local repair."
             (when stop
               (let* ((frame (pop frames))
                      (completed (when build-tree-p
-                                  (make-parse-node tree-builder (first frame)
-                                                   (nreverse (third frame))
-                                                   (second frame) position))))
-                (parse-rule-exit tree-builder
-                                 (visible-rule grammar (first frame))
-                                 (second frame) position)
+                                  (make-parse-node tree-builder (aref frame 0)
+                                                   (nreverse (aref frame 2))
+                                                   (aref frame 1) position))))
+                (unless (eq tree-builder :none)
+                  (parse-rule-exit tree-builder
+                                   (visible-rule grammar (aref frame 0))
+                                   (aref frame 1) position))
                 (if stack
                     (progn
                       (when build-tree-p
-                        (push completed (third (first frames))))
+                        (push completed (aref (first frames) 2)))
+                      (setf context-hash (aref frame 3))
                       (setf state-id (pop stack)))
                     (progn
                       (when (and require-eof (has-token-p))
@@ -950,14 +972,14 @@ the restarts at each error site to make a different local repair."
                                       (nreverse recoveries)))))))
             (unless stop
               (let* ((edges (state-edges state))
-                     (index (if (= (length edges) 1)
+                     (index (if (null (rest edges))
                                 0 (predict-current))))
                 (when (null index)
                   (let ((condition
                           (make-condition
                            'no-viable-alternative :position position
                            :token (current-value)
-                           :rule (visible-rule grammar (first (first frames)))
+                           :rule (visible-rule grammar (aref (first frames) 0))
                            :expected
                            (possible-tokens
                             grammar
@@ -994,11 +1016,18 @@ the restarts at each error site to make a different local repair."
                     (case (transition-kind edge)
                       (:epsilon (setf state-id (transition-target edge)))
                       (:call
+                       (push (vector (transition-value edge) position nil
+                                     context-hash)
+                             frames)
+                       (setf context-hash
+                             (logand #xffffffff
+                                     (+ (transition-target edge)
+                                        (* 65599 context-hash))))
                        (push (transition-target edge) stack)
-                       (push (list (transition-value edge) position nil) frames)
-                       (parse-rule-enter
-                        tree-builder
-                        (visible-rule grammar (transition-value edge)) position)
+                       (unless (eq tree-builder :none)
+                         (parse-rule-enter
+                          tree-builder
+                          (visible-rule grammar (transition-value edge)) position))
                        (setf state-id (gethash (transition-value edge)
                                                (parser-starts grammar))))
                       (:token
@@ -1008,17 +1037,18 @@ the restarts at each error site to make a different local repair."
                              (progn
                                (let ((start-position position)
                                      (token (consume-current)))
-                                 (parse-token-consumed tree-builder token
-                                                       start-position position)
+                                 (unless (eq tree-builder :none)
+                                   (parse-token-consumed tree-builder token
+                                                         start-position position))
                                  (when build-tree-p
-                                   (push token (third (first frames)))))
+                                   (push token (aref (first frames) 2))))
                                (setf state-id (transition-target edge)))
                              (let ((condition
                                      (make-condition
                                       'mismatched-token :position position
                                       :token (current-value)
                                       :expected expected
-                                      :rule (visible-rule grammar (first (first frames)))
+                                      :rule (visible-rule grammar (aref (first frames) 0))
                                       :next-state (transition-target edge))))
                                (multiple-value-bind (action value)
                                    (restart-case (error condition)

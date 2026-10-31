@@ -280,7 +280,7 @@ WITH-MODE blocks containing lexer rules."
          (kind (getf options :kind :parser))
          (default-rule (getf options :default-rule nil))
          (lexer (getf options :lexer nil))
-         (cache-backend (getf options :cache-backend '(:locked :fset)))
+         (cache-backend (getf options :cache-backend :hash-table))
          (tree-builder (getf options :tree-builder :node))
          (full-context-strategy
            (getf options :full-context-strategy :cached)))

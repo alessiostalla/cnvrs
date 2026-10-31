@@ -168,7 +168,7 @@
   (make-lx-dfa-state :active active
                      :best-rule (lx-best-accept states active)))
 
-(defun lx-next-dfa-state (states cache current character)
+(defun lx-next-dfa-state (states cache current character locked-p)
   (let ((code (char-code character)))
     (flet ((compute ()
              (cache-get-or-compute
@@ -179,14 +179,18 @@
                                  (lx-dfa-state-active current)
                                  character))))))
       (if (< code 128)
-          (bt:with-lock-held ((lx-dfa-state-lock current))
-            (let ((edges (lx-dfa-state-edges current)))
-              (or (and edges (aref edges code))
-                  (let ((next (compute)))
-                    (unless edges
-                      (setf edges (make-array 128 :initial-element nil)
-                            (lx-dfa-state-edges current) edges))
-                    (setf (aref edges code) next)))))
+          (flet ((ascii-next ()
+                   (let ((edges (lx-dfa-state-edges current)))
+                     (or (and edges (aref edges code))
+                         (let ((next (compute)))
+                           (unless edges
+                             (setf edges (make-array 128 :initial-element nil)
+                                   (lx-dfa-state-edges current) edges))
+                           (setf (aref edges code) next))))))
+            (if locked-p
+                (bt:with-lock-held ((lx-dfa-state-lock current))
+                  (ascii-next))
+                (ascii-next)))
           (compute)))))
 
 (defun initialize-compiled-lexer (lexer)
@@ -199,7 +203,8 @@
         (push-modes (compiled-lexer-push-modes lexer))
         (pop-modes (compiled-lexer-pop-modes lexer))
         (set-modes (compiled-lexer-set-modes lexer))
-        (cache (compiled-lexer-cache lexer)))
+        (cache (compiled-lexer-cache lexer))
+        (locked-p (typep (compiled-lexer-cache lexer) 'locked-cache)))
     (labels ((match-one (source position mode)
                (let ((dfa (cache-get-or-compute
                            cache mode
@@ -211,7 +216,7 @@
                      (best-end nil) (best-rule nil))
                  (loop for offset from position below (length source) do
                    (setf dfa (lx-next-dfa-state
-                              states cache dfa (char source offset)))
+                              states cache dfa (char source offset) locked-p))
                    (when (null (lx-dfa-state-active dfa)) (return))
                    (let ((rule (lx-dfa-state-best-rule dfa)))
                      (when rule
@@ -250,7 +255,7 @@
                 (coerce (nreverse output) 'vector)))))
     lexer))
 
-(defun compile-lexer (definitions &key (cache-backend '(:locked :fset)))
+(defun compile-lexer (definitions &key (cache-backend :hash-table))
   "Compile Lisp-form lexer rules into an inspectable lexer object.
 Rules are (kind expression &key skip channel mode push-mode pop-mode set-mode).
 MODE selects the active mode for a rule, defaulting to :DEFAULT. A matched
@@ -259,7 +264,7 @@ ties use rule order among rules in the current mode. The second return value
 is a matcher taking (source position mode), returning kind, end, and rule
 index for one token without consuming the rest of the source.
 CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
-(:LOCKED backend). The default is (:LOCKED :FSET)."
+(:LOCKED backend). The default is :HASH-TABLE."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of lexer rules"))
   (let ((patterns (make-hash-table :test 'eq))

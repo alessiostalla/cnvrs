@@ -160,6 +160,11 @@
   (check (null (cnvrs:parse (cnvrs:compile-grammar '((start :a)))
                             '(:a) :tree-builder :none))
          "built-in :none builder constructs no tree")
+  (check (and (eq (cnvrs:parser-cache-backend
+                   (cnvrs:compile-grammar '((start :a)))) :hash-table)
+              (eq (cnvrs:compiled-lexer-cache-backend
+                   (cnvrs:compile-lexer '((:a "a")))) :hash-table))
+         "compiled parsers and lexers default to unlocked hash caches")
   (let ((grammar (cnvrs:compile-grammar '((start (or :a :b))))))
     (check (and (equal (cnvrs:node-children
                         (cnvrs:parse grammar '(:b)))
@@ -174,20 +179,46 @@
       (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
              "nullable choice uses caller context for direct lookahead"))
     (check (and (plusp (cnvrs:cache-count
-                        (cnvrs::parser-direct-decisions grammar)))
+                        (cnvrs:parser-direct-decisions grammar)))
                 (zerop (cnvrs:cache-count
                         (cnvrs:parser-sll-decisions grammar)))
                 (zerop (cnvrs:cache-count
                         (cnvrs:parser-decisions grammar))))
            "contextual direct choices bypass parser DFA caches")
     (check (zerop (cnvrs:cache-count
-                   (cnvrs::parser-direct-decisions
+                   (cnvrs:parser-direct-decisions
                     (cnvrs:clone-compiled grammar))))
            "parser clones have independent direct-lookahead caches")
     (cnvrs:clear-cache grammar)
     (check (zerop (cnvrs:cache-count
-                   (cnvrs::parser-direct-decisions grammar)))
+                   (cnvrs:parser-direct-decisions grammar)))
            "clear-cache clears contextual direct lookahead"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((start (or (and opt :b) (and opt :c)))
+                     (opt (? :a)))
+                   :cache-backend :hash-table))
+         (choice (find-if #'cnvrs:state-exit-alternative
+                          (cnvrs:parser-states grammar)))
+         (returns (loop for state across (cnvrs:parser-states grammar)
+                        append (loop for edge in (cnvrs:state-edges state)
+                                     when (and (eq (cnvrs:transition-kind edge)
+                                                   :call)
+                                               (eq (cnvrs:transition-value edge)
+                                                   'opt))
+                                       collect (cnvrs:transition-target edge)))))
+    (check (= (length returns) 2) "two callers reach the optional rule")
+    (let ((first-table (cnvrs::contextual-direct-lookahead
+                        grammar (cnvrs:state-id choice)
+                        (list (first returns)) 7))
+          (second-table (cnvrs::contextual-direct-lookahead
+                         grammar (cnvrs:state-id choice)
+                         (list (second returns)) 7)))
+      (check (and (hash-table-p first-table)
+                  (hash-table-p second-table)
+                  (not (eq first-table second-table))
+                  (= (cnvrs:cache-count
+                      (cnvrs:parser-direct-decisions grammar)) 2))
+             "rolling context hash collisions check the full stack")))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and item :end)) (item :name))
                    :tree-builder :alternate))
@@ -307,10 +338,10 @@
                                                 :initial-element character))) 2)
            "non-ASCII lexer transitions retain the cache fallback"))
   (let* ((grammar (cnvrs:compile-grammar '((start (or :a :b)))))
-         (copy (cnvrs:clone-compiled grammar :cache-backend :hash-table)))
+         (copy (cnvrs:clone-compiled grammar :cache-backend :fset)))
     (check (and (equal (cnvrs:parser-cache-backend grammar)
-                       '(:locked :fset))
-                (eq (cnvrs:parser-cache-backend copy) :hash-table)
+                       :hash-table)
+                (eq (cnvrs:parser-cache-backend copy) :fset)
                 (eq (cnvrs:node-rule (cnvrs:parse copy '(:b))) 'start))
            "cloning can select another cache backend"))
   (check (eq (cnvrs:parser-cache-backend

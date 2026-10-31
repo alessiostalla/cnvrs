@@ -266,6 +266,38 @@ structural hashing of contextual keys, cache locking, and parse-loop work
 among the largest costs. Java's generated parser made 1,054 adaptive
 prediction calls and no full-context fallback calls on the same input; many
 other choices use direct token lookahead in generated code.
+
+## Unlocked caches and parser hot path
+
+The default cache backend is now the unlocked `:hash-table`; `:fset` remains
+available, and `(:locked backend)` opts into synchronization. The lexer's
+direct ASCII DFA edges skip their per-state lock when the backend is unlocked.
+
+For contextual direct lookahead, the parse loop maintains a 32-bit rolling
+hash of the return stack. The cache uses a pair of decision ID and hash as its
+common key, then checks the complete stack before reusing a table. A hash
+collision falls back to an exact flat-array key. Full-context keys use a
+small pair for stacks of at most one return site and retain flat arrays for
+deeper stacks. Parse frames now hold the previous hash, and `:none` skips
+tree-builder callbacks. Choices with one edge avoid traversing the edge list
+to count it.
+
+With tree construction disabled and the same warmup and batch settings,
+the seven-file medians sum to:
+
+| Configuration | Before this change | After |
+| --- | ---: | ---: |
+| Unlocked hash table | 11.017 ms | 7.048 ms |
+| Locked hash table | 13.188 ms | 11.968 ms |
+| Unlocked FSET | — | 13.293 ms |
+| ANTLR4/Java | 1.501 ms | 1.501 ms |
+
+On `JavaParser.g4`, an unlocked-hash phase measurement fell from 1.98 to
+1.53 ms for parsing and from 1.44 to 0.73 ms for lexing. Parser allocation
+fell from 1.46 to 1.02 MB per parse. The current unlocked-hash sum remains
+4.7 times Java's sum; these measurements use valid `.g4` inputs and do not
+isolate every semantic difference between the implementations.
+
 Both harnesses load file contents before timing. Each timed iteration includes
 lexing and parsing. CNVRS reuses its compiled objects and selected cache
 backend, warmed across iterations; Java creates fresh

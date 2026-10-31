@@ -343,7 +343,7 @@
                          parser-rules)))
       (cnvrs::make-defined-parser name kind
                                   (caar parser-rules) lexer
-                                  '(:locked :fset) :node :cached forms))))
+                                  :hash-table :node :cached forms))))
 
 (defun parse (source &key lexer)
   "Parse ANTLR4 SOURCE into a CNVRS grammar definition ready for ENSURE-COMPILED.
