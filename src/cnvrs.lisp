@@ -7,13 +7,16 @@
            #:parse-build-tree-p #:parse-rule-enter #:parse-token-consumed
            #:parse-rule-exit
            #:make-cache #:cache-get-or-compute #:cache-clear #:cache-count
-           #:parser-cache-backend #:compiled-lexer-cache-backend
+           #:parser-cache-backend #:parser-full-context-strategy
+           #:make-full-context-start
+           #:compiled-lexer-cache-backend
            #:compiled-lexer-cache
            #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
            #:parser-tree-builder
-           #:parser-decisions #:parser-sll-decisions
+           #:parser-decisions #:parser-sll-decisions #:parser-direct-decisions
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
+           #:state-direct-lookahead
            #:transition-kind #:transition-target #:transition-value
            #:compiled-lexer-p #:compiled-lexer-states
            #:compiled-lexer-mode-starts #:compiled-lexer-kinds
@@ -219,17 +222,20 @@
   (inserted-token-expected token))
 (defstruct recovery action condition token)
 (defstruct transition kind target value)
-(defstruct state id (edges nil) stop-rule exit-alternative)
+(defstruct state id (edges nil) stop-rule exit-alternative direct-lookahead)
 (defstruct configuration state stack alternative)
 (defstruct dfa-state configurations alternatives accepted edges)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
   (cache-backend '(:locked :fset))
-  decisions sll-decisions)
+  (full-context-strategy :cached) full-context-start
+  decisions sll-decisions direct-decisions)
 (defstruct parser-definition name kind default-rule lexer cache-backend
+  (full-context-strategy :cached)
   (tree-builder :node)
   (rules nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
+(declaim (ftype function resolve-full-context-strategy))
 
 (defun grammar-fail (control &rest arguments)
   (error 'grammar-error :message (apply #'format nil control arguments)))
@@ -474,6 +480,7 @@
 
 (defun compile-grammar (definitions &key default-rule lexer
                                     (cache-backend '(:locked :fset))
+                                    (full-context-strategy :cached)
                                     (tree-builder :node))
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
@@ -485,7 +492,9 @@ the entry rule used by PARSE when no :RULE is supplied; otherwise the first
 definition is used. LEXER maps source input to tokens before parsing.
 CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
 (:LOCKED backend). The default is (:LOCKED :FSET).
-TREE-BUILDER selects the parse-node construction strategy."
+TREE-BUILDER selects the parse-node construction strategy.
+FULL-CONTEXT-STRATEGY selects :CACHED (the default), :RECOMPUTE, or a
+function of (parser state-id return-stack) that returns a start DFA state."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let ((names (make-hash-table :test 'eq))
@@ -522,8 +531,13 @@ TREE-BUILDER selects the parse-node construction strategy."
                                  :tree-builder tree-builder
                                  :rewrites rewrites
                                  :cache-backend cache-backend
+                                 :full-context-strategy full-context-strategy
+                                 :full-context-start
+                                 (resolve-full-context-strategy
+                                  full-context-strategy)
                                  :decisions (make-cache cache-backend)
-                                 :sll-decisions (make-cache cache-backend))))
+                                 :sll-decisions (make-cache cache-backend)
+                                 :direct-decisions (make-cache cache-backend))))
       (dolist (definition definitions)
         (setf (gethash (first definition) (parser-starts grammar)) (new-state grammar)
               (gethash (first definition) (parser-stops grammar))
@@ -532,6 +546,7 @@ TREE-BUILDER selects the parse-node construction strategy."
         (compile-expression grammar (second definition)
                             (gethash (first definition) (parser-starts grammar))
                             (gethash (first definition) (parser-stops grammar))))
+      (initialize-direct-lookahead grammar)
       grammar)))
 
 (defun configuration-key (configuration)
@@ -611,17 +626,32 @@ TREE-BUILDER selects the parse-node construction strategy."
                                                   :alternative
                                                   (configuration-alternative configuration))))))))
 
+(defun make-full-context-start (grammar state-id stack)
+  (dfa-state-for grammar
+                 (loop for edge in (state-edges
+                                    (aref (parser-states grammar) state-id))
+                       for alternative from 0
+                       collect (configuration-after-edge
+                                grammar edge stack alternative))))
+
+(defun cached-full-context-start (grammar state-id stack)
+  (cache-get-or-compute
+   (parser-decisions grammar) (flat-cache-key state-id stack)
+   (lambda () (make-full-context-start grammar state-id stack))))
+
+(defun resolve-full-context-strategy (strategy)
+  (case strategy
+    (:cached #'cached-full-context-start)
+    (:recompute #'make-full-context-start)
+    (otherwise
+     (if (functionp strategy) strategy
+         (grammar-fail
+          "Full-context strategy must be :CACHED, :RECOMPUTE, or a function, got ~S"
+          strategy)))))
+
 (defun predict-full-context (grammar state-id stack tokens position)
-  (let* ((cache (parser-decisions grammar))
-         (dfa (cache-get-or-compute
-               cache (flat-cache-key state-id stack)
-               (lambda ()
-                 (dfa-state-for grammar
-                                (loop for edge in (state-edges
-                                                   (aref (parser-states grammar) state-id))
-                                      for alternative from 0
-                                      collect (configuration-after-edge
-                                               grammar edge stack alternative))))))
+  (let* ((dfa (funcall (parser-full-context-start grammar)
+                       grammar state-id stack))
          (length (length tokens)))
     (loop
       (let ((alternatives (dfa-state-alternatives dfa)))
@@ -674,6 +704,50 @@ TREE-BUILDER selects the parse-node construction strategy."
                                :alternative alternative))
     (otherwise (make-configuration :state (transition-target edge)
                                    :stack stack :alternative alternative))))
+
+(defun direct-lookahead-table (grammar state stack)
+  "Return a table for a disjoint one-token decision, or why it is unsafe."
+  (let ((table (make-hash-table :test 'equal))
+        (nullable nil)
+        (overlap nil))
+    (loop for edge in (state-edges state) for alternative from 0 do
+      (let ((found-token nil))
+        (dolist (configuration
+                 (closure grammar
+                          (list (configuration-after-edge
+                                 grammar edge stack alternative))))
+          (let ((next (aref (parser-states grammar)
+                            (configuration-state configuration))))
+            (if (state-stop-rule next)
+                (setf nullable t)
+                (dolist (transition (state-edges next))
+                  (when (eq (transition-kind transition) :token)
+                    (setf found-token t)
+                    (let* ((key (transition-value transition))
+                           (prior (gethash key table)))
+                      (when (and prior (/= prior (1+ alternative)))
+                        (setf overlap t))
+                      (setf (gethash key table) (1+ alternative))))))))
+        (unless found-token (setf nullable t))))
+    (values (unless (or nullable overlap) table) nullable overlap)))
+
+(defun initialize-direct-lookahead (grammar)
+  "Record one-token choices independent of the caller, and contextual candidates."
+  (loop for state across (parser-states grammar)
+        when (> (length (state-edges state)) 1) do
+          (multiple-value-bind (table nullable overlap)
+              (direct-lookahead-table grammar state nil)
+            (setf (state-direct-lookahead state)
+                  (or table (and nullable (not overlap) :contextual))))))
+
+(defun contextual-direct-lookahead (grammar state-id stack)
+  (cache-get-or-compute
+   (parser-direct-decisions grammar) (flat-cache-key state-id stack)
+   (lambda ()
+     (or (direct-lookahead-table grammar
+                                 (aref (parser-states grammar) state-id)
+                                 stack)
+         :unavailable))))
 
 (defun possible-tokens (grammar configurations)
   (remove-duplicates
@@ -767,9 +841,19 @@ the restarts at each error site to make a different local repair."
                                (coerce (subseq input position) 'list))
                        'vector))
              (predict-current ()
-               (if pending
-                   (predict grammar state-id stack (remaining-values) 0)
-                   (predict grammar state-id stack input position)))
+               (let* ((choice (state-direct-lookahead
+                               (aref (parser-states grammar) state-id)))
+                      (table (if (eq choice :contextual)
+                                 (contextual-direct-lookahead
+                                  grammar state-id stack)
+                                 choice))
+                      (direct (and (hash-table-p table) (has-token-p)
+                                   (gethash (token-key (current-value)) table))))
+                 (if direct
+                     (1- direct)
+                     (if pending
+                         (predict grammar state-id stack (remaining-values) 0)
+                         (predict grammar state-id stack input position)))))
              (inject (values condition &optional (required nil required-p))
                (let ((items (coerce values 'list)))
                  (unless items (error "INSERT-TOKENS requires a nonempty sequence"))

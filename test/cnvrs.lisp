@@ -57,6 +57,11 @@
 (cnvrs:define-parser *hash-parser* (:kind :parser :cache-backend :hash-table)
   (start (or :a :b)))
 
+(cnvrs:define-parser *recompute-parser*
+    (:kind :parser :full-context-strategy :recompute)
+  (start (and item #\b))
+  (item (or #\a (and #\a #\b))))
+
 (defstruct alternate-node rule children start end)
 (defmethod cnvrs:make-parse-node ((builder (eql :alternate)) rule children
                                   start end)
@@ -155,6 +160,34 @@
   (check (null (cnvrs:parse (cnvrs:compile-grammar '((start :a)))
                             '(:a) :tree-builder :none))
          "built-in :none builder constructs no tree")
+  (let ((grammar (cnvrs:compile-grammar '((start (or :a :b))))))
+    (check (and (equal (cnvrs:node-children
+                        (cnvrs:parse grammar '(:b)))
+                       '(:b))
+                (zerop (cnvrs:cache-count
+                        (cnvrs:parser-sll-decisions grammar))))
+           "disjoint alternatives use direct lookahead without a DFA"))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (and opt :b)) (opt (? :a)))
+                  :cache-backend :hash-table)))
+    (dolist (tokens '((:a :b) (:b)))
+      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
+             "nullable choice uses caller context for direct lookahead"))
+    (check (and (plusp (cnvrs:cache-count
+                        (cnvrs::parser-direct-decisions grammar)))
+                (zerop (cnvrs:cache-count
+                        (cnvrs:parser-sll-decisions grammar)))
+                (zerop (cnvrs:cache-count
+                        (cnvrs:parser-decisions grammar))))
+           "contextual direct choices bypass parser DFA caches")
+    (check (zerop (cnvrs:cache-count
+                   (cnvrs::parser-direct-decisions
+                    (cnvrs:clone-compiled grammar))))
+           "parser clones have independent direct-lookahead caches")
+    (cnvrs:clear-cache grammar)
+    (check (zerop (cnvrs:cache-count
+                   (cnvrs::parser-direct-decisions grammar)))
+           "clear-cache clears contextual direct lookahead"))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and item :end)) (item :name))
                    :tree-builder :alternate))
@@ -232,9 +265,10 @@
                      (:locked :hash-table)))
     (let* ((lexer (cnvrs:compile-lexer '((:a "a") (:b "b"))
                                         :cache-backend backend))
-           (grammar (cnvrs:compile-grammar '((start (or :a :b)))
-                                           :lexer lexer
-                                           :cache-backend backend)))
+           (grammar (cnvrs:compile-grammar
+                     '((start (or :a (and :a :b))))
+                     :lexer lexer
+                     :cache-backend backend)))
       (check (eq (cnvrs:node-rule (cnvrs:parse grammar "a")) 'start)
              "both cache backends parse compiled lexer output")
       (check (and (plusp (cnvrs:cache-count
@@ -282,8 +316,9 @@
   (check (eq (cnvrs:parser-cache-backend
               (cnvrs:ensure-compiled *hash-parser*)) :hash-table)
          "define-parser forwards the cache backend")
-  (let ((grammar (cnvrs:compile-grammar '((start (or :a :b)))
-                                        :cache-backend :test-cache)))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (or :a (and :a :b))))
+                  :cache-backend :test-cache)))
     (check (and (eq (cnvrs:node-rule
                      (cnvrs:parse grammar '(:a))) 'start)
                 (plusp (cnvrs:cache-count
@@ -324,7 +359,8 @@
            "compiled lexer exposes its matcher"))
   (check (cnvrs:parser-p (cnvrs:ensure-compiled *inline-parser*))
          "parser definition can be compiled before parsing")
-  (let ((grammar (cnvrs:compile-grammar '((start (or :a :b))))))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (or :a (and :a :b)))))))
     (check (and (cnvrs:parser-p grammar)
                 (plusp (length (cnvrs:parser-states grammar))))
            "compiled grammar exposes its transition states")
@@ -538,6 +574,48 @@
            "cached decision adapts to another input")
     (check (signals cnvrs:parse-error (cnvrs:parse grammar "aab"))
            "full context and end of input"))
+  (let* ((cached (cnvrs:compile-grammar
+                  '((start (and item #\b))
+                    (item (or #\a (and #\a #\b))))
+                  :cache-backend :hash-table))
+         (recomputed (cnvrs:clone-compiled
+                      cached :full-context-strategy :recompute))
+         (custom-calls 0)
+         (custom (cnvrs:clone-compiled
+                  cached
+                  :full-context-strategy
+                  (lambda (parser state-id stack)
+                    (incf custom-calls)
+                    (cnvrs::make-full-context-start parser state-id stack)))))
+    (dolist (input '("ab" "abb"))
+      (let ((expected (cnvrs:node-children
+                       (first (cnvrs:node-children
+                               (cnvrs:parse cached input)))))
+            (actual (cnvrs:node-children
+                     (first (cnvrs:node-children
+                             (cnvrs:parse recomputed input)))))
+            (custom-result (cnvrs:node-children
+                            (first (cnvrs:node-children
+                                    (cnvrs:parse custom input))))))
+        (check (equal actual expected)
+               "recomputed full context agrees with cached prediction")
+        (check (equal custom-result expected)
+               "custom full-context start function agrees with built-ins")))
+    (check (and (plusp (cnvrs:cache-count
+                        (cnvrs:parser-decisions cached)))
+                (zerop (cnvrs:cache-count
+                        (cnvrs:parser-decisions recomputed)))
+                (plusp custom-calls))
+           "full-context strategies use their own cache policies")
+    (check (eq (cnvrs:parser-full-context-strategy recomputed) :recompute)
+           "cloned parser exposes its selected full-context strategy")
+    (check (eq (cnvrs:parser-full-context-strategy
+                (cnvrs:ensure-compiled *recompute-parser*)) :recompute)
+           "define-parser passes through the full-context strategy")
+    (check (signals cnvrs:grammar-error
+             (cnvrs:compile-grammar '((start :a))
+                                    :full-context-strategy :unknown))
+           "unknown full-context strategies fail during compilation"))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and #\l (* element) #\r))
                      (element (or #\x start)))))

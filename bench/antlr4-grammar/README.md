@@ -197,6 +197,75 @@ Separate warmed timings for `JavaParser.g4` with locked hash tables now gave
 1.69 ms for lexing and 3.78 ms for parsing pretokenized input. The parser is
 the larger phase on that file after direct lexer edges were added.
 
+## Full-context prediction strategies
+
+The default `:cached` strategy retains a full-context start DFA under each
+`(decision-state-id, return-stack)` key. The `:recompute` strategy constructs
+a fresh full-context start DFA for every SLL fallback and does not retain
+full-context DFA transitions between fallbacks. Both still use the same SLL
+cache and lexer. The strategy can also be supplied as a function to
+`compile-grammar`, `define-parser`, or `clone-compiled`.
+
+Using the same ARM64 SBCL, corpus, and 10 warmups plus seven batches of 20
+parses per file, median milliseconds per parse were:
+
+| Input | Cached, locked hash | Recompute, locked hash | Cached, locked FSET | Recompute, locked FSET |
+| --- | ---: | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 1.454 | 12.558 | 2.226 | 13.018 |
+| ANTLRv4Parser.g4 | 1.833 | 26.301 | 2.921 | 26.823 |
+| JavaLexer.g4 | 1.600 | 17.935 | 2.751 | 18.454 |
+| JavaParser.g4 | 5.392 | 80.345 | 9.516 | 81.390 |
+| JSON.g4 | 0.328 | 4.212 | 0.569 | 4.313 |
+| Python3Lexer.g4 | 1.871 | 20.675 | 3.280 | 20.985 |
+| Python3Parser.g4 | 4.319 | 61.326 | 7.855 | 61.512 |
+
+| Sum of per-file medians | 16.797 | 223.352 | 29.117 | 226.495 |
+
+On this corpus, recomputing cost 13.3× as much as caching with locked hash
+tables, and 7.8× as much with locked FSET. For one warmed parse of
+`JavaParser.g4`, a counting strategy observed 5,493 full-context start
+requests but only 271 distinct `(decision, stack)` pairs. CNVRS therefore
+reuses those starts heavily. This experiment changes only full-context
+storage; it does not reproduce ANTLR4/Java's conflict detection or fallback
+algorithm. Keep `:cached` as the default for now.
+
+To compare the policies, set `BENCH_FULL_CONTEXT_STRATEGY` to `cached` or
+`recompute` when running `bench.lisp`, alongside an optional
+`BENCH_CACHE_BACKEND` value.
+
+## Direct parser lookahead
+
+Compilation now builds a one-token choice table when an alternative's first
+tokens are disjoint from every other alternative and no alternative can end
+without consuming a token. For choices that may end at a rule boundary, the
+parser builds the table for the current return stack on first use and caches
+it. Choices that still overlap or can end without consuming a token in the
+current context use the existing SLL and full-context predictors. Clones get independent contextual tables, and
+`clear-cache` clears them.
+
+Using the same seven files and settings, the median milliseconds per parse
+were:
+
+| Input | Before, locked hash | Direct lookahead, locked hash | Direct lookahead, locked FSET | ANTLR4/Java |
+| --- | ---: | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 1.454 | 1.256 | 1.831 | 0.149 |
+| ANTLRv4Parser.g4 | 1.833 | 1.417 | 2.259 | 0.152 |
+| JavaLexer.g4 | 1.600 | 1.297 | 2.181 | 0.169 |
+| JavaParser.g4 | 5.392 | 4.134 | 7.149 | 0.491 |
+| JSON.g4 | 0.328 | 0.257 | 0.441 | 0.029 |
+| Python3Lexer.g4 | 1.871 | 1.593 | 2.649 | 0.187 |
+| Python3Parser.g4 | 4.319 | 3.233 | 5.920 | 0.323 |
+| Sum of per-file medians | 16.797 | 13.188 | 22.431 | 1.501 |
+
+On a warmed `JavaParser.g4` parse, CNVRS prediction calls fell from 8,774 to
+1,445, and full-context fallback calls fell from 5,493 to 996. A separate
+200-iteration allocation run with locked hash caches measured 2.67 MB before
+and 2.13 MB after per full parse, with tree construction disabled. The parser
+phase fell from 2.01 MB to 1.46 MB. The remaining parser CPU profile shows
+structural hashing of contextual keys, cache locking, and parse-loop work
+among the largest costs. Java's generated parser made 1,054 adaptive
+prediction calls and no full-context fallback calls on the same input; many
+other choices use direct token lookahead in generated code.
 Both harnesses load file contents before timing. Each timed iteration includes
 lexing and parsing. CNVRS reuses its compiled objects and selected cache
 backend, warmed across iterations; Java creates fresh

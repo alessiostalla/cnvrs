@@ -5,7 +5,7 @@
 (defun parser-option-list-p (form)
   (and (consp form)
        (member (first form) '(:kind :default-rule :lexer :cache-backend
-                              :tree-builder))))
+                              :tree-builder :full-context-strategy))))
 
 (defun checked-options (options allowed context)
   (unless (and (listp options) (evenp (length options)))
@@ -102,7 +102,7 @@
     name))
 
 (defun make-defined-parser (name kind default-rule lexer cache-backend
-                            tree-builder forms)
+                            tree-builder full-context-strategy forms)
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (unless (member kind '(:parser :lexer :combined))
@@ -113,9 +113,12 @@
     (grammar-fail "A lexer grammar defines its own lexer rules"))
   (when (and (eq kind :combined) lexer)
     (grammar-fail "A combined grammar defines its lexer rules in the same form"))
+  (when (and (eq kind :lexer) (not (eq full-context-strategy :cached)))
+    (grammar-fail "A lexer grammar has no full-context prediction"))
   (let ((definition (make-parser-definition
                      :name name :kind kind :default-rule default-rule
                      :lexer lexer :cache-backend cache-backend
+                     :full-context-strategy full-context-strategy
                      :tree-builder tree-builder)))
     (dolist (form forms)
       (register-parser-rule definition form))
@@ -156,6 +159,8 @@
                                   :lexer (parser-definition-lexer definition)
                                   :tree-builder
                                   (parser-definition-tree-builder definition)
+                                  :full-context-strategy
+                                  (parser-definition-full-context-strategy definition)
                                   :cache-backend
                                   (parser-definition-cache-backend definition))))
           (:combined
@@ -171,6 +176,8 @@
                                                          definition))
                                   :tree-builder
                                   (parser-definition-tree-builder definition)
+                                  :full-context-strategy
+                                  (parser-definition-full-context-strategy definition)
                                   :cache-backend
                                   (parser-definition-cache-backend definition)))))
         (parser-definition-compiled definition))))
@@ -214,22 +221,30 @@ end position, and rule index."
       (parser
        (cache-clear (parser-sll-decisions compiled))
        (cache-clear (parser-decisions compiled))
+       (cache-clear (parser-direct-decisions compiled))
        (when (compiled-lexer-p (parser-lexer compiled))
          (clear-cache (parser-lexer compiled))))
       (compiled-lexer (cache-clear (compiled-lexer-cache compiled))))
     compiled))
 
-(defun clone-compiled (parser &key cache-backend)
+(defun clone-compiled (parser &key cache-backend
+                             (full-context-strategy nil strategy-supplied-p))
   "Copy a compiled grammar or lexer with independent, empty caches.
 The transition graph and lexer automaton are immutable and shared."
   (let ((compiled (ensure-compiled parser)))
     (typecase compiled
       (parser
        (let* ((copy (copy-parser compiled))
-              (backend (or cache-backend (parser-cache-backend compiled))))
+              (backend (or cache-backend (parser-cache-backend compiled)))
+              (strategy (if strategy-supplied-p full-context-strategy
+                            (parser-full-context-strategy compiled))))
          (setf (parser-cache-backend copy) backend
+               (parser-full-context-strategy copy) strategy
+               (parser-full-context-start copy)
+               (resolve-full-context-strategy strategy)
                (parser-sll-decisions copy) (make-cache backend)
                (parser-decisions copy) (make-cache backend)
+               (parser-direct-decisions copy) (make-cache backend)
                (parser-lexer copy)
                (if (compiled-lexer-p (parser-lexer compiled))
                    (clone-compiled (parser-lexer compiled)
@@ -237,6 +252,8 @@ The transition graph and lexer automaton are immutable and shared."
                    (parser-lexer compiled)))
          copy))
       (compiled-lexer
+       (when strategy-supplied-p
+         (grammar-fail "A lexer has no full-context prediction"))
        (let* ((copy (copy-compiled-lexer compiled))
               (backend (or cache-backend
                            (compiled-lexer-cache-backend compiled))))
@@ -248,7 +265,8 @@ The transition graph and lexer automaton are immutable and shared."
   "Define NAME as a parser definition. The first body form may be a plist
 (:KIND :PARSER|:LEXER|:COMBINED :DEFAULT-RULE rule :LEXER function
  :CACHE-BACKEND :HASH-TABLE|:FSET|(:LOCKED backend)
- :TREE-BUILDER builder-expression).
+ :TREE-BUILDER builder-expression
+ :FULL-CONTEXT-STRATEGY :CACHED|:RECOMPUTE|function).
 Remaining forms are DEFRULE forms, (name expression ...) rule forms, or
 WITH-MODE blocks containing lexer rules."
   (unless (and (symbolp name) (not (keywordp name)))
@@ -256,16 +274,19 @@ WITH-MODE blocks containing lexer rules."
   (let* ((options (if (and body (parser-option-list-p (first body)))
                       (pop body) nil))
          (options (checked-options options '(:kind :default-rule :lexer
-                                             :cache-backend :tree-builder)
+                                             :cache-backend :tree-builder
+                                             :full-context-strategy)
                                    (format nil "parser ~S" name)))
          (kind (getf options :kind :parser))
          (default-rule (getf options :default-rule nil))
          (lexer (getf options :lexer nil))
          (cache-backend (getf options :cache-backend '(:locked :fset)))
-         (tree-builder (getf options :tree-builder :node)))
+         (tree-builder (getf options :tree-builder :node))
+         (full-context-strategy
+           (getf options :full-context-strategy :cached)))
     `(defparameter ,name
        (make-defined-parser ',name ',kind ',default-rule ,lexer ',cache-backend
-                            ,tree-builder
+                            ,tree-builder ,full-context-strategy
                             ',(expand-mode-rule-forms body)))))
 
 (defmacro in-parser (name)

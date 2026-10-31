@@ -21,6 +21,17 @@
             (cnvrs:clone-compiled cnvrs/antlr4:*parser*
                                   :cache-backend designator)))))
 
+(let ((strategy (uiop:getenv "BENCH_FULL_CONTEXT_STRATEGY")))
+  (when strategy
+    (setf cnvrs/antlr4:*parser*
+          (cnvrs:clone-compiled
+           cnvrs/antlr4:*parser*
+           :full-context-strategy
+           (cond ((equal strategy "cached") :cached)
+                 ((equal strategy "recompute") :recompute)
+                 (t (error "Unknown BENCH_FULL_CONTEXT_STRATEGY: ~A"
+                           strategy)))))))
+
 (defun median (values)
   (nth (floor (length values) 2) (sort values #'<)))
 
