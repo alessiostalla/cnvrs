@@ -344,6 +344,51 @@ compilation time is outside the timed region. The generated and general
 parsers produced equal trees on all seven files and agreed on 350 inputs
 with one mutated token each.
 
+## Canonical return contexts
+
+The parser now interns each `(return state, parent context)` into a numeric
+context ID. Contextual direct choices use a packed `(context ID, state ID)`
+cache key, so a warm lookup no longer compares the return stack or hashes a
+list. The context interner uses the configured cache backend and is cleared
+and cloned with the parser's other caches.
+
+On `JavaParser.g4`, the warmed recognition-only parser phase measured about
+0.77 ms per run, compared with about 0.94 ms before context IDs. The
+seven-file no-tree sum was 4.629 ms versus 5.004 ms in the preceding run;
+Java remained at 1.501 ms, leaving about a 3.1× gap. With tree building,
+the current CNVRS sum was 4.916 ms versus Java's earlier 1.568 ms. These short runs are
+subject to timing variance. All seven files still produced the same trees
+through the generated and general parsers, and 350 single-token mutations
+agreed on acceptance or rejection.
+
+## Generated direct choices
+
+For a caller-independent one-token decision, parser compilation now emits
+token dispatch directly into the rule function. Symbol tokens use `case`;
+other token values use `equal` checks. Context-dependent and unresolved
+choices still use the cached predictor, and a token absent from the direct
+table falls back to prediction so error behavior is preserved.
+
+The seven-file no-tree sum fell from 4.629 to 4.428 ms with the same warmup
+and batch settings. The current tree-building sum was 4.801 ms; the earlier
+Java sums were 1.501 ms without trees and 1.568 ms with trees. The generated
+and general parsers again produced equal trees for all seven files and
+agreed on 350 single-token mutations. The parser-only `JavaParser.g4` phase
+measured about 0.75 ms per run, versus 0.77 ms before this change. These
+small differences should be read as directional until repeated under
+controlled load.
+
+## Deferred token text
+
+The compiled lexer and ANTLR4 adapter now retain each token's source and
+character offsets, extracting text only when `lexeme-text` is called. On
+`JavaParser.g4`, the lexer phase fell from about 0.65 to 0.57 ms per run,
+and lexer allocation fell from about 662 to 489 KB per run. Parser time on
+pretokenized input stayed near 0.68 ms. The seven-file no-tree sum was
+4.114 ms, versus 4.428 ms before this change. Java's earlier sum was
+1.501 ms, leaving about a 2.7× gap. Text access now allocates a substring
+when requested; tokens retain their source string while they remain live.
+
 ## Reproduce
 
 From the repository root, set `ANTLR_JAR` to an ANTLR 4.13.2 complete JAR and

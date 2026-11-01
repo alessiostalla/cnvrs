@@ -160,6 +160,20 @@
   (check (null (cnvrs:parse (cnvrs:compile-grammar '((start :a)))
                             '(:a) :tree-builder :none))
          "built-in :none builder constructs no tree")
+  (let* ((source "alpha")
+         (token (aref (cnvrs:lex
+                       (cnvrs:compile-lexer
+                        '((:word (+ (range #\a #\z)))))
+                       source) 0)))
+    (check (and (eq (cnvrs::lexeme-source token) source)
+                (eq (cnvrs::lexeme-stored-text token)
+                    cnvrs::+deferred-lexeme-text+)
+                (string= (cnvrs:lexeme-text token) "alpha")
+                (string= (cnvrs:lexeme-text
+                          (cnvrs:make-lexeme :kind :word :text "manual"
+                                             :start 0 :end 6))
+                         "manual"))
+           "lexer defers text copying while explicit text stays available"))
   (let* ((compiled (cnvrs:compile-grammar
                     '((start (and item :end))
                       (item (or (and :a :b) :a)))))
@@ -217,6 +231,13 @@
                     'start))
            "mixed lookahead keys retain structural string comparison"))
   (let ((grammar (cnvrs:compile-grammar
+                  '((start (or (token t) (token otherwise) :a))))))
+    (dolist (token (list t 'otherwise :a))
+      (check (equal (cnvrs:node-children
+                     (cnvrs:parse grammar (list token)))
+                    (list token))
+             "generated direct choice handles reserved CASE symbols")))
+  (let ((grammar (cnvrs:compile-grammar
                   '((start (and opt :b)) (opt (? :a)))
                   :cache-backend :hash-table)))
     (dolist (tokens '((:a :b) (:b)))
@@ -268,12 +289,31 @@
            "unresolved two-token prefixes retain the full predictor"))
   (let ((grammar (cnvrs:compile-grammar
                   '((start (and (* :a) :b))))))
+    (check (hash-table-p
+            (cnvrs:state-direct-lookahead
+             (find-if #'cnvrs:state-exit-alternative
+                      (cnvrs:parser-states grammar))))
+           "disjoint repetition uses compiled FOLLOW lookahead")
     (dolist (tokens '((:b) (:a :a :b)))
       (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
-             "nullable contextual choice uses its unique exit"))
+             "compiled repetition uses its unique exit"))
+    (check (eq (cnvrs:node-rule
+                (cnvrs:parse grammar '(:b :extra) :require-eof nil))
+               'start)
+           "compiled repetition preserves prefix parsing")
     (check (zerop (cnvrs:cache-count
                    (cnvrs:parser-sll-decisions grammar)))
            "nullable exit avoids a full-context fallback"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((start (and loop :a)) (loop (* :a)))))
+         (loop-state (find-if #'cnvrs:state-exit-alternative
+                              (cnvrs:parser-states grammar))))
+    (check (not (hash-table-p (cnvrs:state-direct-lookahead loop-state)))
+           "overlapping loop FIRST and caller FOLLOW retains prediction")
+    (check (eq (cnvrs:node-rule
+                (cnvrs:parse grammar '(:a) :tree-builder :node))
+               'start)
+           "overlapping caller context parses at end of input"))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (or (and opt :b) (and opt :c)))
                      (opt (? :a)))
@@ -290,16 +330,31 @@
     (check (= (length returns) 2) "two callers reach the optional rule")
     (let ((first-table (cnvrs::contextual-direct-lookahead
                         grammar (cnvrs:state-id choice)
-                        (list (first returns)) 7))
+                        (list (first returns))
+                        (cnvrs::intern-context grammar (first returns) 0)))
           (second-table (cnvrs::contextual-direct-lookahead
                          grammar (cnvrs:state-id choice)
-                         (list (second returns)) 7)))
+                         (list (second returns))
+                         (cnvrs::intern-context grammar (second returns) 0))))
       (check (and (hash-table-p first-table)
                   (hash-table-p second-table)
                   (not (eq first-table second-table))
                   (= (cnvrs:cache-count
                       (cnvrs:parser-direct-decisions grammar)) 2))
-             "rolling context hash collisions check the full stack")))
+             "different canonical contexts have different direct choices")
+      (check (eql (cnvrs::intern-context grammar (first returns) 0)
+                  (cnvrs::intern-context grammar (first returns) 0))
+             "canonical contexts retain identity across calls")
+      (check (zerop (cnvrs:cache-count
+                     (cnvrs::parser-contexts
+                      (cnvrs:clone-compiled grammar))))
+             "parser clones start with an empty context cache")
+      (cnvrs:clear-cache grammar)
+      (check (and (zerop (cnvrs:cache-count
+                          (cnvrs::parser-contexts grammar)))
+                  (zerop (cnvrs:cache-count
+                          (cnvrs:parser-direct-decisions grammar))))
+             "clear-cache clears context identity and direct choices")))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and item :end)) (item :name))
                    :tree-builder :alternate))

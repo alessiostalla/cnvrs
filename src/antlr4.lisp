@@ -186,7 +186,7 @@
         (matcher (cnvrs:lexer-matcher *lexer*)))
     (labels ((emit (kind start end &optional (channel :default))
                (push (cnvrs:make-lexeme
-                      :kind kind :text (subseq source start end)
+                      :kind kind :source source
                       :start start :end end :channel channel)
                      result)))
       (loop while (< position length) do

@@ -222,6 +222,7 @@ end position, and rule index."
        (cache-clear (parser-sll-decisions compiled))
        (cache-clear (parser-decisions compiled))
        (cache-clear (parser-direct-decisions compiled))
+       (cache-clear (parser-contexts compiled))
        (when (compiled-lexer-p (parser-lexer compiled))
          (clear-cache (parser-lexer compiled))))
       (compiled-lexer (cache-clear (compiled-lexer-cache compiled))))
@@ -245,6 +246,8 @@ The transition graph and lexer automaton are immutable and shared."
                (parser-sll-decisions copy) (make-cache backend)
                (parser-decisions copy) (make-cache backend)
                (parser-direct-decisions copy) (make-cache backend)
+               (parser-contexts copy) (make-cache backend)
+               (parser-context-count copy) 0
                (parser-lexer copy)
                (if (compiled-lexer-p (parser-lexer compiled))
                    (clone-compiled (parser-lexer compiled)

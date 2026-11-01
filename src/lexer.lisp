@@ -239,7 +239,7 @@
                              :character (char source position)))
                     (unless (aref skips best-rule)
                       (push (make-lexeme :kind kind
-                                         :text (subseq source position best-end)
+                                         :source source
                                          :start position :end best-end
                                          :channel (aref channels best-rule))
                             output))
