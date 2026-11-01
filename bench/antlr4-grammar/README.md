@@ -308,6 +308,24 @@ allocation or tree shapes. This is a single-threaded runtime comparison on a
 small set of valid grammar files, not an isolated algorithm benchmark or a
 measurement of memory use, concurrency, or grammar compilation.
 
+## Contextual choices with one or two tokens
+
+The contextual lookahead cache now keeps a unique nullable exit when its
+token choices do not overlap. For overlapping first tokens, it also caches
+choices that a full-context DFA proves unique after at most two tokens.
+Unresolved token pairs still use the existing predictor. These tables are
+created on first use for each caller context and then reused.
+
+On a warmed `JavaParser.g4` parse, full-context fallback calls fell from 996
+to zero. With tree construction disabled, the ARM64 SBCL parser phase fell
+from about 1.38 to 1.17 ms per run; lexing stayed near 0.66 ms. Parser
+allocation fell from about 1.02 MB to 0.78 MB per run. The seven-file sum
+of medians fell from 6.382 to 5.919 ms with the same 10 warmups and seven
+batches of 20 parses; the Java sum was 1.501 ms. This leaves CNVRS about
+3.9 times slower on that corpus. The next parser profile is dominated by
+the general parse loop and return-stack verification for contextual cache
+hits, rather than full-context DFA simulation.
+
 ## Reproduce
 
 From the repository root, set `ANTLR_JAR` to an ANTLR 4.13.2 complete JAR and

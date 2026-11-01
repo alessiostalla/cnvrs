@@ -206,6 +206,7 @@
         (cache (compiled-lexer-cache lexer))
         (locked-p (typep (compiled-lexer-cache lexer) 'locked-cache)))
     (labels ((match-one (source position mode)
+               (declare (type string source) (type fixnum position))
                (let ((dfa (cache-get-or-compute
                            cache mode
                            (lambda ()
@@ -229,6 +230,7 @@
               (unless (stringp source)
                 (error 'type-error :datum source :expected-type 'string))
               (let ((position 0) (output nil) (mode :default) (mode-stack nil))
+                (declare (type fixnum position))
                 (loop while (< position (length source)) do
                   (multiple-value-bind (kind best-end best-rule)
                       (match-one source position mode)

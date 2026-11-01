@@ -172,6 +172,23 @@
                 (zerop (cnvrs:cache-count
                         (cnvrs:parser-sll-decisions grammar))))
            "disjoint alternatives use direct lookahead without a DFA"))
+  (let* ((symbols (cnvrs:compile-grammar '((start (or :a :b)))))
+         (mixed (cnvrs:compile-grammar '((start (or :a "beta"))))))
+    (check (eq (hash-table-test
+                (cnvrs:state-direct-lookahead
+                 (aref (cnvrs:parser-states symbols)
+                       (gethash 'start (cnvrs:parser-starts symbols)))))
+               'eq)
+           "symbol lookahead keys use identity comparison")
+    (check (and (eq (hash-table-test
+                     (cnvrs:state-direct-lookahead
+                      (aref (cnvrs:parser-states mixed)
+                            (gethash 'start (cnvrs:parser-starts mixed)))))
+                    'equal)
+                (eq (cnvrs:node-rule
+                     (cnvrs:parse mixed (list (copy-seq "beta"))))
+                    'start))
+           "mixed lookahead keys retain structural string comparison"))
   (let ((grammar (cnvrs:compile-grammar
                   '((start (and opt :b)) (opt (? :a)))
                   :cache-backend :hash-table)))
@@ -193,6 +210,43 @@
     (check (zerop (cnvrs:cache-count
                    (cnvrs:parser-direct-decisions grammar)))
            "clear-cache clears contextual direct lookahead"))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (or (and :a :b) (and :a :c)))))))
+    (check (eq (cnvrs:state-direct-lookahead
+                (aref (cnvrs:parser-states grammar)
+                      (gethash 'start (cnvrs:parser-starts grammar))))
+               :contextual-two)
+           "overlapping first tokens prepare contextual two-token lookahead")
+    (dolist (tokens '((:a :b) (:a :c)))
+      (check (equal (cnvrs:node-children (cnvrs:parse grammar tokens))
+                    tokens)
+             "two-token lookahead chooses the matching alternative"))
+    (check (zerop (cnvrs:cache-count
+                   (cnvrs:parser-sll-decisions grammar)))
+           "resolved two-token choices bypass the parser DFA predictor"))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (or (and "a" "b") (and "a" "c")))))))
+    (check (equal (cnvrs:node-children
+                   (cnvrs:parse grammar
+                                (list (copy-seq "a") (copy-seq "c"))))
+                  '("a" "c"))
+           "two-token lookahead compares string keys structurally"))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (or (and :a :b :c)
+                               (and :a :b :d)))))))
+    (check (and (eq (cnvrs:node-rule
+                     (cnvrs:parse grammar '(:a :b :d))) 'start)
+                (plusp (cnvrs:cache-count
+                        (cnvrs:parser-sll-decisions grammar))))
+           "unresolved two-token prefixes retain the full predictor"))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (and (* :a) :b))))))
+    (dolist (tokens '((:b) (:a :a :b)))
+      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
+             "nullable contextual choice uses its unique exit"))
+    (check (zerop (cnvrs:cache-count
+                   (cnvrs:parser-sll-decisions grammar)))
+           "nullable exit avoids a full-context fallback"))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (or (and opt :b) (and opt :c)))
                      (opt (? :a)))

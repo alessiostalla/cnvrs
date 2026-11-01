@@ -73,6 +73,12 @@
   (and (vectorp key) (plusp (length key))
        (eq (aref key 0) +flat-cache-key-marker+)))
 
+(defun return-stack-equal-p (left right)
+  "Compare parser return stacks, whose elements are state IDs."
+  (loop while (and left right)
+        always (eql (pop left) (pop right))
+        finally (return (and (null left) (null right)))))
+
 (defstruct hash-cache
   (table (make-hash-table :test 'equal))
   flat-table)
@@ -229,6 +235,8 @@
 (defstruct recovery action condition token)
 (defstruct transition kind target value)
 (defstruct state id (edges nil) stop-rule exit-alternative direct-lookahead)
+(defstruct direct-choice table default-alternative)
+(defstruct two-token-choice table)
 (defstruct configuration state stack alternative)
 (defstruct dfa-state configurations alternatives accepted edges)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
@@ -713,11 +721,14 @@ function of (parser state-id return-stack) that returns a start DFA state."
 
 (defun direct-lookahead-table (grammar state stack)
   "Return a table for a disjoint one-token decision, or why it is unsafe."
-  (let ((table (make-hash-table :test 'equal))
+  (let ((table (make-hash-table :test 'eq))
         (nullable nil)
-        (overlap nil))
+        (overlap nil)
+        (unresolved-nullability nil)
+        (nullable-alternatives nil))
     (loop for edge in (state-edges state) for alternative from 0 do
-      (let ((found-token nil))
+      (let ((found-token nil)
+            (can-stop nil))
         (dolist (configuration
                  (closure grammar
                           (list (configuration-after-edge
@@ -725,17 +736,32 @@ function of (parser state-id return-stack) that returns a start DFA state."
           (let ((next (aref (parser-states grammar)
                             (configuration-state configuration))))
             (if (state-stop-rule next)
-                (setf nullable t)
+                (setf nullable t can-stop t)
                 (dolist (transition (state-edges next))
                   (when (eq (transition-kind transition) :token)
                     (setf found-token t)
-                    (let* ((key (transition-value transition))
-                           (prior (gethash key table)))
-                      (when (and prior (/= prior (1+ alternative)))
-                        (setf overlap t))
-                      (setf (gethash key table) (1+ alternative))))))))
-        (unless found-token (setf nullable t))))
-    (values (unless (or nullable overlap) table) nullable overlap)))
+                    (let ((key (transition-value transition)))
+                      (when (and (not (symbolp key))
+                                 (eq (hash-table-test table) 'eq))
+                        (let ((general (make-hash-table :test 'equal)))
+                          (maphash (lambda (token alternative)
+                                     (setf (gethash token general) alternative))
+                                   table)
+                          (setf table general)))
+                      (let ((prior (gethash key table)))
+                        (when (and prior (/= prior (1+ alternative)))
+                          (setf overlap t))
+                        (setf (gethash key table) (1+ alternative)))))))))
+        (unless found-token
+          (setf nullable t)
+          (unless can-stop (setf unresolved-nullability t)))
+        (when can-stop (push alternative nullable-alternatives))))
+    (values (unless (or nullable overlap) table)
+            nullable overlap
+            (when (and nullable (not overlap) (not unresolved-nullability)
+                       (null (rest nullable-alternatives)))
+              (first nullable-alternatives))
+            table)))
 
 (defun initialize-direct-lookahead (grammar)
   "Record one-token choices independent of the caller, and contextual candidates."
@@ -744,28 +770,73 @@ function of (parser state-id return-stack) that returns a start DFA state."
           (multiple-value-bind (table nullable overlap)
               (direct-lookahead-table grammar state nil)
             (setf (state-direct-lookahead state)
-                  (or table (and nullable (not overlap) :contextual))))))
+                  (or table
+                      (and nullable (not overlap) :contextual)
+                      (and overlap :contextual-two))))))
+
+(defun dfa-token-keys (grammar dfa)
+  (remove-duplicates
+   (loop for configuration in (dfa-state-configurations dfa)
+         for state = (aref (parser-states grammar)
+                           (configuration-state configuration))
+         append (loop for edge in (state-edges state)
+                      when (eq (transition-kind edge) :token)
+                        collect (transition-value edge)))
+   :test #'equal))
+
+(defun two-token-lookahead (grammar state-id stack)
+  "Cache choices proved unique after at most two tokens in this context."
+  (let* ((start (funcall (parser-full-context-start grammar)
+                         grammar state-id stack))
+         (first-keys (dfa-token-keys grammar start))
+         (table (make-hash-table :test (if (every #'symbolp first-keys)
+                                          'eq 'equal))))
+    (dolist (first first-keys)
+      (let* ((one (advance-dfa grammar start first))
+             (alternatives (dfa-state-alternatives one)))
+        (if (and alternatives (null (rest alternatives)))
+            (setf (gethash first table) (1+ (first alternatives)))
+            (let* ((second-keys (dfa-token-keys grammar one))
+                   (second-table
+                     (make-hash-table :test (if (every #'symbolp second-keys)
+                                                'eq 'equal))))
+              (dolist (second second-keys)
+                (let ((two (advance-dfa grammar one second)))
+                  (when (and (dfa-state-alternatives two)
+                             (null (rest (dfa-state-alternatives two))))
+                    (setf (gethash second second-table)
+                          (1+ (first (dfa-state-alternatives two)))))))
+              (when (plusp (hash-table-count second-table))
+                (setf (gethash first table) second-table))))))
+    (when (plusp (hash-table-count table))
+      (make-two-token-choice :table table))))
+
+(defun contextual-choice (grammar state-id stack)
+  (multiple-value-bind (table nullable overlap
+                        default-alternative partial-table)
+      (direct-lookahead-table grammar
+                              (aref (parser-states grammar) state-id) stack)
+    (declare (ignore nullable overlap))
+    (or table
+        (and default-alternative
+             (make-direct-choice :table partial-table
+                                 :default-alternative default-alternative))
+        (two-token-lookahead grammar state-id stack)
+        :unavailable)))
 
 (defun contextual-direct-lookahead (grammar state-id stack context-hash)
   (let* ((cache (parser-direct-decisions grammar))
          (entry (cache-get-or-compute
                  cache (cons state-id context-hash)
                  (lambda ()
-                   (cons stack
-                         (or (direct-lookahead-table
-                              grammar (aref (parser-states grammar) state-id)
-                              stack)
-                             :unavailable))))))
-    (if (equal stack (car entry))
+                   (cons stack (contextual-choice grammar state-id stack))))))
+    (if (return-stack-equal-p stack (car entry))
         (cdr entry)
         ;; The rolling hash is only a filter; collisions retain exact keys.
         (cache-get-or-compute
          cache (flat-cache-key state-id stack)
          (lambda ()
-           (or (direct-lookahead-table grammar
-                                       (aref (parser-states grammar) state-id)
-                                       stack)
-               :unavailable))))))
+           (contextual-choice grammar state-id stack))))))
 
 (defun possible-tokens (grammar configurations)
   (remove-duplicates
@@ -823,6 +894,9 @@ the restarts at each error site to make a different local repair."
          (recoveries nil)
          (automatic-insert-position -1)
          (automatic-insert-count 0))
+    (declare (type fixnum position state-id context-hash
+                   automatic-insert-position automatic-insert-count)
+             (type vector input))
     (unless (eq tree-builder :none)
       (parse-rule-enter tree-builder (visible-rule grammar start) 0))
     (labels ((record (action condition token)
@@ -863,17 +937,30 @@ the restarts at each error site to make a different local repair."
              (predict-current ()
                (let* ((state (aref (parser-states grammar) state-id))
                       (choice (state-direct-lookahead state))
-                      (table (if (eq choice :contextual)
+                      (table (if (member choice '(:contextual :contextual-two))
                                  (contextual-direct-lookahead
                                   grammar state-id stack context-hash)
                                  choice))
-                      (direct (and (hash-table-p table) (has-token-p)
-                                   (gethash (token-key (current-value)) table))))
-                 (if direct
-                     (1- direct)
-                     (if pending
-                         (predict grammar state-id stack (remaining-values) 0)
-                         (predict grammar state-id stack input position)))))
+                      (direct-table (if (direct-choice-p table)
+                                        (direct-choice-table table) table))
+                      (direct (and (hash-table-p direct-table) (has-token-p)
+                                   (gethash (token-key (current-value))
+                                            direct-table)))
+                      (two-token (and (two-token-choice-p table)
+                                      (has-token-p)
+                                      (gethash (token-key (current-value))
+                                               (two-token-choice-table table))))
+                      (two-token-result
+                        (if (hash-table-p two-token)
+                            (gethash (token-key (next-value)) two-token)
+                            two-token)))
+                 (cond (direct (1- direct))
+                       (two-token-result (1- two-token-result))
+                       ((direct-choice-p table)
+                        (direct-choice-default-alternative table))
+                       (pending
+                        (predict grammar state-id stack (remaining-values) 0))
+                       (t (predict grammar state-id stack input position)))))
              (inject (values condition &optional (required nil required-p))
                (let ((items (coerce values 'list)))
                  (unless items (error "INSERT-TOKENS requires a nonempty sequence"))
