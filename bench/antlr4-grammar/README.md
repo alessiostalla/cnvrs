@@ -326,6 +326,24 @@ batches of 20 parses; the Java sum was 1.501 ms. This leaves CNVRS about
 the general parse loop and return-stack verification for contextual cache
 hits, rather than full-context DFA simulation.
 
+## Generated rule functions
+
+Parser compilation now produces two runners with named local functions for
+each rule: one for recognition without a tree and one for the default node
+builder. Each function runs its rule's states directly and calls the local
+function for a referenced rule. Custom builders and recovery still use the
+general parser loop. The lexer already compiles a DFA matcher with a named
+local `match-one` function, so this change does not alter its runtime path.
+
+With the same seven-file no-tree benchmark, the sum of medians fell from
+5.919 to 5.004 ms. With tree construction enabled, the current sum is
+5.134 ms. The Java no-tree sum remains 1.501 ms, leaving a roughly 3.3×
+gap on this corpus. On `JavaParser.g4`, recognition-only parser time fell
+from about 1.17 to 0.85 ms per run. These are warm, single-threaded runs;
+compilation time is outside the timed region. The generated and general
+parsers produced equal trees on all seven files and agreed on 350 inputs
+with one mutated token each.
+
 ## Reproduce
 
 From the repository root, set `ANTLR_JAR` to an ANTLR 4.13.2 complete JAR and

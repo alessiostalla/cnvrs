@@ -13,7 +13,7 @@
            #:compiled-lexer-cache
            #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
-           #:parser-tree-builder
+           #:parser-tree-builder #:parser-runner #:parser-node-runner
            #:parser-decisions #:parser-sll-decisions #:parser-direct-decisions
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
            #:state-direct-lookahead
@@ -243,13 +243,14 @@
   (rewrites (make-hash-table :test 'eq))
   (cache-backend :hash-table)
   (full-context-strategy :cached) full-context-start
-  decisions sll-decisions direct-decisions)
+  decisions sll-decisions direct-decisions runner node-runner)
 (defstruct parser-definition name kind default-rule lexer cache-backend
   (full-context-strategy :cached)
   (tree-builder :node)
   (rules nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
 (declaim (ftype function resolve-full-context-strategy))
+(declaim (ftype function compile-parser-runner))
 
 (defun grammar-fail (control &rest arguments)
   (error 'grammar-error :message (apply #'format nil control arguments)))
@@ -506,7 +507,8 @@ the entry rule used by PARSE when no :RULE is supplied; otherwise the first
 definition is used. LEXER maps source input to tokens before parsing.
 CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
 (:LOCKED backend). The default is :HASH-TABLE.
-TREE-BUILDER selects the parse-node construction strategy.
+TREE-BUILDER selects the parse-node construction strategy. The result also
+contains compiled rule runners for :NONE and the default :NODE builder.
 FULL-CONTEXT-STRATEGY selects :CACHED (the default), :RECOMPUTE, or a
 function of (parser state-id return-stack) that returns a start DFA state."
   (unless (and (listp definitions) definitions)
@@ -561,6 +563,8 @@ function of (parser state-id return-stack) that returns a start DFA state."
                             (gethash (first definition) (parser-starts grammar))
                             (gethash (first definition) (parser-stops grammar))))
       (initialize-direct-lookahead grammar)
+      (setf (parser-runner grammar) (compile-parser-runner grammar nil)
+            (parser-node-runner grammar) (compile-parser-runner grammar t))
       grammar)))
 
 (defun configuration-key (configuration)
@@ -838,6 +842,141 @@ function of (parser state-id return-stack) that returns a start DFA state."
          (lambda ()
            (contextual-choice grammar state-id stack))))))
 
+(defun compiled-choice-index (grammar state-id stack context-hash input position)
+  (let* ((choice (state-direct-lookahead
+                  (aref (parser-states grammar) state-id)))
+         (table (if (member choice '(:contextual :contextual-two))
+                    (contextual-direct-lookahead
+                     grammar state-id stack context-hash)
+                    choice))
+         (direct-table (if (direct-choice-p table)
+                           (direct-choice-table table) table))
+         (current (when (< position (length input))
+                    (token-key (aref input position))))
+         (direct (and current (hash-table-p direct-table)
+                      (gethash current direct-table)))
+         (two-token (and current (two-token-choice-p table)
+                         (gethash current (two-token-choice-table table))))
+         (two-token-result
+           (if (hash-table-p two-token)
+               (gethash (if (< (1+ position) (length input))
+                            (token-key (aref input (1+ position)))
+                            +end-of-input+)
+                        two-token)
+               two-token)))
+    (cond (direct (1- direct))
+          (two-token-result (1- two-token-result))
+          ((direct-choice-p table)
+           (direct-choice-default-alternative table))
+          (t (predict grammar state-id stack input position)))))
+
+(defun compiled-rule-states (grammar start)
+  (let ((seen (make-hash-table :test 'eql))
+        (pending (list start))
+        (result nil))
+    (loop while pending for id = (pop pending) do
+      (unless (gethash id seen)
+        (setf (gethash id seen) t)
+        (push id result)
+        (let ((state (aref (parser-states grammar) id)))
+          (unless (state-stop-rule state)
+            (dolist (edge (state-edges state))
+              (push (transition-target edge) pending))))))
+    (nreverse result)))
+
+(defun compile-parser-runner (grammar build-tree-p)
+  "Compile one named local function per rule for recognition or node building."
+  (let ((rules nil))
+    (maphash (lambda (name start)
+               (push (list name start
+                           (make-symbol (format nil "PARSE-~A" name)))
+                     rules))
+             (parser-starts grammar))
+    (labels ((rule-function (name)
+               (third (assoc name rules :test #'eq)))
+             (edge-form (edge function-name)
+               (let ((target (transition-target edge)))
+                 (case (transition-kind edge)
+                   (:epsilon `(setf state-id ,target))
+                   (:token
+                    `(if (and (< position (length input))
+                              (equal (token-key (aref input position))
+                                     ',(transition-value edge)))
+                         (progn
+                           ,@(when build-tree-p
+                               `((push (aref input position) children)))
+                           (setf state-id ,target
+                                 position (1+ position)))
+                         (return-from ,function-name nil)))
+                   (:call
+                    (if build-tree-p
+                        `(let ((child
+                                 (,(rule-function (transition-value edge))
+                                  (cons ,target stack)
+                                  (logand #xffffffff
+                                          (+ ,target (* 65599 context-hash))))))
+                           (unless child (return-from ,function-name nil))
+                           (push child children)
+                           (setf state-id ,target))
+                        `(progn
+                           (unless (,(rule-function (transition-value edge))
+                                    (cons ,target stack)
+                                    (logand #xffffffff
+                                            (+ ,target (* 65599 context-hash))))
+                             (return-from ,function-name nil))
+                           (setf state-id ,target)))))))
+             (state-form (id function-name)
+               (let* ((state (aref (parser-states grammar) id))
+                      (edges (state-edges state)))
+                 `(,id
+                   ,(cond ((state-stop-rule state)
+                           `(return-from ,function-name
+                              ,(if build-tree-p
+                                   `(make-node :rule ',(state-stop-rule state)
+                                               :children (nreverse children)
+                                               :start start-position
+                                               :end position)
+                                   t)))
+                          ((null (rest edges))
+                           (edge-form (first edges) function-name))
+                          (t
+                           `(case (compiled-choice-index
+                                   grammar ,id stack context-hash input position)
+                              ,@(loop for edge in edges for index from 0
+                                      collect `(,index
+                                                ,(edge-form edge function-name)))
+                              (otherwise (return-from ,function-name nil)))))))))
+      (compile
+       nil
+       `(lambda (grammar input start require-eof)
+          (declare (type vector input) (ignorable grammar))
+          (let ((position 0))
+            (declare (type fixnum position))
+            (labels
+                ,(loop for (name first-state function-name) in rules
+                       collect `(,function-name (stack context-hash)
+                                 (declare (type fixnum context-hash)
+                                          (ignorable stack context-hash))
+                                 (let ((state-id ,first-state)
+                                       ,@(when build-tree-p
+                                           '((start-position position)
+                                             (children nil))))
+                                   (declare (type fixnum state-id))
+                                   (loop
+                                     (ecase state-id
+                                       ,@(loop for id in
+                                               (compiled-rule-states grammar
+                                                                     first-state)
+                                               collect (state-form id function-name)))))))
+              (let ((result
+                      (case start
+                        ,@(loop for (name first-state function-name) in rules
+                                collect `(,name (,function-name nil 0))))))
+                (and result
+                     (or (not require-eof)
+                         (= position (length input)))
+                     result)))))))))
+
 (defun possible-tokens (grammar configurations)
   (remove-duplicates
    (loop for configuration in (closure grammar configurations)
@@ -897,6 +1036,21 @@ the restarts at each error site to make a different local repair."
     (declare (type fixnum position state-id context-hash
                    automatic-insert-position automatic-insert-count)
              (type vector input))
+    (when (not recover)
+      (let ((runner (case tree-builder
+                      (:none (parser-runner grammar))
+                      (:node (parser-node-runner grammar)))))
+        (when runner
+          (let ((result (funcall runner grammar input start require-eof)))
+            (when result
+              (return-from parse
+                (values (if (and (eq tree-builder :node)
+                                 (plusp (hash-table-count
+                                         (parser-rewrites grammar))))
+                            (normalize-rewritten-node
+                             result (parser-rewrites grammar) tree-builder)
+                            (and (eq tree-builder :node) result))
+                        nil)))))))
     (unless (eq tree-builder :none)
       (parse-rule-enter tree-builder (visible-rule grammar start) 0))
     (labels ((record (action condition token)

@@ -160,6 +160,33 @@
   (check (null (cnvrs:parse (cnvrs:compile-grammar '((start :a)))
                             '(:a) :tree-builder :none))
          "built-in :none builder constructs no tree")
+  (let* ((compiled (cnvrs:compile-grammar
+                    '((start (and item :end))
+                      (item (or (and :a :b) :a)))))
+         (interpreted (cnvrs:clone-compiled compiled)))
+    (setf (cnvrs:parser-runner interpreted) nil
+          (cnvrs:parser-node-runner interpreted) nil)
+    (check (and (functionp (cnvrs:parser-runner compiled))
+                (functionp (cnvrs:parser-node-runner compiled)))
+           "compilation produces recognition and node-building functions")
+    (dolist (tokens '((:a :end) (:a :b :end)))
+      (check (equalp (cnvrs:parse compiled tokens)
+                     (cnvrs:parse interpreted tokens))
+             "compiled rule functions produce the same tree")
+      (check (and (null (cnvrs:parse compiled tokens :tree-builder :none))
+                  (null (cnvrs:parse interpreted tokens :tree-builder :none)))
+             "compiled recognition matches the generic parser"))
+    (check (equalp (cnvrs:parse compiled '(:a :b :extra)
+                                :rule 'item :require-eof nil)
+                   (cnvrs:parse interpreted '(:a :b :extra)
+                                :rule 'item :require-eof nil))
+           "compiled rules support alternate starts and prefix parses")
+    (dolist (builder '(:none :node))
+      (check (and (signals cnvrs:parse-error
+                    (cnvrs:parse compiled '(:a :wrong) :tree-builder builder))
+                  (signals cnvrs:parse-error
+                    (cnvrs:parse interpreted '(:a :wrong) :tree-builder builder)))
+             "invalid input retains generic parser errors")))
   (check (and (eq (cnvrs:parser-cache-backend
                    (cnvrs:compile-grammar '((start :a)))) :hash-table)
               (eq (cnvrs:compiled-lexer-cache-backend
