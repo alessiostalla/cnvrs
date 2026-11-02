@@ -242,14 +242,14 @@
                   :cache-backend :hash-table)))
     (dolist (tokens '((:a :b) (:b)))
       (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
-             "nullable choice uses caller context for direct lookahead"))
-    (check (and (plusp (cnvrs:cache-count
-                        (cnvrs:parser-direct-decisions grammar)))
+             "compiled optional honors caller follow tokens"))
+    (check (and (zerop (cnvrs:cache-count
+                       (cnvrs:parser-direct-decisions grammar)))
                 (zerop (cnvrs:cache-count
                         (cnvrs:parser-sll-decisions grammar)))
                 (zerop (cnvrs:cache-count
                         (cnvrs:parser-decisions grammar))))
-           "contextual direct choices bypass parser DFA caches")
+           "compiled optional choice bypasses parser DFA caches")
     (check (zerop (cnvrs:cache-count
                    (cnvrs:parser-direct-decisions
                     (cnvrs:clone-compiled grammar))))
@@ -314,6 +314,53 @@
                 (cnvrs:parse grammar '(:a) :tree-builder :node))
                'start)
            "overlapping caller context parses at end of input"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((start (and (? :a) :b)))))
+         (choice (find-if (lambda (state)
+                            (and (cnvrs:state-exit-alternative state)
+                                 (not (cnvrs::state-repetition-p state))))
+                          (cnvrs:parser-states grammar))))
+    (check (hash-table-p (cnvrs:state-direct-lookahead choice))
+           "disjoint optional compiles FIRST/FOLLOW dispatch")
+    (dolist (tokens '((:b) (:a :b)))
+      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
+             "compiled optional parses both entry and exit"))
+    (check (eq (cnvrs:node-rule
+                (cnvrs:parse grammar '(:b :extra) :require-eof nil))
+               'start)
+           "compiled optional preserves prefix parsing")
+    (check (zerop (cnvrs:cache-count
+                   (cnvrs:parser-sll-decisions grammar)))
+           "disjoint optional bypasses contextual prediction"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((left (and opt :b))
+                     (right (and opt :c))
+                     (opt (? :a)))))
+         (choice (find-if (lambda (state)
+                            (and (cnvrs:state-exit-alternative state)
+                                 (not (cnvrs::state-repetition-p state))))
+                          (cnvrs:parser-states grammar))))
+    (check (hash-table-p (cnvrs:state-direct-lookahead choice))
+           "optional FOLLOW includes every caller and EOF")
+    (dolist (case '((left (:b)) (left (:a :b))
+                    (right (:c)) (right (:a :c))
+                    (opt ()) (opt (:a))))
+      (check (eq (cnvrs:node-rule
+                  (cnvrs:parse grammar (second case) :rule (first case)))
+                 (first case))
+             "compiled optional works from both callers and direct entry")))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((left (and opt :a))
+                     (opt (? :a)))))
+         (choice (find-if (lambda (state)
+                            (and (cnvrs:state-exit-alternative state)
+                                 (not (cnvrs::state-repetition-p state))))
+                          (cnvrs:parser-states grammar))))
+    (check (not (hash-table-p (cnvrs:state-direct-lookahead choice)))
+           "overlapping optional FIRST/FOLLOW retains prediction")
+    (dolist (tokens '((:a) (:a :a)))
+      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'left)
+             "overlapping optional distinguishes entry from exit")))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (or (and opt :b) (and opt :c)))
                      (opt (? :a)))

@@ -797,7 +797,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                       (and overlap :contextual-two))))))
 
 (defun initialize-follow-lookahead (grammar)
-  "Compile repetition decisions whose alternatives have disjoint FIRST/FOLLOW sets.
+  "Compile nullable decisions whose alternatives have disjoint FIRST/FOLLOW sets.
 The sets include every rule's possible caller and end of input, so an
 overlapping decision keeps its contextual predictor."
   (let* ((states (parser-states grammar))
@@ -867,7 +867,7 @@ overlapping decision keeps its contextual predictor."
                         (setf (gethash callee follow) new changed t)))))))
       (loop for state across states for id from 0
             for owner = (aref owners id)
-            when (and owner (state-repetition-p state)
+            when (and owner (state-exit-alternative state)
                       (member (state-direct-lookahead state)
                               '(:contextual :contextual-two))) do
               (let ((table (make-hash-table :test 'equal))
