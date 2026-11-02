@@ -40,7 +40,8 @@
            #:discard-input #:recovery-p #:recovery-action #:recovery-condition
            #:recovery-token #:inserted-token-p #:inserted-token-expected
            #:inserted-token-value #:inserted-token-position
-           #:node-p #:node-rule #:node-children #:node-start #:node-end))
+           #:node-p #:node-rule #:node-children #:node-start #:node-end
+           #:node-label))
 
 (in-package #:cnvrs)
 
@@ -195,7 +196,7 @@
 (define-condition no-viable-alternative (parse-error) ())
 (define-condition unexpected-input (parse-error) ())
 
-(defstruct node rule children start end)
+(defstruct node rule children start end label)
 (defgeneric make-parse-node (builder rule children start end))
 (defgeneric parse-node-components (builder value))
 (defmethod make-parse-node ((builder (eql :node)) rule children start end)
@@ -289,6 +290,8 @@
                  ((string= operator "*") :star)
                  ((string= operator "+") :plus)
                  ((string= operator "?") :optional)
+                 ((string= operator "LABEL") :label)
+                 ((string= operator "ALT-LABEL") :alt-label)
                  ((string= operator "TOKEN") :token-form)
                  (t nil))))
         (t nil)))
@@ -303,6 +306,13 @@
       (:token-form
        (unless (= (length expression) 2)
          (grammar-fail "TOKEN requires one value: ~S" expression)))
+      ((:label :alt-label)
+       (unless (and (= (length expression) 3)
+                    (symbolp (second expression))
+                    (not (keywordp (second expression))))
+         (grammar-fail "~A requires a symbol label and one expression: ~S"
+                       (first expression) expression))
+       (validate-expression (third expression) names))
       ((:star :plus :optional)
        (unless (= (length expression) 2)
          (grammar-fail "~A requires one expression: ~S" (first expression) expression))
@@ -362,25 +372,31 @@
       (dolist (definition definitions) (visit (first definition))))))
 
 (defun direct-left-alternative (rule alternative)
-  (let* ((right (and (consp alternative)
-                     (symbolp (first alternative))
-                     (string= (symbol-name (first alternative)) "RIGHT")))
-         (body (if right (second alternative) alternative))
+  (let* ((alternative-label (and (eq (expression-kind alternative) :alt-label)
+                                 (second alternative)))
+         (unlabeled (if alternative-label (third alternative) alternative))
+         (right (and (consp unlabeled)
+                     (symbolp (first unlabeled))
+                     (string= (symbol-name (first unlabeled)) "RIGHT")))
+         (body (if right (second unlabeled) unlabeled))
          (parts (if (eq (expression-kind body) :sequence)
-                    (rest body) (list body))))
+                    (rest body) (list body)))
+         (left-label (and (eq (expression-kind (first parts)) :label)
+                          (eq (third (first parts)) rule)
+                          (second (first parts)))))
     (when right
-      (unless (= (length alternative) 2)
+      (unless (= (length unlabeled) 2)
         (grammar-fail "RIGHT requires one alternative: ~S" alternative)))
-    (if (eq (first parts) rule)
+    (if (or (eq (first parts) rule) left-label)
         (progn
           (unless (rest parts)
             (grammar-fail "Left-recursive alternative must consume input: ~S" alternative))
-          (values (rest parts) right))
+          (values (rest parts) right alternative-label left-label))
         (progn
           (when right
             (grammar-fail "RIGHT requires a direct left-recursive alternative: ~S"
                           alternative))
-          (values nil nil)))))
+          (values nil nil nil nil)))))
 
 (defun rewrite-left-recursion (definitions)
   (let ((rewrites (make-hash-table :test 'eq))
@@ -391,10 +407,11 @@
               (alternatives (if (eq (expression-kind expression) :choice)
                                 (rest expression) (list expression))))
           (dolist (alternative alternatives)
-            (multiple-value-bind (suffix right)
+            (multiple-value-bind (suffix right alternative-label left-label)
                 (direct-left-alternative rule alternative)
               (if suffix
-                  (push (list suffix right) recursive)
+                  (push (list suffix right alternative-label left-label)
+                        recursive)
                   (push alternative bases))))
           (if (null recursive)
               (push definition output)
@@ -410,7 +427,8 @@
                                                   (first bases))))))
                   (setf (gethash primary rewrites) (list :primary rule))
                   (dolist (alternative (reverse recursive))
-                    (destructuring-bind (suffix right) alternative
+                    (destructuring-bind (suffix right alternative-label left-label)
+                        alternative
                       (let* ((level (gensym "LEVEL-"))
                              (suffix-rule (gensym "SUFFIX-"))
                              (parts (copy-list suffix)))
@@ -421,7 +439,8 @@
                               generated)
                         (push (list level (list 'and higher (list '* suffix-rule)))
                               generated)
-                        (setf (gethash suffix-rule rewrites) (list :suffix rule)
+                        (setf (gethash suffix-rule rewrites)
+                              (list :suffix rule alternative-label left-label)
                               (gethash level rewrites) (list :level rule)
                               higher level))))
                   (setf (gethash rule rewrites) (list :wrapper rule))
@@ -429,12 +448,59 @@
                   (dolist (item (nreverse generated)) (push item output))))))))
     (values (nreverse output) rewrites)))
 
+(defun expand-labels (definitions rewrites)
+  (let ((generated nil))
+    (labels ((expand (expression)
+               (case (expression-kind expression)
+                 ((:label :alt-label)
+                  (unless (and (= (length expression) 3)
+                               (symbolp (second expression))
+                               (not (keywordp (second expression))))
+                    (grammar-fail "~A requires a symbol label and one expression: ~S"
+                                  (first expression) expression))
+                  (let ((rule (gensym "LABEL-"))
+                        (body (expand (third expression))))
+                    (setf (gethash rule rewrites)
+                          (list (if (eq (expression-kind expression) :label)
+                                    :element-label :alternative-label)
+                                (second expression)))
+                    (push (list rule body) generated)
+                    rule))
+                 ((:sequence :choice)
+                  (cons (first expression) (mapcar #'expand (rest expression))))
+                 ((:star :plus :optional)
+                  (list (first expression) (expand (second expression))))
+                 (otherwise expression))))
+      (values (append (mapcar (lambda (definition)
+                                (list (first definition)
+                                      (expand (second definition))))
+                              definitions)
+                      (nreverse generated))
+              rewrites))))
+
 (defun parse-node-children-for (builder node)
   (nth-value 1 (parse-node-components builder node)))
 (defun parse-node-start-for (builder node)
   (nth-value 2 (parse-node-components builder node)))
 (defun parse-node-end-for (builder node)
   (nth-value 3 (parse-node-components builder node)))
+
+(defun make-labeled-parse-node (builder rule children start end label)
+  (let ((node (make-parse-node builder rule children start end)))
+    (when (node-p node)
+      (setf (node-label node) label))
+    node))
+
+(defun make-visible-parse-node (builder rule children start end &optional label)
+  (let ((alternative (and (= (length children) 1)
+                          (first children))))
+    (multiple-value-bind (alternative-rule alternative-children)
+        (parse-node-components builder alternative)
+      (if (eq alternative-rule :alternative-label)
+          (make-labeled-parse-node builder rule alternative-children start end
+                                   (and (node-p alternative)
+                                        (node-label alternative)))
+          (make-labeled-parse-node builder rule children start end label)))))
 
 (defun normalize-rewritten-node (node rewrites builder)
   (multiple-value-bind (rule original-children start end present)
@@ -448,17 +514,39 @@
                (rewrite (gethash rule rewrites)))
           (case (first rewrite)
             (:wrapper (first children))
-            (:primary (make-parse-node builder (second rewrite) children
-                                       start end))
+            (:element-label
+             (make-labeled-parse-node builder :label children start end
+                                      (second rewrite)))
+            (:alternative-label
+             (make-labeled-parse-node builder :alternative-label children
+                                      start end (second rewrite)))
+            (:primary (make-visible-parse-node builder (second rewrite)
+                                               children start end))
             (:level
              (reduce (lambda (left suffix)
-                       (make-parse-node
-                        builder (second rewrite)
-                        (cons left (parse-node-children-for builder suffix))
-                        (parse-node-start-for builder left)
-                        (parse-node-end-for builder suffix)))
+                       (let* ((suffix-rewrite
+                                (gethash (nth-value 0
+                                           (parse-node-components builder suffix))
+                                         rewrites))
+                              (left-child
+                                (if (fourth suffix-rewrite)
+                                    (make-labeled-parse-node
+                                     builder :label (list left)
+                                     (parse-node-start-for builder left)
+                                     (parse-node-end-for builder left)
+                                     (fourth suffix-rewrite))
+                                    left)))
+                         (make-visible-parse-node
+                          builder (second rewrite)
+                          (cons left-child
+                                (parse-node-children-for builder suffix))
+                          (parse-node-start-for builder left)
+                          (parse-node-end-for builder suffix)
+                          (third suffix-rewrite))))
                      (rest children) :initial-value (first children)))
-            (otherwise (make-parse-node builder rule children start end)))))))
+            (otherwise (make-visible-parse-node
+                        builder rule children start end
+                        (and (node-p node) (node-label node)))))))))
 
 (defun visible-rule (grammar rule)
   (or (second (gethash rule (parser-rewrites grammar))) rule))
@@ -518,7 +606,8 @@
                                     (tree-builder :node))
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
-(AND ...), (OR ...), (* x), (+ x), (? x), and (TOKEN value).
+(AND ...), (OR ...), (* x), (+ x), (? x), (TOKEN value),
+(LABEL name x), and (ALT-LABEL name x).
 Direct left-recursive alternatives are ordered from low to high precedence;
 (RIGHT alternative) gives a recursive alternative right associativity.
 Bare symbols name rules; other atoms are literal tokens. DEFAULT-RULE chooses
@@ -547,6 +636,8 @@ function of (parser state-id return-stack) that returns a start DFA state."
       (grammar-fail "Unknown default rule ~S" default-rule))
     (multiple-value-setq (definitions rewrites)
       (rewrite-left-recursion definitions))
+    (multiple-value-setq (definitions rewrites)
+      (expand-labels definitions rewrites))
     (dolist (definition definitions)
       (setf (gethash (first definition) names) t))
     (dolist (definition definitions)

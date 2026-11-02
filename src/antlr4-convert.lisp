@@ -74,7 +74,7 @@
           (write-char character output)
           (setf position next))))))
 
-(defun charset-expression (node)
+(defun charset-expression (node &optional invert)
   (let* ((text (cnvrs:lexeme-text (first-token node)))
          (end (1- (length text)))
          (position 1) (negated nil) (parts nil))
@@ -91,10 +91,12 @@
             (push first parts))))
     (setf parts (nreverse parts))
     (when (null parts) (conversion-error node "empty character set"))
-    (if negated
-        (if (every #'characterp parts)
-            (list 'not-one-of parts)
-            (conversion-error node "negated ranges are not supported"))
+    (if (if invert (not negated) negated)
+        (list 'not-one-of
+              (mapcar (lambda (part)
+                        (if (characterp part) part
+                            (cons (second part) (third part))))
+                      parts))
         (if (rest parts) (cons 'or parts) (first parts)))))
 
 (defun sequence-form (parts)
@@ -105,12 +107,14 @@
 (defun choice-form (parts)
   (if (rest parts) (cons 'or parts) (first parts)))
 
-(defun suffix-form (node expression)
+(defun suffix-form (node expression &optional lexer-p)
   (let ((suffix (first-token node)))
-    (when (> (length (tokens-of node)) 1)
+    (when (and (not lexer-p) (> (length (tokens-of node)) 1))
       (conversion-error node "nongreedy suffix is not supported"))
     (list (ecase (cnvrs:lexeme-kind suffix)
-            (:question '?) (:star '*) (:plus '+))
+            (:question (if (> (length (tokens-of node)) 1) '?? '?))
+            (:star (if (> (length (tokens-of node)) 1) '*? '*))
+            (:plus (if (> (length (tokens-of node)) 1) '+? '+)))
           expression)))
 
 (defvar *implicit-literals*)
@@ -132,9 +136,10 @@
     (alt-list
      (choice-form (mapcar #'parser-expression (child-nodes node 'alternative))))
     (labeled-alt
-     (when (token-of-kind node :pound)
-       (conversion-error node "alternative labels are not supported"))
-     (parser-expression (first-node node 'alternative)))
+     (let ((expression (parser-expression (first-node node 'alternative)))
+           (label (first-node node 'identifier)))
+       (if label (list 'alt-label (antlr-name label) expression)
+           expression)))
     (alternative
      (when (first-node node 'element-options)
        (conversion-error node "element options are not supported"))
@@ -145,13 +150,17 @@
          (conversion-error node "EOF is only supported at the end of an alternative"))
        (sequence-form parts)))
     (element
-     (when (or (first-node node 'labeled-element)
-               (first-node node 'action-block))
-       (conversion-error node "labels and actions are not supported"))
-     (let* ((base (or (first-node node 'atom) (first-node node 'ebnf)))
+     (when (first-node node 'action-block)
+       (conversion-error node "actions are not supported"))
+     (let* ((base (or (first-node node 'labeled-element)
+                      (first-node node 'atom) (first-node node 'ebnf)))
             (expression (parser-expression base))
             (suffix (first-node node 'ebnf-suffix)))
        (if suffix (suffix-form suffix expression) expression)))
+    (labeled-element
+     (list 'label (antlr-name (first-node node 'identifier))
+           (parser-expression (or (first-node node 'atom)
+                                  (first-node node 'block)))))
     (ebnf
      (let ((expression (parser-expression (first-node node 'block)))
            (suffix (first-node node 'block-suffix)))
@@ -202,7 +211,7 @@
                       (first-node node 'lexer-block)))
             (expression (lexer-expression base))
             (suffix (first-node node 'ebnf-suffix)))
-       (if suffix (suffix-form suffix expression) expression)))
+       (if suffix (suffix-form suffix expression t) expression)))
     (lexer-block (lexer-expression (first-node node 'lexer-alt-list)))
     (lexer-atom
      (if (child-nodes node)
@@ -232,12 +241,17 @@
      (let ((set (first (child-nodes node))))
        (unless (eq (cnvrs:node-rule set) 'set-element)
          (conversion-error node "negated block sets are not supported"))
+       (let ((token (first-token set)))
+         (when (eq (cnvrs:lexeme-kind token) :lexer_char_set)
+           (return-from lexer-expression (charset-expression set t))))
        (let ((atom (lexer-expression set)))
          (unless (characterp atom)
            (conversion-error node "negated sets require one character"))
          (list 'not-one-of (list atom)))))
     (set-element
      (let ((token (first-token node)))
+       (when (eq (cnvrs:lexeme-kind token) :lexer_char_set)
+         (return-from lexer-expression (charset-expression node)))
        (unless (eq (cnvrs:lexeme-kind token) :string_literal)
          (conversion-error node "unsupported set element"))
        (let ((value (antlr-string node)))

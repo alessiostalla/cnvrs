@@ -3,7 +3,7 @@
 #+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
                            (space 0) (compilation-speed 0)))
 
-(defstruct compiled-lexer states mode-starts kinds skips channels
+(defstruct compiled-lexer states mode-starts kinds skips channels ordered-rules
   push-modes pop-modes set-modes cache-backend cache function matcher)
 
 (define-condition lexical-error (error)
@@ -44,6 +44,9 @@
                  ((string= name "*") :star)
                  ((string= name "+") :plus)
                  ((string= name "?") :optional)
+                 ((string= name "*?") :lazy-star)
+                 ((string= name "+?") :lazy-plus)
+                 ((string= name "??") :lazy-optional)
                  ((string= name "RANGE") :range)
                  ((string= name "ONE-OF") :one-of)
                  ((string= name "NOT-ONE-OF") :not-one-of)
@@ -60,7 +63,7 @@
        (when (member form visiting)
          (grammar-fail "Recursive lexer rule ~S" form))
        (lx-validate (gethash form definitions) definitions (cons form visiting)))
-      ((:star :plus :optional)
+      ((:star :plus :optional :lazy-star :lazy-plus :lazy-optional)
        (unless (= (length form) 2)
          (grammar-fail "~A requires one lexer expression: ~S" (first form) form))
        (lx-validate (second form) definitions visiting))
@@ -83,11 +86,113 @@
                     (or (and (stringp (second form))
                              (plusp (length (second form))))
                         (and (consp (second form))
-                             (every #'characterp (second form)))))
-         (grammar-fail "NOT-ONE-OF requires characters: ~S" form)))
+                             (every (lambda (item)
+                                      (or (characterp item)
+                                          (and (consp item)
+                                               (characterp (car item))
+                                               (characterp (cdr item))
+                                               (char<= (car item) (cdr item)))))
+                                    (second form)))))
+         (grammar-fail "NOT-ONE-OF requires characters or ranges: ~S" form)))
       (:any
        (unless (= (length form) 1)
          (grammar-fail "ANY takes no arguments: ~S" form))))))
+
+(defun lx-has-nongreedy (form definitions)
+  (let ((kind (lx-kind form)))
+    (case kind
+      ((:lazy-star :lazy-plus :lazy-optional) t)
+      (:reference (lx-has-nongreedy (gethash form definitions) definitions))
+      ((:sequence :choice)
+       (some (lambda (part) (lx-has-nongreedy part definitions))
+             (rest form)))
+      ((:star :plus :optional)
+       (lx-has-nongreedy (second form) definitions)))))
+
+(defun lx-nullable (form definitions)
+  (case (lx-kind form)
+    (:reference (lx-nullable (gethash form definitions) definitions))
+    (:literal (zerop (length (string form))))
+    (:sequence (every (lambda (part) (lx-nullable part definitions))
+                      (rest form)))
+    (:choice (some (lambda (part) (lx-nullable part definitions))
+                   (rest form)))
+    ((:star :optional :lazy-star :lazy-optional) t)
+    ((:plus :lazy-plus) (lx-nullable (second form) definitions))))
+
+(defvar *lx-after-nongreedy* nil)
+
+(defun lx-match-ordered (form definitions source position continuation)
+  "Match one rule with ordered repetition choices; return its end or NIL."
+  (let ((length (length source))
+        (*lx-after-nongreedy* nil))
+    (labels ((match-sequence (parts at next)
+               (if (null parts)
+                   (funcall next at)
+                   (match-form (first parts) at
+                               (lambda (end)
+                                 (match-sequence (rest parts) end next)))))
+             (match-repeat (body at next lazy-p)
+               (flet ((more ()
+                        (match-form body at
+                                    (lambda (end)
+                                      (and (> end at)
+                                           (match-repeat body end next lazy-p))))))
+                 (if lazy-p
+                     (let ((*lx-after-nongreedy* t))
+                       (or (funcall next at) (more)))
+                     (or (more) (funcall next at)))))
+             (match-form (pattern at next)
+               (case (lx-kind pattern)
+                 (:reference
+                  (match-form (gethash pattern definitions) at next))
+                 (:literal
+                  (let* ((literal (string pattern))
+                         (end (+ at (length literal))))
+                    (and (<= end length)
+                         (string= literal source :start2 at :end2 end)
+                         (funcall next end))))
+                 (:range
+                  (and (< at length)
+                       (char<= (second pattern) (char source at)
+                                (third pattern))
+                       (funcall next (1+ at))))
+                 (:one-of
+                  (and (< at length)
+                       (find (char source at) (second pattern))
+                       (funcall next (1+ at))))
+                 (:not-one-of
+                  (and (< at length)
+                       (not (find (char source at) (second pattern)))
+                       (funcall next (1+ at))))
+                 (:any
+                  (and (< at length) (funcall next (1+ at))))
+                 (:sequence (match-sequence (rest pattern) at next))
+                 (:choice
+                  (if *lx-after-nongreedy*
+                      (some (lambda (part) (match-form part at next))
+                            (rest pattern))
+                      (let ((best nil))
+                        (dolist (part (rest pattern) best)
+                          (let ((end (match-form part at next)))
+                            (when (and end (or (null best) (> end best)))
+                              (setf best end)))))))
+                 ((:optional :lazy-optional)
+                  (if (eq (lx-kind pattern) :lazy-optional)
+                      (let ((*lx-after-nongreedy* t))
+                        (or (funcall next at)
+                            (match-form (second pattern) at next)))
+                      (or (match-form (second pattern) at next)
+                          (funcall next at))))
+                 ((:star :lazy-star)
+                  (match-repeat (second pattern) at next
+                                (eq (lx-kind pattern) :lazy-star)))
+                 ((:plus :lazy-plus)
+                  (match-form (second pattern) at
+                              (lambda (end)
+                                (match-repeat (second pattern) end next
+                                              (eq (lx-kind pattern) :lazy-plus))))))))
+      (match-form form position continuation))))
 
 (defun lx-compile (form definitions states entry exit)
   (case (lx-kind form)
@@ -157,7 +262,14 @@
                                               (cdr (lx-edge-value edge))))
                              (:one-of (find character (lx-edge-value edge)))
                              (:not-one-of
-                              (not (find character (lx-edge-value edge))))
+                              (not (if (stringp (lx-edge-value edge))
+                                       (find character (lx-edge-value edge))
+                                       (some (lambda (item)
+                                               (if (characterp item)
+                                                   (char= character item)
+                                                   (char<= (car item) character
+                                                            (cdr item))))
+                                             (lx-edge-value edge)))))
                              (:any t))
                         collect (lx-edge-target edge)))))
 
@@ -206,6 +318,7 @@
         (push-modes (compiled-lexer-push-modes lexer))
         (pop-modes (compiled-lexer-pop-modes lexer))
         (set-modes (compiled-lexer-set-modes lexer))
+        (ordered-rules (compiled-lexer-ordered-rules lexer))
         (cache (compiled-lexer-cache lexer))
         (locked-p (typep (compiled-lexer-cache lexer) 'locked-cache)))
     (declare (type simple-vector kinds skips channels push-modes pop-modes
@@ -227,6 +340,18 @@
                    (let ((rule (lx-dfa-state-best-rule dfa)))
                      (when rule
                        (setf best-end (1+ offset) best-rule rule))))
+                 (dolist (entry ordered-rules)
+                   (destructuring-bind (rule-mode rule-index expression definitions)
+                       entry
+                     (when (eq rule-mode mode)
+                       (let ((end (lx-match-ordered
+                                   expression definitions source position
+                                   #'identity)))
+                         (when (and end (> end position)
+                                    (or (null best-end) (> end best-end)
+                                        (and (= end best-end)
+                                             (< rule-index best-rule))))
+                           (setf best-end end best-rule rule-index))))))
                  (values (and best-rule (aref kinds best-rule))
                          best-end best-rule))))
       (setf (compiled-lexer-matcher lexer) #'match-one
@@ -282,7 +407,8 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
         (channels nil)
         (push-modes nil)
         (pop-modes nil)
-        (set-modes nil))
+        (set-modes nil)
+        (ordered-rules nil))
     (dolist (definition definitions)
       (unless (and (consp definition)
                    (>= (length definition) 2)
@@ -323,24 +449,32 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
       (grammar-fail "A lexer needs at least one rule in :DEFAULT mode"))
     (dolist (definition definitions)
       (lx-validate (second definition) patterns (list (first definition)))
+      (when (and (lx-has-nongreedy (second definition) patterns)
+                 (lx-nullable (second definition) patterns))
+        (grammar-fail "Lexer rules must consume at least one character"))
       (dolist (key '(:push-mode :set-mode))
         (when (and (plist-key-p (cddr definition) key)
                    (not (gethash (getf (cddr definition) key) mode-starts)))
           (grammar-fail "Lexer rule ~S targets undefined mode ~S"
                         (first definition) (getf (cddr definition) key)))))
     (loop for definition in definitions for index from 0 do
-      (let ((entry (lx-new-state states)) (exit (lx-new-state states)))
-        (lx-edge states (gethash (getf (cddr definition) :mode :default)
-                                 mode-starts)
-                 :epsilon entry)
-        (lx-compile (second definition) patterns states entry exit)
-        (setf (lx-state-accept (aref states exit)) index)
+      (if (lx-has-nongreedy (second definition) patterns)
+          (push (list (getf (cddr definition) :mode :default)
+                      index (second definition) patterns)
+                ordered-rules)
+          (let ((entry (lx-new-state states))
+                (exit (lx-new-state states)))
+            (lx-edge states (gethash (getf (cddr definition) :mode :default)
+                                     mode-starts)
+                     :epsilon entry)
+            (lx-compile (second definition) patterns states entry exit)
+            (setf (lx-state-accept (aref states exit)) index)))
         (push (first definition) kinds)
         (push (getf (cddr definition) :skip) skips)
         (push (getf (cddr definition) :channel :default) channels)
         (push (getf (cddr definition) :push-mode) push-modes)
         (push (getf (cddr definition) :pop-mode) pop-modes)
-        (push (getf (cddr definition) :set-mode) set-modes)))
+        (push (getf (cddr definition) :set-mode) set-modes))
     (setf kinds (coerce (nreverse kinds) 'vector)
           skips (coerce (nreverse skips) 'vector)
           channels (coerce (nreverse channels) 'vector)
@@ -354,6 +488,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
              mode-starts)
     (let ((lexer (make-compiled-lexer
                   :states states :mode-starts mode-starts :kinds kinds
+                  :ordered-rules (nreverse ordered-rules)
                   :skips skips :channels channels :push-modes push-modes
                   :pop-modes pop-modes :set-modes set-modes
                   :cache-backend cache-backend :cache (make-cache cache-backend))))

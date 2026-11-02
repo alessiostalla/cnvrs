@@ -739,9 +739,29 @@
     (check (eq (cnvrs:node-rule tree) 'start) "root rule")
     (check (equal (cnvrs:node-children tree)
                   '(#\a #\b #\b #\b #\c)) "repetition and token order")
+    (check (null (cnvrs:node-label tree))
+           "unlabeled rule nodes have no label")
     (check (= (cnvrs:node-end tree) 5) "end position")
     (check (signals cnvrs:parse-error (cnvrs:parse grammar "abbd"))
            "unexpected token"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((start (or (alt-label first (and (label item :a) :b))
+                                (alt-label second :c))))))
+         (tree (cnvrs:parse grammar '(:a :b)))
+         (child (first (cnvrs:node-children tree))))
+    (check (and (eq (cnvrs:node-label tree) 'first)
+                (eq (cnvrs:node-label child) 'item)
+                (equal (cnvrs:node-children child) '(:a))
+                (eq (second (cnvrs:node-children tree)) :b))
+           "CNVRS labels attach to alternative and element nodes")
+    (check (eq (cnvrs:node-label (cnvrs:parse grammar '(:c))) 'second)
+           "CNVRS chooses the matched alternative label")
+    (check (and (= (cnvrs:node-start child) 0)
+                (= (cnvrs:node-end child) 1))
+           "labeled element node retains token offsets"))
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-grammar '((start (label :invalid :a)))))
+         "CNVRS rejects a keyword label")
   (let ((grammar (cnvrs:compile-grammar
                   '((document (and item #\!))
                     (item #\a))
@@ -1253,6 +1273,53 @@ options {")))
              "ANTLR4 grammar parses input")
       (check (signals cnvrs:parse-error (cnvrs:parse grammar "let abc abc"))
              "ANTLR4 grammar rejects invalid input"))
+    (let* ((source (uiop:read-file-string
+                    (merge-pathnames "JSON.g4" directory)))
+           (grammar (cnvrs/antlr4:parse source))
+           (compiled (cnvrs:ensure-compiled grammar)))
+      (check (cnvrs:parser-p compiled)
+             "grammars-v4 JSON grammar compiles unchanged")
+      (dolist (input '("null" "-0.25e+2" "{}" "[]"
+                       "{\"x\": [1, true, null]}"
+                       "{\"escaped\": \"a\\n\\u0041\"}"))
+        (check (eq (cnvrs:node-rule (cnvrs:parse compiled input))
+                   'cnvrs/antlr4::json)
+               (format nil "grammars-v4 JSON accepts ~S" input)))
+      (dolist (input '("01" "[1,]" "{\"x\":}" "\"\\q\""))
+        (check (signals error (cnvrs:parse compiled input))
+               (format nil "grammars-v4 JSON rejects ~S" input)))
+      (check (signals cnvrs:lexical-error
+               (cnvrs:parse compiled
+                            (format nil "\"a~C\"" (code-char 31))))
+             "grammars-v4 JSON excludes unescaped control characters"))
+    (let* ((source (uiop:read-file-string
+                    (merge-pathnames "IRI.g4" directory)))
+           (grammar (cnvrs/antlr4:parse source))
+           (compiled (cnvrs:ensure-compiled grammar)))
+      (check (cnvrs:parser-p compiled)
+             "grammars-v4 IRI grammar compiles unchanged")
+      (dolist (input '("http://example.org/x"
+                       "https://example.org/path?x=1#f"
+                       "mailto:alice@example.org"
+                       "http://127.0.0.1:8080/a%20b"
+                       "http://[2001:db8::1]/x"))
+        (check (eq (cnvrs:node-rule (cnvrs:parse compiled input))
+                   'cnvrs/antlr4:parse)
+               (format nil "grammars-v4 IRI accepts ~S" input)))
+      (dolist (input '("not-a-uri" "http://example.org/a b"
+                       "http://example.org/%GG"))
+        (check (signals error (cnvrs:parse compiled input))
+               (format nil "grammars-v4 IRI rejects ~S" input))))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "grammar LabeledToken; start : item=ID EOF; ID : [a-z]+;"))
+           (tree (cnvrs:parse grammar "word"))
+           (item (first (cnvrs:node-children tree))))
+      (check (and (eq (cnvrs:node-label item) 'cnvrs/antlr4::item)
+                  (cnvrs:lexeme-p (first (cnvrs:node-children item)))
+                  (string= (cnvrs:lexeme-text
+                            (first (cnvrs:node-children item)))
+                           "word"))
+             "combined ANTLR grammar retains token label and lexeme"))
     (let ((grammar (cnvrs/antlr4:parse "parser grammar Tokens; start : ID EOF;")))
       (check (cnvrs:parser-p (cnvrs:ensure-compiled grammar))
              "parser grammar compiles without an attached lexer"))
@@ -1261,10 +1328,88 @@ options {")))
       (check (eq (cnvrs:node-rule (cnvrs:parse grammar "abba"))
                  'cnvrs/antlr4::start)
              "ANTLR4 grouped alternatives and suffix compile"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "parser grammar Labels; start : first=ID more+=ID* #Many | pair=(A B)+ #Pair;")))
+      (let* ((tree (cnvrs:parse grammar '(:id :id :id)))
+             (children (cnvrs:node-children tree)))
+        (check (eq (cnvrs:node-label tree) 'cnvrs/antlr4::many)
+               "ANTLR4 alternative label appears on the rule node")
+        (check (equal (mapcar #'cnvrs:node-label children)
+                      '(cnvrs/antlr4::first cnvrs/antlr4::more
+                        cnvrs/antlr4::more))
+               "ANTLR4 assigned and list labels appear on element nodes")
+        (check (every (lambda (child)
+                        (equal (cnvrs:node-children child) '(:id)))
+                      children)
+               "ANTLR4 labeled element nodes retain matched tokens"))
+      (let* ((tree (cnvrs:parse grammar '(:a :b :a :b)))
+             (children (cnvrs:node-children tree)))
+        (check (eq (cnvrs:node-label tree) 'cnvrs/antlr4::pair)
+               "ANTLR4 second alternative label appears on the rule node")
+        (check (and (= (length children) 2)
+                    (every (lambda (child)
+                             (and (eq (cnvrs:node-label child)
+                                      'cnvrs/antlr4::pair)
+                                  (equal (cnvrs:node-children child) '(:a :b))))
+                           children))
+               "ANTLR4 grouped element labels retain each repetition"))
+      (check (signals cnvrs:parse-error
+               (cnvrs:parse grammar '(:a :b :a)))
+             "ANTLR4 labeled group still enforces its repetition"))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "parser grammar LabeledExpr; expr : left=expr PLUS right=expr #Add | INT #Number;"))
+           (tree (cnvrs:parse grammar '(:int :plus :int)))
+           (children (cnvrs:node-children tree)))
+      (check (eq (cnvrs:node-label tree) 'cnvrs/antlr4::add)
+             "left-recursive ANTLR alternative retains its label")
+      (check (and (eq (cnvrs:node-label (first children))
+                      'cnvrs/antlr4::left)
+                  (eq (cnvrs:node-label (third children))
+                      'cnvrs/antlr4::right)
+                  (eq (cnvrs:node-label
+                       (first (cnvrs:node-children (first children))))
+                      'cnvrs/antlr4::number))
+             "left-recursive ANTLR element labels survive normalization"))
     (let ((grammar (cnvrs/antlr4:parse "lexer grammar Letters; A : 'a';")))
       (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "aa"))
                     '(:a :a))
              "ANTLR4 lexer grammar compiles"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "lexer grammar Lazy; STAR : '<' .*? '>'; PLUS : '[' .+? ']'; OPTIONAL : 'a' 'x'?? 'x'; OTHER : .;")))
+      (check (equal (map 'list #'cnvrs:lexeme-text
+                         (cnvrs:lex grammar "<1>2>"))
+                    '("<1>" "2" ">"))
+             "ANTLR4 nongreedy star stops at the first closing delimiter")
+      (check (equal (map 'list #'cnvrs:lexeme-text
+                         (cnvrs:lex grammar "[12]3]"))
+                    '("[12]" "3" "]"))
+             "ANTLR4 nongreedy plus requires a character and stops early")
+      (check (equal (map 'list #'cnvrs:lexeme-text
+                         (cnvrs:lex grammar "axx"))
+                    '("ax" "x"))
+             "ANTLR4 nongreedy optional prefers the empty branch"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "lexer grammar LazyPriority; SHORT : '<' .*? '>'; LONG : '<' .* '>'; OTHER : .;")))
+      (check (equal (map 'list #'cnvrs:lexeme-kind
+                         (cnvrs:lex grammar "<x>"))
+                    '(:short))
+             "nongreedy rule wins an equal-length tie by rule order")
+      (check (equal (map 'list #'cnvrs:lexeme-kind
+                         (cnvrs:lex grammar "<x>y>"))
+                    '(:long))
+             "longer greedy rule wins over a nongreedy rule"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "lexer grammar LazyAlternatives; TOKEN : 'a' | 'ab' .*? 'c'; OTHER : .;")))
+      (check (equal (map 'list #'cnvrs:lexeme-text
+                         (cnvrs:lex grammar "abc"))
+                    '("abc"))
+             "alternatives before a nongreedy suffix still take the longest match"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "lexer grammar LazyFragment; fragment BODY : .*? '>'; SHORT : '<' BODY; OTHER : .;")))
+      (check (equal (map 'list #'cnvrs:lexeme-text
+                         (cnvrs:lex grammar "<x>y>"))
+                    '("<x>" "y" ">"))
+             "nongreedy suffix works through a fragment reference"))
     (let ((grammar (cnvrs/antlr4:parse
                     "lexer grammar Modes; OPEN : '<' -> pushMode(TAG); WORD : [a-z]+; mode TAG; CLOSE : '>' -> popMode; TEXT : [a-z]+;")))
       (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "<abc>abc"))

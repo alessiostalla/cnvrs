@@ -24,6 +24,8 @@ CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is 
 | `(and a b ...)` or `(seq a b ...)` | Sequence; `(and)` matches empty input |
 | `(or a b ...)` | Ordered alternatives; first wins if both match |
 | `(* a)`, `(+ a)`, `(? a)` | Zero or more, one or more, optional |
+| `(label name a)` | Wrap a match in a node with `node-label` set to `name` |
+| `(alt-label name a)` | Set `node-label` on the enclosing rule node when this alternative matches |
 | `rule-name` | Reference to a rule |
 | `(token value)` | Match a token with `equal` |
 | Character, string, number, or keyword | Literal token |
@@ -83,7 +85,7 @@ An alternative may start with its own rule name. Recursive alternatives are list
 
 Here multiplication binds more tightly than addition, and exponentiation binds more tightly than both. The result contains nested `expr` nodes with the original rule name and token offsets. A recursive alternative can also be postfix, such as `(and expr :bang)`. A rule needs at least one non-left-recursive base alternative, and every recursive suffix must consume input. Indirect left recursion and cycles that consume no input remain invalid.
 
-`parse` accepts a sequence of tokens: a string is a sequence of characters, while a list or vector can contain arbitrary token values. It consumes the whole input and returns `node` structs. Each node has a rule name, ordered children, and start/end token offsets. Children are literal tokens or nodes for referenced rules. Invalid grammars signal `cnvrs:grammar-error`.
+`parse` accepts a sequence of tokens: a string is a sequence of characters, while a list or vector can contain arbitrary token values. It consumes the whole input and returns `node` structs. Each node has a rule name, ordered children, start/end token offsets, and an optional `node-label` (NIL when absent). Children are literal tokens or nodes for referenced rules. A labeled element produces a `:label` node containing its matched tokens or rule nodes; repetition produces one such node per match. An alternative label appears on the enclosing rule node. Invalid grammars signal `cnvrs:grammar-error`.
 
 ## Lexing
 
@@ -100,7 +102,7 @@ Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call w
 (cnvrs:parse *parser* "x")
 ```
 
-`compile-lexer` compiles lexer rules in the Lisp image and returns a `compiled-lexer` structure. Pass it to `lex`, or attach it to a parser with `:lexer`. Rules have the form `(kind expression &key skip channel mode push-mode pop-mode set-mode)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, `(range low high)`, `(one-of "characters")`, `(not-one-of (#\a #\b ...))`, and `(any)`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected. A second return value matches one token at a given source position; `lexer-matcher` exposes it for compiled lexers and macro-defined lexer grammars. The compiled lexer itself is no longer a function designator, so use `lex` instead of `funcall`.
+`compile-lexer` compiles lexer rules in the Lisp image and returns a `compiled-lexer` structure. Pass it to `lex`, or attach it to a parser with `:lexer`. Rules have the form `(kind expression &key skip channel mode push-mode pop-mode set-mode)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, nongreedy `(*? expression)`, `(+? expression)`, `(?? expression)`, `(range low high)`, `(one-of "characters")`, `(not-one-of (#\a #\b ...))`, and `(any)`. Lexer references may use symbols or keywords. A rule must consume at least one character; recursive lexer references are rejected. A second return value matches one token at a given source position; `lexer-matcher` exposes it for compiled lexers and macro-defined lexer grammars. The compiled lexer itself is no longer a function designator, so use `lex` instead of `funcall`.
 
 ```lisp
 (defparameter *lexer*
@@ -219,7 +221,7 @@ The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars
 
 The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; compilation happens on first use. `cnvrs/antlr4:parse-tree` returns the ANTLR syntax tree and accepts `:rule` to select a grammar entry rule. `cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer adaptor handles action blocks, brackets, and context-dependent identifier token types.
 
-Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, literals, character ranges and sets, fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Constructs without CNVRS equivalents, including actions, predicates, imports, options, labels, and other lexer commands, raise `cnvrs:grammar-error` during conversion.
+Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, nongreedy lexer suffixes `??`, `*?`, `+?`, literals, character ranges and sets, fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. Parser element labels (`name=atom`, `names+=atom`, and labeled groups) become labeled element nodes; alternative labels (`#Name`) appear on the matching rule node. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Constructs without CNVRS equivalents, including actions, predicates, imports, options, and other lexer commands, raise `cnvrs:grammar-error` during conversion.
 
 The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4` syntax trees offline. Those grammars use ANTLR features outside the current conversion subset.
 
