@@ -184,12 +184,12 @@
       (if (< code 128)
           (flet ((ascii-next ()
                    (let ((edges (lx-dfa-state-edges current)))
-                     (or (and edges (aref edges code))
+                     (or (and edges (aref (the simple-vector edges) code))
                          (let ((next (compute)))
                            (unless edges
                              (setf edges (make-array 128 :initial-element nil)
                                    (lx-dfa-state-edges current) edges))
-                           (setf (aref edges code) next))))))
+                           (setf (aref (the simple-vector edges) code) next))))))
             (if locked-p
                 (bt:with-lock-held ((lx-dfa-state-lock current))
                   (ascii-next))
@@ -208,6 +208,8 @@
         (set-modes (compiled-lexer-set-modes lexer))
         (cache (compiled-lexer-cache lexer))
         (locked-p (typep (compiled-lexer-cache lexer) 'locked-cache)))
+    (declare (type simple-vector kinds skips channels push-modes pop-modes
+                   set-modes))
     (labels ((match-one (source position mode)
                (declare (type string source) (type fixnum position))
                (let ((dfa (cache-get-or-compute
@@ -218,7 +220,7 @@
                               (lx-closure states
                                           (list (gethash mode mode-starts)))))))
                      (best-end nil) (best-rule nil))
-                 (loop for offset from position below (length source) do
+                 (loop for offset of-type fixnum from position below (length source) do
                    (setf dfa (lx-next-dfa-state
                               states cache dfa (char source offset) locked-p))
                    (when (null (lx-dfa-state-active dfa)) (return))
@@ -233,7 +235,7 @@
               (unless (stringp source)
                 (error 'type-error :datum source :expected-type 'string))
               (let ((position 0) (output nil) (mode :default) (mode-stack nil))
-                (declare (type fixnum position))
+                (declare (type string source) (type fixnum position))
                 (loop while (< position (length source)) do
                   (multiple-value-bind (kind best-end best-rule)
                       (match-one source position mode)

@@ -58,6 +58,7 @@
 
 (defun flat-cache-key (head tail)
   "Make a structural cache key from HEAD and a list of integer IDs."
+  (declare (type list tail))
   (let ((key (make-array (+ 2 (length tail)))))
     (setf (aref key 0) +flat-cache-key-marker+
           (aref key 1) head)
@@ -73,8 +74,8 @@
       (flat-cache-key head stack)))
 
 (defun flat-cache-key-p (key)
-  (and (vectorp key) (plusp (length key))
-       (eq (aref key 0) +flat-cache-key-marker+)))
+  (and (simple-vector-p key) (plusp (length key))
+       (eq (svref key 0) +flat-cache-key-marker+)))
 
 (defstruct hash-cache
   (table (make-hash-table :test 'equal))
@@ -111,15 +112,16 @@
           ((and (characterp a) (characterp b))
            (if (char< a b) :less :greater))
           ((and (flat-cache-key-p a) (flat-cache-key-p b))
-           (loop for index from 1 below (min (length a) (length b))
-                 for left = (aref a index)
-                 for right = (aref b index)
-                 unless (= left right)
-                   do (return-from cache-key-compare
-                        (if (< left right) :less :greater)))
-           (cond ((< (length a) (length b)) :less)
-                 ((> (length a) (length b)) :greater)
-                 (t :equal)))
+           (locally (declare (type simple-vector a b))
+             (loop for index from 1 below (min (length a) (length b))
+                   for left = (svref a index)
+                   for right = (svref b index)
+                   unless (= left right)
+                     do (return-from cache-key-compare
+                          (if (< left right) :less :greater)))
+             (cond ((< (length a) (length b)) :less)
+                   ((> (length a) (length b)) :greater)
+                   (t :equal))))
           ((and (consp a) (consp b))
            (do ((left a (cdr left))
                 (right b (cdr right))
@@ -941,13 +943,15 @@ overlapping decision keeps its contextual predictor."
         :unavailable)))
 
 (defun context-key (grammar state-id parent-id)
+  (declare (type fixnum state-id parent-id))
   (logior (ash parent-id (parser-context-shift grammar)) state-id))
 
 (defun intern-context (grammar return-state parent-id)
   "Return the unique numeric ID for RETURN-STATE below PARENT-ID."
+  (declare (type fixnum return-state parent-id))
   (cache-get-or-compute
    (parser-contexts grammar) (context-key grammar return-state parent-id)
-   (lambda () (incf (parser-context-count grammar)))))
+   (lambda () (incf (the fixnum (parser-context-count grammar))))))
 
 (defun contextual-direct-lookahead (grammar state-id stack context)
   (cache-get-or-compute
@@ -955,6 +959,7 @@ overlapping decision keeps its contextual predictor."
    (lambda () (contextual-choice grammar state-id stack))))
 
 (defun compiled-choice-index (grammar state-id stack context input position)
+  (declare (type vector input) (type fixnum state-id context position))
   (let* ((choice (state-direct-lookahead
                   (aref (parser-states grammar) state-id)))
          (table (if (member choice '(:contextual :contextual-two))
@@ -976,8 +981,8 @@ overlapping decision keeps its contextual predictor."
                             +end-of-input+)
                         two-token)
                two-token)))
-    (cond (direct (1- direct))
-          (two-token-result (1- two-token-result))
+    (cond (direct (1- (the fixnum direct)))
+          (two-token-result (1- (the fixnum two-token-result)))
           ((direct-choice-p table)
            (direct-choice-default-alternative table))
           (t (predict grammar state-id stack input position)))))

@@ -442,6 +442,40 @@ generated rule functions. Three runs with that project setting summed to
 with SBCL's default 1 GB heap. Loading CNVRS leaves the caller's global SBCL
 compiler policy unchanged.
 
+## Lexer, parser-choice, and cache-key type work
+
+Measured 2026-11-02 with native ARM64 SBCL 2.4.0, Java 24, ANTLR 4.13.2,
+and the seven grammars-v4 files at the revision below. Tree construction was
+disabled. Each Lisp stage used six separate processes, 20 warmups per file,
+and the median of seven batches of 100 parses. The table gives the median and
+range of the six sums of per-file medians. Java used three processes, 200
+warmups, and seven batches of 300 parses. Both runtimes reused their compiled
+grammar objects and runtime caches within a process.
+
+| Stage | CNVRS sum, ms | Range, ms | Ratio to Java median |
+| --- | ---: | ---: | ---: |
+| Before these changes | 3.039 | 2.989–3.434 | 2.11× |
+| Typed lexer rule arrays and ASCII DFA edges | 2.813 | 2.756–2.949 | 1.96× |
+| Typed choice positions and context IDs | 2.932 | 2.766–3.155 | 2.04× |
+| Flat-key predicate and comparator specialization | 2.756 | 2.737–3.105 | 1.92× |
+| ANTLR4/Java | 1.438 | 1.208–1.498 | 1.00× |
+
+The parser stage has an unusually wide full-parse range. In a separate
+lexer/parser phase harness, the sum of seven parser-only medians fell from
+1.420–1.425 ms after the lexer stage to 1.367–1.386 ms after the parser stage.
+The baseline lexer-only sum was 1.587 ms; after the lexer change it was
+1.336–1.364 ms. These phase runs support the local improvements, while the
+full-parse results should not be read as precise per-stage speedups.
+
+On fresh SBCL 2.4.0 builds, the notes in `src/cnvrs.lisp` and `src/lexer.lisp`
+fell from 305 to 247. The lexer's matcher and DFA-edge functions went from
+13 to 3 notes; the compiled parser choice and context functions went from
+43 to 5; flat cache-key creation, recognition, and comparison went from 41
+to 31. Remaining notes include generic string access for the public lexer
+input, parser-state and token-vector access, and generic comparisons for
+non-flat FSET keys. A specialized simple-base-string branch was measured and
+removed because it increased lexer phase time on this corpus.
+
 ## Reproduce
 
 From the repository root, set `ANTLR_JAR` to an ANTLR 4.13.2 complete JAR and
