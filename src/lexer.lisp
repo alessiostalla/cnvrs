@@ -1,5 +1,8 @@
 (in-package #:cnvrs)
 
+#+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
+                           (space 0) (compilation-speed 0)))
+
 (defstruct compiled-lexer states mode-starts kinds skips channels
   push-modes pop-modes set-modes cache-backend cache function matcher)
 

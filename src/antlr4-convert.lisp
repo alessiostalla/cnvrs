@@ -1,5 +1,8 @@
 (in-package #:cnvrs/antlr4)
 
+#+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
+                           (space 0) (compilation-speed 0)))
+
 ;; The ANTLR syntax tree is kept separate from the CNVRS grammar definition.
 ;; Conversion deliberately rejects constructs whose semantics CNVRS cannot keep.
 (defun conversion-error (node control &rest arguments)

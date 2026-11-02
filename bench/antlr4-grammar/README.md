@@ -389,6 +389,59 @@ pretokenized input stayed near 0.68 ms. The seven-file no-tree sum was
 1.501 ms, leaving about a 2.7× gap. Text access now allocates a substring
 when requested; tokens retain their source string while they remain live.
 
+## Rerun after compiled FOLLOW choices
+
+Measured 2026-11-02 on the same seven source files, with the current CNVRS
+parser (including compiled repetition and optional choices), native ARM64 SBCL
+2.4.0, Java 24, and ANTLR 4.13.2. Tree construction was disabled. Four
+separate processes per runtime each warmed every file, then took the median
+of seven timed batches (100 parses per batch for CNVRS, 300 for Java). The
+table gives the median of those four process results for each file.
+
+| Input | CNVRS ms | ANTLR4/Java ms | CNVRS / Java |
+| --- | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 0.363 | 0.143 | 2.54× |
+| ANTLRv4Parser.g4 | 0.381 | 0.143 | 2.66× |
+| JavaLexer.g4 | 0.357 | 0.140 | 2.56× |
+| JavaParser.g4 | 1.091 | 0.416 | 2.62× |
+| JSON.g4 | 0.067 | 0.026 | 2.60× |
+| Python3Lexer.g4 | 0.447 | 0.168 | 2.65× |
+| Python3Parser.g4 | 0.800 | 0.295 | 2.71× |
+
+The median sum of per-file timings within a process was **3.507 ms for CNVRS**
+and **1.347 ms for Java**, a **2.60×** ratio. CNVRS's four sums ranged from
+3.489 to 3.535 ms; Java's ranged from 1.208 to 1.487 ms. Java varied
+substantially between processes, so the ratio should be read with that range
+in mind.
+
+Two additional runs measured lexer and parser phases separately. Summing the
+seven per-file medians, CNVRS took 1.863–1.881 ms for lexing and 1.463–1.467
+ms for parsing pretokenized input. Java took 0.881–0.896 ms and 0.623–0.672
+ms, respectively. These phase harnesses prepare tokens outside parser timing;
+their separate phase sums need not equal the full-parse sum. As with earlier
+results, the benchmark compares parsers for the ANTLR4 grammar language, not
+compilation or parsing with the sampled grammars themselves.
+
+### SBCL optimization policy
+
+The earlier normal build used SBCL's default `(speed 1) (safety 1) (debug 1)`
+policy. Fresh builds under `(speed 3) (safety 1) (debug 0) (space 0)` and the more
+aggressive `(speed 3) (safety 0) (debug 0) (space 0)` policy were benchmarked
+with the same 4 GB SBCL heap. Three paired default/safe-speed-3 runs summed to
+3.353/3.036, 3.328/3.037, and 3.321/3.003 ms over the seven files: a
+consistent improvement of about 9%. Three paired default/safety-0 runs summed
+to 3.429/3.049, 3.333/3.123, and 3.340/2.933 ms. Both optimized builds
+passed all 256 repository checks. Safety 0 did not show a clear additional
+gain over the safe speed-3 build. The first safe speed-3 compilation exhausted
+SBCL's default 1 GB heap; a 4 GB heap completed it. These measurements do not
+isolate inlining from other compiler optimizations.
+
+The safe speed-3 policy is now the SBCL default for CNVRS source files and
+generated rule functions. Three runs with that project setting summed to
+3.072, 3.024, and 3.044 ms. A fresh project build also passed all 256 checks
+with SBCL's default 1 GB heap. Loading CNVRS leaves the caller's global SBCL
+compiler policy unchanged.
+
 ## Reproduce
 
 From the repository root, set `ANTLR_JAR` to an ANTLR 4.13.2 complete JAR and

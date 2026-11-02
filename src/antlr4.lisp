@@ -31,6 +31,9 @@
 
 (in-package #:cnvrs/antlr4)
 
+#+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
+                           (space 0) (compilation-speed 0)))
+
 (cnvrs:define-parser *lexer* (:kind :lexer)
   (cnvrs:defrule :doc_comment
     (and "/**" (* (or (not-one-of (#\*))

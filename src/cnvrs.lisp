@@ -44,6 +44,9 @@
 
 (in-package #:cnvrs)
 
+#+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
+                           (space 0) (compilation-speed 0)))
+
 ;; Backends can be added by specializing MAKE-CACHE on a new backend name
 ;; and implementing these three operations for the returned cache object.
 (defgeneric make-cache (backend))
@@ -1079,6 +1082,8 @@ overlapping decision keeps its contextual predictor."
       (compile
        nil
        `(lambda (grammar input start require-eof)
+          #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
+                                     (space 0) (compilation-speed 0)))
           (declare (type vector input) (ignorable grammar))
           (let ((position 0))
             (declare (type fixnum position))

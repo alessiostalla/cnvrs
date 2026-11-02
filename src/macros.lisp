@@ -1,5 +1,8 @@
 (in-package #:cnvrs)
 
+#+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
+                           (space 0) (compilation-speed 0)))
+
 (defvar *current-parser-name* nil)
 
 (defun parser-option-list-p (form)
