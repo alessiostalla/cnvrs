@@ -2,10 +2,14 @@
 
 ;; Backends can be added by specializing MAKE-CACHE on a new backend name
 ;; and implementing these three operations for the returned cache object.
-(defgeneric make-cache (backend))
-(defgeneric cache-get-or-compute (cache key thunk))
-(defgeneric cache-clear (cache))
-(defgeneric cache-count (cache))
+(defgeneric make-cache (backend)
+  (:documentation "Create a cache for BACKEND, such as :HASH-TABLE, :FSET, or (:LOCKED backend)."))
+(defgeneric cache-get-or-compute (cache key thunk)
+  (:documentation "Return the value for KEY, computing and storing it with THUNK when absent."))
+(defgeneric cache-clear (cache)
+  (:documentation "Remove all entries from CACHE and return the cache."))
+(defgeneric cache-count (cache)
+  (:documentation "Return the number of entries currently stored in CACHE."))
 
 (defun flat-cache-key (head tail)
   "Make a structural cache key from HEAD and a list of integer IDs."

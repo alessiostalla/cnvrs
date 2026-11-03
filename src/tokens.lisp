@@ -13,6 +13,7 @@
                                  +deferred-lexeme-text+ text)
                 :start start :end end :channel channel :source source))
 (defun lexeme-text (lexeme)
+  "Return the lexeme text, extracting it from SOURCE when stored lazily."
   (let ((text (lexeme-stored-text lexeme)))
     (if (eq text +deferred-lexeme-text+)
         (subseq (lexeme-source lexeme)
@@ -22,10 +23,13 @@
   (setf (lexeme-stored-text lexeme) value))
 
 (defun token-key (token)
+  "Return a lexeme's kind or a plain token value for parser matching."
   (if (lexeme-p token) (lexeme-kind token) token))
 (defun token-channel (token)
+  "Return a lexeme's channel, or :DEFAULT for a plain token."
   (if (lexeme-p token) (lexeme-channel token) :default))
 
 (defstruct inserted-token expected position)
 (defun inserted-token-value (token)
+  "Return the token value supplied by a parser recovery insertion."
   (inserted-token-expected token))

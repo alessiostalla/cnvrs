@@ -115,6 +115,8 @@
     (:plus (nullable-p (second expression) nullable))))
 
 (defun leading-rules (expression nullable)
+  "Return rules reachable from EXPRESSION before any token is consumed.
+NULLABLE maps rule names to whether they can match empty input."
   (case (expression-kind expression)
     (:reference (list expression))
     (:sequence
@@ -127,6 +129,7 @@
     (otherwise nil)))
 
 (defun validate-progress (definitions nullable)
+  "Reject nullable repetition bodies and rule cycles that consume no tokens."
   (dolist (definition definitions)
     (labels ((walk (expression)
                (case (expression-kind expression)
@@ -483,6 +486,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                                                   (configuration-alternative configuration))))))))
 
 (defun make-full-context-start (grammar state-id stack)
+  "Build the initial full-context DFA state for a decision and return stack."
   (dfa-state-for grammar
                  (loop for edge in (state-edges
                                     (aref (parser-states grammar) state-id))

@@ -314,6 +314,7 @@ WITH-MODE blocks containing lexer rules."
      ',name))
 
 (defmacro defrule (&whole form &rest arguments)
+  "Add a rule to the parser selected by IN-PARSER at load time."
   (declare (ignore arguments))
   (unless *current-parser-name*
     (grammar-fail "DEFRULE requires an earlier IN-PARSER form"))
