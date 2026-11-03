@@ -1446,6 +1446,10 @@ options {")))
              "prequel metadata survives lexer compilation"))
     (let ((grammar (cnvrs/antlr4:parse
                     "lexer grammar Lazy; STAR : '<' .*? '>'; PLUS : '[' .+? ']'; OPTIONAL : 'a' 'x'?? 'x'; OTHER : .;")))
+      (check (every (lambda (entry) (functionp (third entry)))
+                    (cnvrs::compiled-lexer-ordered-rules
+                     (cnvrs:ensure-compiled grammar)))
+             "nongreedy lexer rules use compiled matcher functions")
       (check (equal (map 'list #'cnvrs:lexeme-text
                          (cnvrs:lex grammar "<1>2>"))
                     '("<1>" "2" ">"))
@@ -1458,6 +1462,13 @@ options {")))
                          (cnvrs:lex grammar "axx"))
                     '("ax" "x"))
              "ANTLR4 nongreedy optional prefers the empty branch"))
+    (let ((grammar (cnvrs:compile-lexer
+                    '((:until (and (*? (not-one-of ((#\a . #\c)))) #\c))
+                      (:other (any))))))
+      (check (equal (map 'list #'cnvrs:lexeme-text
+                         (cnvrs:lex grammar "xxc"))
+                    '("xxc"))
+             "compiled nongreedy matcher honors negated character ranges"))
     (let ((grammar (cnvrs/antlr4:parse
                     "lexer grammar LazyPriority; SHORT : '<' .*? '>'; LONG : '<' .* '>'; OTHER : .;")))
       (check (equal (map 'list #'cnvrs:lexeme-kind
