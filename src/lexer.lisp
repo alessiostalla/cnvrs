@@ -240,7 +240,7 @@
        (lx-compile (list '* (second form)) definitions states middle exit)))))
 
 (defun lx-closure (states seeds)
-  (let ((seen (make-hash-table :test 'eql)) (pending (copy-list seeds))
+  (let ((seen (make-hash-table :test 'eql)) (pending seeds)
         (result nil))
     (loop while pending for id = (pop pending) do
       (unless (gethash id seen)
@@ -255,7 +255,7 @@
   (lx-closure
    states
    (loop for id in active
-         append (loop for edge in (lx-state-edges (aref states id))
+         nconc (loop for edge in (lx-state-edges (aref states id))
                       when (case (lx-edge-kind edge)
                              (:character (char= character (lx-edge-value edge)))
                              (:range (char<= (car (lx-edge-value edge)) character

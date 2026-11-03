@@ -3,7 +3,9 @@
   :depends-on (#:fset #:bordeaux-threads)
   :serial t
   :in-order-to ((asdf:test-op (asdf:test-op "cnvrs/tests")))
-  :components ((:file "src/cnvrs")
+  :components ((:file "src/package")
+               (:file "src/cache")
+               (:file "src/cnvrs")
                (:file "src/lexer")
                (:file "src/macros")
                (:file "src/antlr4-package")
