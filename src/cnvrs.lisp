@@ -1,7 +1,5 @@
 (in-package #:cnvrs)
 
-(defparameter +end-of-input+ (gensym "END-OF-INPUT-"))
-
 (define-condition grammar-error (error)
   ((message :initarg :message :reader grammar-error-message))
   (:report (lambda (condition stream)
@@ -24,59 +22,6 @@
 (define-condition no-viable-alternative (parse-error) ())
 (define-condition unexpected-input (parse-error) ())
 
-(defstruct node rule children start end label)
-(defgeneric make-parse-node (builder rule children start end))
-(defgeneric parse-node-components (builder value))
-(defmethod make-parse-node ((builder (eql :node)) rule children start end)
-  (make-node :rule rule :children children :start start :end end))
-(defmethod parse-node-components ((builder (eql :node)) value)
-  (if (node-p value)
-      (values (node-rule value) (node-children value)
-              (node-start value) (node-end value) t)
-      (values nil nil nil nil nil)))
-(defgeneric parse-build-tree-p (builder))
-(defmethod parse-build-tree-p (builder)
-  (declare (ignore builder))
-  t)
-(defmethod parse-build-tree-p ((builder (eql :none)))
-  nil)
-(defgeneric parse-rule-enter (builder rule position))
-(defgeneric parse-token-consumed (builder token start end))
-(defgeneric parse-rule-exit (builder rule start end))
-(defmethod parse-rule-enter (builder rule position)
-  (declare (ignore builder rule position))
-  nil)
-(defmethod parse-token-consumed (builder token start end)
-  (declare (ignore builder token start end))
-  nil)
-(defmethod parse-rule-exit (builder rule start end)
-  (declare (ignore builder rule start end))
-  nil)
-(defparameter +deferred-lexeme-text+ (gensym "DEFERRED-LEXEME-TEXT-"))
-(defstruct (lexeme (:constructor %make-lexeme))
-  kind stored-text start end (channel :default) source)
-(defun make-lexeme (&key kind (text nil text-supplied-p) start end
-                         (channel :default) source)
-  "Make a lexeme. SOURCE defers copying its START..END text until requested."
-  (%make-lexeme :kind kind
-                :stored-text (if (and source (not text-supplied-p))
-                                 +deferred-lexeme-text+ text)
-                :start start :end end :channel channel :source source))
-(defun lexeme-text (lexeme)
-  (let ((text (lexeme-stored-text lexeme)))
-    (if (eq text +deferred-lexeme-text+)
-        (subseq (lexeme-source lexeme)
-                (lexeme-start lexeme) (lexeme-end lexeme))
-        text)))
-(defun (setf lexeme-text) (value lexeme)
-  (setf (lexeme-stored-text lexeme) value))
-(defun token-key (token)
-  (if (lexeme-p token) (lexeme-kind token) token))
-(defun token-channel (token)
-  (if (lexeme-p token) (lexeme-channel token) :default))
-(defstruct inserted-token expected position)
-(defun inserted-token-value (token)
-  (inserted-token-expected token))
 (defstruct recovery action condition token)
 (defstruct transition kind target value)
 (defstruct state id (edges nil) stop-rule exit-alternative repetition-p
@@ -313,76 +258,6 @@
                               definitions)
                       (nreverse generated))
               rewrites))))
-
-(defun parse-node-children-for (builder node)
-  (nth-value 1 (parse-node-components builder node)))
-(defun parse-node-start-for (builder node)
-  (nth-value 2 (parse-node-components builder node)))
-(defun parse-node-end-for (builder node)
-  (nth-value 3 (parse-node-components builder node)))
-
-(defun make-labeled-parse-node (builder rule children start end label)
-  (let ((node (make-parse-node builder rule children start end)))
-    (when (node-p node)
-      (setf (node-label node) label))
-    node))
-
-(defun make-visible-parse-node (builder rule children start end &optional label)
-  (let ((alternative (and (= (length children) 1)
-                          (first children))))
-    (multiple-value-bind (alternative-rule alternative-children)
-        (parse-node-components builder alternative)
-      (if (eq alternative-rule :alternative-label)
-          (make-labeled-parse-node builder rule alternative-children start end
-                                   (and (node-p alternative)
-                                        (node-label alternative)))
-          (make-labeled-parse-node builder rule children start end label)))))
-
-(defun normalize-rewritten-node (node rewrites builder)
-  (multiple-value-bind (rule original-children start end present)
-      (parse-node-components builder node)
-    (if (not present)
-        node
-        (let* ((children (mapcar (lambda (child)
-                                   (normalize-rewritten-node child rewrites
-                                                             builder))
-                                 original-children))
-               (rewrite (gethash rule rewrites)))
-          (case (first rewrite)
-            (:wrapper (first children))
-            (:element-label
-             (make-labeled-parse-node builder :label children start end
-                                      (second rewrite)))
-            (:alternative-label
-             (make-labeled-parse-node builder :alternative-label children
-                                      start end (second rewrite)))
-            (:primary (make-visible-parse-node builder (second rewrite)
-                                               children start end))
-            (:level
-             (reduce (lambda (left suffix)
-                       (let* ((suffix-rewrite
-                                (gethash (nth-value 0
-                                           (parse-node-components builder suffix))
-                                         rewrites))
-                              (left-child
-                                (if (fourth suffix-rewrite)
-                                    (make-labeled-parse-node
-                                     builder :label (list left)
-                                     (parse-node-start-for builder left)
-                                     (parse-node-end-for builder left)
-                                     (fourth suffix-rewrite))
-                                    left)))
-                         (make-visible-parse-node
-                          builder (second rewrite)
-                          (cons left-child
-                                (parse-node-children-for builder suffix))
-                          (parse-node-start-for builder left)
-                          (parse-node-end-for builder suffix)
-                          (third suffix-rewrite))))
-                     (rest children) :initial-value (first children)))
-            (otherwise (make-visible-parse-node
-                        builder rule children start end
-                        (and (node-p node) (node-label node)))))))))
 
 (defun visible-rule (grammar rule)
   (or (second (gethash rule (parser-rewrites grammar))) rule))

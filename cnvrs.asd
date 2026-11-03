@@ -5,6 +5,8 @@
   :in-order-to ((asdf:test-op (asdf:test-op "cnvrs/tests")))
   :components ((:file "src/package")
                (:file "src/cache")
+               (:file "src/tokens")
+               (:file "src/tree")
                (:file "src/cnvrs")
                (:file "src/lexer")
                (:file "src/macros")
