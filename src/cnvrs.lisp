@@ -57,16 +57,13 @@
 (defgeneric cache-clear (cache))
 (defgeneric cache-count (cache))
 
-(defparameter +flat-cache-key-marker+ (gensym "FLAT-CACHE-KEY-"))
-
 (defun flat-cache-key (head tail)
   "Make a structural cache key from HEAD and a list of integer IDs."
-  (declare (type list tail))
-  (let ((key (make-array (+ 2 (length tail)))))
-    (setf (aref key 0) +flat-cache-key-marker+
-          (aref key 1) head)
+  (declare (type fixnum head) (type list tail))
+  (let ((key (make-array (1+ (length tail)) :element-type 'fixnum)))
+    (setf (aref key 0) head)
     (loop for value in tail
-          for index from 2
+          for index from 1
           do (setf (aref key index) value))
     key))
 
@@ -77,8 +74,7 @@
       (flat-cache-key head stack)))
 
 (defun flat-cache-key-p (key)
-  (and (simple-vector-p key) (plusp (length key))
-       (eq (svref key 0) +flat-cache-key-marker+)))
+  (typep key '(simple-array fixnum (*))))
 
 (defstruct hash-cache
   (table (make-hash-table :test 'equal))
@@ -114,17 +110,6 @@
            (if (< a b) :less :greater))
           ((and (characterp a) (characterp b))
            (if (char< a b) :less :greater))
-          ((and (flat-cache-key-p a) (flat-cache-key-p b))
-           (locally (declare (type simple-vector a b))
-             (loop for index from 1 below (min (length a) (length b))
-                   for left = (svref a index)
-                   for right = (svref b index)
-                   unless (= left right)
-                     do (return-from cache-key-compare
-                          (if (< left right) :less :greater)))
-             (cond ((< (length a) (length b)) :less)
-                   ((> (length a) (length b)) :greater)
-                   (t :equal))))
           ((and (consp a) (consp b))
            (do ((left a (cdr left))
                 (right b (cdr right))
@@ -139,22 +124,45 @@
                  (:unequal (setf default :unequal))))))
           (t (fset:compare a b)))))
 
-(defstruct fset-cache (map (fset:empty-wb-map nil 'cache-key-compare)))
+(defun flat-cache-key-compare (a b)
+  "Compare uniform fixnum vectors by their contents."
+  (loop for index below (min (length a) (length b))
+        for left = (aref a index)
+        for right = (aref b index)
+        unless (= left right)
+          do (return-from flat-cache-key-compare
+               (if (< left right) :less :greater)))
+  (cond ((< (length a) (length b)) :less)
+        ((> (length a) (length b)) :greater)
+        (t :equal)))
+
+(defstruct fset-cache
+  (map (fset:empty-wb-map nil 'cache-key-compare))
+  (flat-map (fset:empty-wb-map nil 'flat-cache-key-compare)))
 (defmethod make-cache ((backend (eql :fset)))
   (make-fset-cache))
 (defmethod cache-get-or-compute ((cache fset-cache) key thunk)
-  (multiple-value-bind (value present) (fset:lookup (fset-cache-map cache) key)
-    (if present value
-        (let ((value (funcall thunk)))
-          (setf (fset-cache-map cache)
-                (fset:with (fset-cache-map cache) key value))
-          value))))
+  (let ((flat-p (flat-cache-key-p key)))
+    (multiple-value-bind (value present)
+        (fset:lookup (if flat-p (fset-cache-flat-map cache)
+                         (fset-cache-map cache)) key)
+      (if present value
+          (let ((value (funcall thunk)))
+            (if flat-p
+                (setf (fset-cache-flat-map cache)
+                      (fset:with (fset-cache-flat-map cache) key value))
+                (setf (fset-cache-map cache)
+                      (fset:with (fset-cache-map cache) key value)))
+            value)))))
 (defmethod cache-clear ((cache fset-cache))
   (setf (fset-cache-map cache)
-        (fset:empty-wb-map nil 'cache-key-compare))
+        (fset:empty-wb-map nil 'cache-key-compare)
+        (fset-cache-flat-map cache)
+        (fset:empty-wb-map nil 'flat-cache-key-compare))
   cache)
 (defmethod cache-count ((cache fset-cache))
-  (fset:size (fset-cache-map cache)))
+  (+ (fset:size (fset-cache-map cache))
+     (fset:size (fset-cache-flat-map cache))))
 
 (defstruct locked-cache inner (lock (bt:make-lock "CNVRS cache")))
 (defmethod make-cache ((backend cons))
