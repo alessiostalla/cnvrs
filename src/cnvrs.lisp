@@ -13,12 +13,14 @@
            #:compiled-lexer-cache
            #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
+           #:parser-metadata #:parser-definition-metadata
            #:parser-tree-builder #:parser-runner #:parser-node-runner
            #:parser-decisions #:parser-sll-decisions #:parser-direct-decisions
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
            #:state-direct-lookahead
            #:transition-kind #:transition-target #:transition-value
            #:compiled-lexer-p #:compiled-lexer-states
+           #:compiled-lexer-metadata
            #:compiled-lexer-mode-starts #:compiled-lexer-kinds
            #:compiled-lexer-skips #:compiled-lexer-channels
            #:compiled-lexer-push-modes #:compiled-lexer-pop-modes
@@ -259,11 +261,12 @@
 (defstruct dfa-state configurations alternatives accepted edges)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
+  has-negated-tokens metadata
   (cache-backend :hash-table)
   (full-context-strategy :cached) full-context-start
   decisions sll-decisions direct-decisions contexts
   (context-count 0) context-shift runner node-runner)
-(defstruct parser-definition name kind default-rule lexer cache-backend
+(defstruct parser-definition name kind default-rule lexer cache-backend metadata
   (full-context-strategy :cached)
   (tree-builder :node)
   (rules nil) compiled)
@@ -293,6 +296,7 @@
                  ((string= operator "LABEL") :label)
                  ((string= operator "ALT-LABEL") :alt-label)
                  ((string= operator "TOKEN") :token-form)
+                 ((string= operator "NOT-TOKEN") :not-token)
                  (t nil))))
         (t nil)))
 
@@ -306,6 +310,11 @@
       (:token-form
        (unless (= (length expression) 2)
          (grammar-fail "TOKEN requires one value: ~S" expression)))
+      (:not-token
+       (unless (and (= (length expression) 2)
+                    (consp (second expression)))
+         (grammar-fail "NOT-TOKEN requires a nonempty list of excluded tokens: ~S"
+                       expression)))
       ((:label :alt-label)
        (unless (and (= (length expression) 3)
                     (symbolp (second expression))
@@ -328,6 +337,7 @@
     (:reference (gethash expression nullable))
     (:token nil)
     (:token-form nil)
+    (:not-token nil)
     (:sequence (every (lambda (part) (nullable-p part nullable)) (rest expression)))
     (:choice (some (lambda (part) (nullable-p part nullable)) (rest expression)))
     ((:star :optional) t)
@@ -568,6 +578,7 @@
     (:reference (add-edge grammar entry :call exit expression))
     (:token (add-edge grammar entry :token exit expression))
     (:token-form (add-edge grammar entry :token exit (second expression)))
+    (:not-token (add-edge grammar entry :not-token exit (second expression)))
     (:sequence
      (let ((parts (rest expression)) (current entry))
        (if (null parts)
@@ -603,7 +614,7 @@
 (defun compile-grammar (definitions &key default-rule lexer
                                     (cache-backend :hash-table)
                                     (full-context-strategy :cached)
-                                    (tree-builder :node))
+                                    (tree-builder :node) metadata)
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), (TOKEN value),
@@ -654,6 +665,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                                  :starts (make-hash-table :test 'eq)
                                  :stops (make-hash-table :test 'eq)
                                  :default-rule default-rule :lexer lexer
+                                 :metadata metadata
                                  :tree-builder tree-builder
                                  :rewrites rewrites
                                  :cache-backend cache-backend
@@ -673,10 +685,15 @@ function of (parser state-id return-stack) that returns a start DFA state."
         (compile-expression grammar (second definition)
                             (gethash (first definition) (parser-starts grammar))
                             (gethash (first definition) (parser-stops grammar))))
+      (setf (parser-has-negated-tokens grammar)
+            (loop for state across (parser-states grammar)
+                  thereis (find :not-token (state-edges state)
+                                :key #'transition-kind)))
       (setf (parser-context-shift grammar)
             (integer-length (1- (length (parser-states grammar)))))
-      (initialize-direct-lookahead grammar)
-      (initialize-follow-lookahead grammar)
+      (unless (parser-has-negated-tokens grammar)
+        (initialize-direct-lookahead grammar)
+        (initialize-follow-lookahead grammar))
       (setf (parser-runner grammar) (compile-parser-runner grammar nil)
             (parser-node-runner grammar) (compile-parser-runner grammar t))
       grammar)))
@@ -722,7 +739,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                              :stack (cons (transition-target edge) stack)
                              :alternative alternative)
                             pending))
-                     (:token (setf has-token t))))
+                     ((:token :not-token) (setf has-token t))))
                  (when has-token (push configuration result)))))))))
     (nreverse result)))
 
@@ -750,8 +767,14 @@ function of (parser state-id return-stack) that returns a start DFA state."
                           for state = (aref (parser-states grammar)
                                             (configuration-state configuration))
                           append (loop for edge in (state-edges state)
-                                       when (and (eq (transition-kind edge) :token)
-                                                 (equal (token-key token) (transition-value edge)))
+                                       when (case (transition-kind edge)
+                                              (:token
+                                               (equal (token-key token)
+                                                      (transition-value edge)))
+                                              (:not-token
+                                               (not (member (token-key token)
+                                                            (transition-value edge)
+                                                            :test #'equal))))
                                          collect (make-configuration
                                                   :state (transition-target edge)
                                                   :stack (configuration-stack configuration)
@@ -1051,6 +1074,9 @@ overlapping decision keeps its contextual predictor."
 
 (defun compiled-choice-index (grammar state-id stack context input position)
   (declare (type vector input) (type fixnum state-id context position))
+  (when (parser-has-negated-tokens grammar)
+    (return-from compiled-choice-index
+      (predict grammar state-id stack input position)))
   (let* ((choice (state-direct-lookahead
                   (aref (parser-states grammar) state-id)))
          (table (if (member choice '(:contextual :contextual-two))
@@ -1110,6 +1136,17 @@ overlapping decision keeps its contextual predictor."
                     `(if (and (< position (length input))
                               (equal (token-key (aref input position))
                                      ',(transition-value edge)))
+                         (progn
+                           ,@(when build-tree-p
+                               `((push (aref input position) children)))
+                           (setf state-id ,target
+                                 position (1+ position)))
+                         (return-from ,function-name nil)))
+                   (:not-token
+                    `(if (and (< position (length input))
+                              (not (member (token-key (aref input position))
+                                           ',(transition-value edge)
+                                           :test #'equal)))
                          (progn
                            ,@(when build-tree-p
                                `((push (aref input position) children)))
@@ -1376,7 +1413,9 @@ the restarts at each error site to make a different local repair."
              (lambda (condition)
                (when recover
                  (let ((expected (parse-error-expected condition)))
-                   (cond ((and (has-token-p)
+                   (unless (and (consp expected)
+                                (eq (first expected) 'not-token))
+                     (cond ((and (has-token-p)
                                (equal (token-key (next-value)) expected))
                           (invoke-restart 'delete-tokens))
                          ((or (not (has-token-p))
@@ -1388,7 +1427,7 @@ the restarts at each error site to make a different local repair."
                           (when (< automatic-insert-count
                                    (length (parser-states grammar)))
                             (incf automatic-insert-count)
-                            (invoke-restart 'insert-tokens))))))))
+                            (invoke-restart 'insert-tokens)))))))))
            (no-viable-alternative
              (lambda (condition)
                (declare (ignore condition))
@@ -1500,6 +1539,38 @@ the restarts at each error site to make a different local repair."
                           (visible-rule grammar (transition-value edge)) position))
                        (setf state-id (gethash (transition-value edge)
                                                (parser-starts grammar))))
+                      (:not-token
+                       (if (and (has-token-p)
+                                (not (member (token-key (current-value))
+                                             (transition-value edge)
+                                             :test #'equal)))
+                           (let ((start-position position)
+                                 (token (consume-current)))
+                             (unless (eq tree-builder :none)
+                               (parse-token-consumed tree-builder token
+                                                     start-position position))
+                             (when build-tree-p
+                               (push token (aref (first frames) 2)))
+                             (setf state-id (transition-target edge)))
+                           (let ((condition
+                                   (make-condition
+                                    'mismatched-token :position position
+                                    :token (current-value)
+                                    :expected (list 'not-token
+                                                    (transition-value edge))
+                                    :rule (visible-rule
+                                           grammar (aref (first frames) 0))
+                                    :next-state (transition-target edge))))
+                             (multiple-value-bind (action count)
+                                 (restart-case (error condition)
+                                   (delete-tokens (&optional (count 1))
+                                     :report "Delete tokens and retry."
+                                     :test (lambda (condition)
+                                             (declare (ignore condition))
+                                             (has-token-p))
+                                     (values :delete-many count)))
+                               (when (eq action :delete-many)
+                                 (delete-current count condition))))))
                       (:token
                        (let ((expected (transition-value edge)))
                          (if (and (has-token-p)

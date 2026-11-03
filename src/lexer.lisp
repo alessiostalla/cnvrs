@@ -4,7 +4,7 @@
                            (space 0) (compilation-speed 0)))
 
 (defstruct compiled-lexer states mode-starts kinds skips channels ordered-rules
-  push-modes pop-modes set-modes cache-backend cache function matcher)
+  push-modes pop-modes set-modes metadata cache-backend cache function matcher)
 
 (define-condition lexical-error (error)
   ((position :initarg :position :reader lexical-error-position)
@@ -387,7 +387,7 @@
                 (coerce (nreverse output) 'vector)))))
     lexer))
 
-(defun compile-lexer (definitions &key (cache-backend :hash-table))
+(defun compile-lexer (definitions &key (cache-backend :hash-table) metadata)
   "Compile Lisp-form lexer rules into an inspectable lexer object.
 Rules are (kind expression &key skip channel mode push-mode pop-mode set-mode).
 MODE selects the active mode for a rule, defaulting to :DEFAULT. A matched
@@ -489,6 +489,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
     (let ((lexer (make-compiled-lexer
                   :states states :mode-starts mode-starts :kinds kinds
                   :ordered-rules (nreverse ordered-rules)
+                  :metadata metadata
                   :skips skips :channels channels :push-modes push-modes
                   :pop-modes pop-modes :set-modes set-modes
                   :cache-backend cache-backend :cache (make-cache cache-backend))))

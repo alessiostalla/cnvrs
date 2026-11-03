@@ -8,7 +8,7 @@
 (defun parser-option-list-p (form)
   (and (consp form)
        (member (first form) '(:kind :default-rule :lexer :cache-backend
-                              :tree-builder :full-context-strategy))))
+                              :tree-builder :full-context-strategy :metadata))))
 
 (defun checked-options (options allowed context)
   (unless (and (listp options) (evenp (length options)))
@@ -105,7 +105,8 @@
     name))
 
 (defun make-defined-parser (name kind default-rule lexer cache-backend
-                            tree-builder full-context-strategy forms)
+                            tree-builder full-context-strategy forms
+                            &key metadata)
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (unless (member kind '(:parser :lexer :combined))
@@ -121,6 +122,7 @@
   (let ((definition (make-parser-definition
                      :name name :kind kind :default-rule default-rule
                      :lexer lexer :cache-backend cache-backend
+                     :metadata metadata
                      :full-context-strategy full-context-strategy
                      :tree-builder tree-builder)))
     (dolist (form forms)
@@ -150,7 +152,8 @@
                            (parser-definition-name definition)))
            (setf (parser-definition-compiled definition)
                  (compile-lexer lexer-rules :cache-backend
-                                (parser-definition-cache-backend definition))))
+                                (parser-definition-cache-backend definition)
+                                :metadata (parser-definition-metadata definition))))
           (:parser
            (unless parser-rules
              (grammar-fail "Parser grammar ~S has no rules"
@@ -165,7 +168,8 @@
                                   :full-context-strategy
                                   (parser-definition-full-context-strategy definition)
                                   :cache-backend
-                                  (parser-definition-cache-backend definition))))
+                                  (parser-definition-cache-backend definition)
+                                  :metadata (parser-definition-metadata definition))))
           (:combined
            (unless (and lexer-rules parser-rules)
              (grammar-fail "Combined grammar ~S needs lexer and parser rules"
@@ -176,13 +180,17 @@
                                   (parser-definition-default-rule definition)
                                   :lexer (compile-lexer lexer-rules :cache-backend
                                                         (parser-definition-cache-backend
+                                                         definition)
+                                                        :metadata
+                                                        (parser-definition-metadata
                                                          definition))
                                   :tree-builder
                                   (parser-definition-tree-builder definition)
                                   :full-context-strategy
                                   (parser-definition-full-context-strategy definition)
                                   :cache-backend
-                                  (parser-definition-cache-backend definition)))))
+                                  (parser-definition-cache-backend definition)
+                                  :metadata (parser-definition-metadata definition)))))
         (parser-definition-compiled definition))))
 
 (defun lex (parser source)
@@ -271,7 +279,7 @@ The transition graph and lexer automaton are immutable and shared."
   "Define NAME as a parser definition. The first body form may be a plist
 (:KIND :PARSER|:LEXER|:COMBINED :DEFAULT-RULE rule :LEXER function
  :CACHE-BACKEND :HASH-TABLE|:FSET|(:LOCKED backend)
- :TREE-BUILDER builder-expression
+ :TREE-BUILDER builder-expression :METADATA metadata-expression
  :FULL-CONTEXT-STRATEGY :CACHED|:RECOMPUTE|function).
 Remaining forms are DEFRULE forms, (name expression ...) rule forms, or
 WITH-MODE blocks containing lexer rules."
@@ -281,19 +289,21 @@ WITH-MODE blocks containing lexer rules."
                       (pop body) nil))
          (options (checked-options options '(:kind :default-rule :lexer
                                              :cache-backend :tree-builder
-                                             :full-context-strategy)
+                                             :full-context-strategy :metadata)
                                    (format nil "parser ~S" name)))
          (kind (getf options :kind :parser))
          (default-rule (getf options :default-rule nil))
          (lexer (getf options :lexer nil))
          (cache-backend (getf options :cache-backend :hash-table))
          (tree-builder (getf options :tree-builder :node))
+         (metadata (getf options :metadata nil))
          (full-context-strategy
            (getf options :full-context-strategy :cached)))
     `(defparameter ,name
        (make-defined-parser ',name ',kind ',default-rule ,lexer ',cache-backend
                             ,tree-builder ,full-context-strategy
-                            ',(expand-mode-rule-forms body)))))
+                            ',(expand-mode-rule-forms body)
+                            :metadata ,metadata))))
 
 (defmacro in-parser (name)
   "Select the parser definition receiving subsequent top-level DEFRULE forms."
