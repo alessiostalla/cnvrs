@@ -243,6 +243,27 @@ The exported `parser-states`, `parser-starts`, `parser-stops`, and `parser-lexer
 
 Parser compilation also stores compiled rule functions in `parser-runner` (recognition without a tree) and `parser-node-runner` (the default node builder). Each runner has named local functions for the rules and takes the parser, token vector, start rule, and `require-eof` flag. `parse` selects one of them for valid input when recovery is off; custom builders and recovery use the general parser loop. The lexer already uses a compiled DFA matcher with a named local `match-one` function.
 
+`compile-cached-dfa` is an optional second compilation step for any compiled
+parser or `define-parser` definition. Parse representative inputs first, then
+call `(compile-cached-dfa parser :max-states 64)`. It compiles the currently
+observed SLL and full-context DFA states into parser-owned token dispatch
+functions and returns two values: the number of DFA roots and the total number
+of states compiled. Each root is capped at `:max-states` (default 64); unseen
+contexts and transitions use normal adaptive prediction. Call it again after
+training on more inputs to refresh the snapshots. It does not change the
+grammar graph or the parser's public parse behavior. `clear-cache` removes the
+compiled snapshots; `clone-compiled` starts with independent, empty caches and
+no snapshots. A custom cache backend can support this operation by implementing
+`cache-entries` in addition to the usual cache methods.
+
+For a parser created with `define-parser`, the opt-in workflow is:
+
+```lisp
+(cnvrs:parse *my-parser* training-input)
+(cnvrs:compile-cached-dfa *my-parser* :max-states 32)
+(cnvrs:parse *my-parser* next-input)
+```
+
 Both compilers accept `:cache-backend`. The storage backends are `:fset`, using persistent [FSET maps](https://fset.common-lisp.dev/Site/FSet-Tutorial.html), and `:hash-table`. The FSET backend uses a custom key comparison function for common cache key types and falls back to FSET's general comparison for other types. Both backends are bare, unsynchronized strategies. Wrap either with `(:locked backend)` when a compiled parser or lexer will be shared across threads. The default is the unlocked `:hash-table` backend. The lexer caches DFA states and transitions; the parser caches SLL decisions, full-context decisions, caller-dependent direct lookahead tables, and canonical return-context IDs. The decision caches are exposed through `parser-sll-decisions`, `parser-decisions`, and `parser-direct-decisions`; `clear-cache` clears all of them, including context IDs.
 
 Parsers also accept `:full-context-strategy`. The default `:cached` retains a start DFA for each decision and caller return stack. `:recompute` builds a fresh start DFA whenever SLL prediction needs caller context, without storing those full-context DFAs. This changes the cache policy, not the predicted result. Pass a function of `(parser state-id return-stack)` for a custom strategy; it must return a start DFA state, which can be built with `make-full-context-start`. `parser-full-context-strategy` exposes the choice, and `clone-compiled` accepts the same keyword to compare strategies with independent caches.

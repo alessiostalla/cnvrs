@@ -36,7 +36,8 @@
   (cache-backend :hash-table)
   (full-context-strategy :cached) full-context-start
   decisions sll-decisions direct-decisions contexts
-  (context-count 0) context-shift runner node-runner)
+  (context-count 0) context-shift runner node-runner
+  compiled-sll compiled-full)
 (defstruct parser-definition name kind default-rule lexer cache-backend metadata
   (full-context-strategy :cached)
   (tree-builder :node)
@@ -593,6 +594,12 @@ function of (parser state-id return-stack) that returns a start DFA state."
   (let* ((dfa (funcall (parser-full-context-start grammar)
                        grammar state-id stack))
          (length (length tokens)))
+    (when (parser-compiled-full grammar)
+      (let ((program (gethash dfa (parser-compiled-full grammar))))
+        (when program
+          (multiple-value-bind (alternative found)
+              (funcall program tokens position)
+            (when found (return-from predict-full-context alternative))))))
     (loop
       (let ((alternatives (dfa-state-alternatives dfa)))
         (when (= (length alternatives) 1)
@@ -624,6 +631,12 @@ function of (parser state-id return-stack) that returns a start DFA state."
                                       collect (configuration-after-edge
                                                grammar edge nil alternative))))))
          (length (length tokens)))
+    (when (parser-compiled-sll grammar)
+      (let ((program (gethash dfa (parser-compiled-sll grammar))))
+        (when program
+          (multiple-value-bind (alternative found)
+              (funcall program tokens position)
+            (when found (return-from predict alternative))))))
     (loop
       (let ((alternatives (dfa-state-alternatives dfa)))
         (when (= (length alternatives) 1)

@@ -8,6 +8,7 @@
                (:file "src/tokens")
                (:file "src/tree")
                (:file "src/cnvrs")
+               (:file "src/dfa-compiler")
                (:file "src/lexer")
                (:file "src/macros")
                (:file "src/antlr4-package")

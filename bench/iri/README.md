@@ -38,6 +38,37 @@ prediction call took about 0.0005 ms with either path. Compiling all 3,160
 states reachable from the learned `iauthority` start exceeded this SBCL's
 1 GiB heap, so the script intentionally compiles only the observed trace.
 
+The generalized, public version is `compile-cached-dfa`. Run
+`sbcl --script bench/iri/general-dfa-bench.lisp` to train a parser clone and
+compile its observed SLL and full-context DFA roots with a 32-state cap per
+root. On x86-64 SBCL 2.0.2, it compiled 3 roots and 65 states in about 15 ms.
+Ten varied IRI inputs agreed. Two local runs measured 0.072 versus 0.075 ms
+and 0.063 versus 0.060 ms per warm parse (normal versus compiled). The change
+is within run-to-run variation here; the generic compiler is opt-in and leaves
+unseen paths on the adaptive predictor.
+
 Both experiments compare acceptance or error type on ten valid and invalid IRI
 inputs and three alternate entry rules before timing. These short,
 single-machine timings are directional.
+
+## Callable return continuations
+
+Run `sbcl --script bench/iri/continuation-dfa-bench.lisp` to compare the
+full-context predictor with a benchmark-only variant. Each grammar return site
+has a compiled continuation factory. A continuation node holds the callable
+resume closure and a canonical context ID, so speculative rule returns can
+invoke the closure while DFA caches still recognize equivalent contexts. The
+variant converts the current compiled runner's list stack when prediction is
+entered; it does not change the parser's public API or production path.
+
+On x86-64 SBCL 2.0.2, 14 IRI parsing cases agreed, including a long IRI and
+three alternate entry rules. The deepest captured predictor call had seven
+return frames. Median warm prediction was 0.00033 ms with lists, 0.00101 ms
+with list-to-continuation conversion, and 0.00026 ms when the continuation
+chain was prepared before the timed call. Median long-IRI warm parse was
+0.0855 ms with lists and 0.0865 ms with conversion. These numbers are
+directional: they come from one machine and one grammar. The conversion
+dominates this prototype's isolated cost; a parser runner that passes
+continuation nodes directly would be needed to test the no-conversion path
+end to end. The prototype also duplicates about 150 lines of DFA simulation,
+so it has not improved code clarity in its current form.

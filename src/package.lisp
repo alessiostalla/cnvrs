@@ -1,12 +1,13 @@
 (defpackage #:cnvrs
   (:use #:cl)
   (:shadow #:parse-error)
-  (:export #:compile-grammar #:compile-lexer #:parse #:lex
+  (:export #:compile-grammar #:compile-lexer #:compile-cached-dfa #:parse #:lex
            #:ensure-compiled #:clone-compiled #:clear-cache
            #:make-parse-node #:parse-node-components
            #:parse-build-tree-p #:parse-rule-enter #:parse-token-consumed
            #:parse-rule-exit
            #:make-cache #:cache-get-or-compute #:cache-clear #:cache-count
+           #:cache-entries
            #:parser-cache-backend #:parser-full-context-strategy
            #:make-full-context-start
            #:compiled-lexer-cache-backend
@@ -49,4 +50,3 @@
 
 #+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
                            (space 0) (compilation-speed 0)))
-

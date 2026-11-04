@@ -10,6 +10,8 @@
   (:documentation "Remove all entries from CACHE and return the cache."))
 (defgeneric cache-count (cache)
   (:documentation "Return the number of entries currently stored in CACHE."))
+(defgeneric cache-entries (cache)
+  (:documentation "Return a snapshot list of (key . value) entries in CACHE."))
 
 (defun flat-cache-key (head tail)
   "Make a structural cache key from HEAD and a list of integer IDs."
@@ -54,6 +56,14 @@
      (if (hash-cache-flat-table cache)
          (hash-table-count (hash-cache-flat-table cache))
          0)))
+(defmethod cache-entries ((cache hash-cache))
+  (let ((entries nil))
+    (maphash (lambda (key value) (push (cons key value) entries))
+             (hash-cache-table cache))
+    (when (hash-cache-flat-table cache)
+      (maphash (lambda (key value) (push (cons key value) entries))
+               (hash-cache-flat-table cache)))
+    entries))
 
 (defun cache-key-compare (a b)
   "Compare common cache key components without FSET's generic dispatch."
@@ -117,6 +127,13 @@
 (defmethod cache-count ((cache fset-cache))
   (+ (fset:size (fset-cache-map cache))
      (fset:size (fset-cache-flat-map cache))))
+(defmethod cache-entries ((cache fset-cache))
+  (let ((entries nil))
+    (fset:do-map (key value (fset-cache-map cache))
+      (push (cons key value) entries))
+    (fset:do-map (key value (fset-cache-flat-map cache))
+      (push (cons key value) entries))
+    entries))
 
 (defstruct locked-cache inner (lock (bt:make-lock "CNVRS cache")))
 (defmethod make-cache ((backend cons))
@@ -135,4 +152,6 @@
 (defmethod cache-count ((cache locked-cache))
   (bt:with-lock-held ((locked-cache-lock cache))
     (cache-count (locked-cache-inner cache))))
-
+(defmethod cache-entries ((cache locked-cache))
+  (bt:with-lock-held ((locked-cache-lock cache))
+    (cache-entries (locked-cache-inner cache))))

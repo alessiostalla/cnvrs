@@ -62,6 +62,10 @@
   (start (and item #\b))
   (item (or #\a (and #\a #\b))))
 
+(cnvrs:define-parser *compiled-dfa-parser* (:kind :parser)
+  (start (and item #\b))
+  (item (or #\a (and #\a #\b))))
+
 (defstruct alternate-node rule children start end)
 (defmethod cnvrs:make-parse-node ((builder (eql :alternate)) rule children
                                   start end)
@@ -819,6 +823,71 @@
            "cached decision adapts to another input")
     (check (signals cnvrs:parse-error (cnvrs:parse grammar "aab"))
            "full context and end of input"))
+  (dolist (backend '(:hash-table :fset (:locked :hash-table)))
+    (let* ((grammar (cnvrs:clone-compiled *compiled-dfa-parser*
+                                          :cache-backend backend))
+           (ordinary (cnvrs:clone-compiled grammar)))
+      (cnvrs:parse grammar "abb")
+      (multiple-value-bind (roots states)
+          (cnvrs:compile-cached-dfa grammar :max-states 2)
+        (check (and (plusp roots) (>= states roots)
+                    (plusp (hash-table-count
+                            (cnvrs::parser-compiled-full grammar))))
+               "DFA compiler accepts a defined parser and cached context"))
+      (dolist (input '("ab" "abb"))
+        (check (equalp (cnvrs:parse grammar input)
+                       (cnvrs:parse ordinary input))
+               "compiled DFA agrees on trained and unseen transitions"))
+      (cnvrs:compile-cached-dfa grammar :max-states 8)
+      (let* ((root (cdr (first (cnvrs:cache-entries
+                                (cnvrs:parser-decisions grammar)))))
+             (program (gethash root (cnvrs::parser-compiled-full grammar))))
+        (multiple-value-bind (alternative compiled-p)
+            (funcall program #(#\a #\b #\b) 0)
+          (check (and compiled-p (eql alternative 1))
+                 "compiled full-context program resolves a trained path")))
+      (check (and (signals cnvrs:parse-error (cnvrs:parse grammar "aab"))
+                  (signals cnvrs:parse-error (cnvrs:parse ordinary "aab")))
+             "compiled DFA preserves failed predictions")
+      (check (null (cnvrs::parser-compiled-full
+                    (cnvrs:clone-compiled grammar)))
+             "clone starts without compiled DFA snapshots")
+      (cnvrs:clear-cache grammar)
+      (check (and (null (cnvrs::parser-compiled-sll grammar))
+                  (null (cnvrs::parser-compiled-full grammar)))
+             "clear-cache discards compiled DFA snapshots")))
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-cached-dfa *compiled-dfa-parser* :max-states 0))
+         "DFA compiler rejects a nonpositive state limit")
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (or (and :a :b :c)
+                               (and :a :b :d)))))))
+    (cnvrs:parse grammar '(:a :b :c))
+    (cnvrs:compile-cached-dfa grammar)
+    (let* ((root (cdr (first (cnvrs:cache-entries
+                              (cnvrs:parser-sll-decisions grammar)))))
+           (program (gethash root (cnvrs::parser-compiled-sll grammar))))
+      (multiple-value-bind (alternative compiled-p)
+          (funcall program #(:a :b :c) 0)
+        (check (and compiled-p (eql alternative 0))
+               "compiled SLL program resolves its trained path")))
+    (check (and (plusp (hash-table-count
+                        (cnvrs::parser-compiled-sll grammar)))
+                (equal (cnvrs:node-children
+                        (cnvrs:parse grammar '(:a :b :c)))
+                       '(:a :b :c))
+                (equal (cnvrs:node-children
+                        (cnvrs:parse grammar '(:a :b :d)))
+                       '(:a :b :d)))
+           "compiled SLL DFA handles learned and unseen alternatives")
+    (cnvrs:compile-cached-dfa grammar)
+    (let* ((root (cdr (first (cnvrs:cache-entries
+                              (cnvrs:parser-sll-decisions grammar)))))
+           (program (gethash root (cnvrs::parser-compiled-sll grammar))))
+      (multiple-value-bind (alternative compiled-p)
+          (funcall program #(:a :b :d) 0)
+        (check (and compiled-p (eql alternative 1))
+               "recompilation includes newly learned DFA edges"))))
   (let* ((cached (cnvrs:compile-grammar
                   '((start (and item #\b))
                     (item (or #\a (and #\a #\b))))
