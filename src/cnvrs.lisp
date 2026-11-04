@@ -23,8 +23,8 @@
 (define-condition unexpected-input (parse-error) ())
 
 (defstruct recovery action condition token)
-(defstruct transition kind target value)
-(defstruct state id (edges nil) stop-rule exit-alternative repetition-p
+(defstruct (state (:include graph-state))
+  stop-rule exit-alternative repetition-p
   direct-lookahead)
 (defstruct direct-choice table default-alternative)
 (defstruct two-token-choice table)
@@ -380,16 +380,11 @@ NULLABLE maps rule names to whether they can match empty input."))
   (or (second (gethash rule (parser-rewrites grammar))) rule))
 
 (defun new-state (grammar &optional stop-rule)
-  (let* ((states (parser-states grammar))
-         (id (length states)))
-    (vector-push-extend (make-state :id id :stop-rule stop-rule) states)
-    id))
+  (graph-new-state (parser-states grammar)
+                   (lambda (id) (make-state :id id :stop-rule stop-rule))))
 
 (defun add-edge (grammar from kind target &optional value)
-  (let ((state (aref (parser-states grammar) from)))
-    (setf (state-edges state)
-          (nconc (state-edges state)
-                 (list (make-transition :kind kind :target target :value value))))))
+  (graph-add-edge (parser-states grammar) from kind target value :append-p t))
 
 (defun compile-grammar (definitions &key default-rule lexer
                                     (cache-backend :hash-table)
@@ -489,44 +484,38 @@ function of (parser state-id return-stack) that returns a start DFA state."
         (configuration-alternative configuration)))
 
 (defun closure (grammar initial)
-  (let ((pending initial)
-        (seen (make-hash-table :test 'equal))
-        (result nil))
-    (loop while pending do
-      (let* ((configuration (pop pending))
-             (key (configuration-key configuration)))
-        (unless (gethash key seen)
-          (setf (gethash key seen) t)
-          (let* ((state (aref (parser-states grammar)
-                              (configuration-state configuration)))
-                 (stack (configuration-stack configuration))
-                 (alternative (configuration-alternative configuration)))
-            (cond
-              ((state-stop-rule state)
-               (if stack
-                   (push (make-configuration :state (first stack)
-                                             :stack (rest stack)
-                                             :alternative alternative)
-                         pending)
-                   (push configuration result)))
-              (t
-               (let ((has-token nil))
-                 (dolist (edge (state-edges state))
-                   (case (transition-kind edge)
-                     (:epsilon
-                      (push (make-configuration :state (transition-target edge)
-                                                :stack stack :alternative alternative)
-                            pending))
-                     (:call
-                      (push (make-configuration
-                             :state (gethash (transition-value edge)
-                                             (parser-starts grammar))
-                             :stack (cons (transition-target edge) stack)
-                             :alternative alternative)
-                            pending))
-                     ((:token :not-token) (setf has-token t))))
-                 (when has-token (push configuration result)))))))))
-    (nreverse result)))
+  (nreverse
+   (graph-closure
+    initial #'configuration-key
+    (lambda (configuration pending result)
+      (let* ((state (aref (parser-states grammar)
+                          (configuration-state configuration)))
+             (stack (configuration-stack configuration))
+             (alternative (configuration-alternative configuration)))
+        (if (state-stop-rule state)
+            (if stack
+                (push (make-configuration :state (first stack)
+                                          :stack (rest stack)
+                                          :alternative alternative)
+                      pending)
+                (push configuration result))
+            (let ((has-token nil))
+              (dolist (edge (state-edges state))
+                (case (transition-kind edge)
+                  (:epsilon
+                   (push (make-configuration :state (transition-target edge)
+                                             :stack stack :alternative alternative)
+                         pending))
+                  (:call
+                   (push (make-configuration
+                          :state (gethash (transition-value edge)
+                                          (parser-starts grammar))
+                          :stack (cons (transition-target edge) stack)
+                          :alternative alternative)
+                         pending))
+                  ((:token :not-token) (setf has-token t))))
+              (when has-token (push configuration result))))
+        (values pending result))))))
 
 (defun dfa-state-for (grammar configurations)
   (let* ((closed (closure grammar configurations))

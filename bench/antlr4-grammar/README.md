@@ -476,6 +476,34 @@ input, parser-state and token-vector access, and generic comparisons for
 non-flat FSET keys. A specialized simple-base-string branch was measured and
 removed because it increased lexer phase time on this corpus.
 
+## Rerun after shared graph primitives (2026-11-04)
+
+This run used the seven-file corpus above, native ARM64 SBCL 2.4.0, Java 24,
+and the existing ANTLR 4.13.2 generated Java parser. `Bench.java` was
+recompiled from this repository before timing. CNVRS was the working
+tree at `7bea932`, including the uncommitted shared graph primitive and
+closure changes. Tree construction was disabled. Each of four fresh CNVRS
+processes used 20 warmups per file and seven batches of 100 parses; each of
+four Java processes used 200 warmups and seven batches of 300 parses. The
+table gives the median of the four process medians for each file.
+
+| Input | CNVRS ms | ANTLR4/Java ms | CNVRS / Java |
+| --- | ---: | ---: | ---: |
+| ANTLRv4Lexer.g4 | 0.309 | 0.144 | 2.14× |
+| ANTLRv4Parser.g4 | 0.342 | 0.144 | 2.39× |
+| JavaLexer.g4 | 0.325 | 0.140 | 2.32× |
+| JavaParser.g4 | 0.977 | 0.421 | 2.32× |
+| JSON.g4 | 0.060 | 0.026 | 2.32× |
+| Python3Lexer.g4 | 0.393 | 0.169 | 2.32× |
+| Python3Parser.g4 | 0.719 | 0.296 | 2.43× |
+
+The median sum of seven per-file timings within a process was **3.128 ms for
+CNVRS** and **1.349 ms for Java**, a **2.32×** ratio. CNVRS sums ranged from
+3.105 to 3.165 ms; Java sums ranged from 1.214 to 1.470 ms. Both parsers
+accepted every file. Java's process variation limits the precision of the
+aggregate ratio. This rerun does not isolate the effect of the graph refactor
+from other changes since earlier measurements.
+
 ## Reproduce
 
 From the repository root, set `ANTLR_JAR` to an ANTLR 4.13.2 complete JAR and

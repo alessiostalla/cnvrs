@@ -21,18 +21,20 @@
                      (lexer-mode-error-mode condition)
                      (lexical-error-position condition)))))
 
-(defstruct lx-state (edges nil) accept)
-(defstruct lx-edge kind target value)
+(defstruct (lx-state (:include graph-state)) accept)
 (defstruct lx-dfa-state active best-rule edges
   (lock (bt:make-lock "CNVRS lexer DFA state")))
 
 (defun lx-new-state (states)
-  (vector-push-extend (make-lx-state) states)
-  (1- (length states)))
+  (graph-new-state states (lambda (id) (make-lx-state :id id))))
 
 (defun lx-edge (states from kind target &optional value)
-  (push (make-lx-edge :kind kind :target target :value value)
-        (lx-state-edges (aref states from))))
+  (graph-add-edge states from kind target value))
+
+(declaim (inline lx-edge-kind lx-edge-target lx-edge-value))
+(defun lx-edge-kind (edge) (transition-kind edge))
+(defun lx-edge-target (edge) (transition-target edge))
+(defun lx-edge-value (edge) (transition-value edge))
 
 (defun lx-kind (form)
   (cond ((or (characterp form) (stringp form)) :literal)
@@ -361,16 +363,15 @@
         (funcall matcher source position #'identity)))))
 
 (defun lx-closure (states seeds)
-  (let ((seen (make-hash-table :test 'eql)) (pending seeds)
-        (result nil))
-    (loop while pending for id = (pop pending) do
-      (unless (gethash id seen)
-        (setf (gethash id seen) t)
-        (push id result)
-        (dolist (edge (lx-state-edges (aref states id)))
-          (when (eq (lx-edge-kind edge) :epsilon)
-            (push (lx-edge-target edge) pending)))))
-    result))
+  (graph-closure
+   seeds #'identity
+   (lambda (id pending result)
+     (push id result)
+     (dolist (edge (lx-state-edges (aref states id)))
+       (when (eq (lx-edge-kind edge) :epsilon)
+         (push (lx-edge-target edge) pending)))
+     (values pending result))
+   :test 'eql))
 
 (defun lx-step (states active character)
   (lx-closure

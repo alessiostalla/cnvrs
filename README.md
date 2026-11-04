@@ -233,6 +233,8 @@ The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4
 
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. Decisions with disjoint first tokens use a direct one-token table; caller-dependent tables are cached by return stack. Remaining decisions explore graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
+The parser and lexer graphs use a common state base and transition type, with shared state creation, edge insertion, and closure traversal. Their matching policies remain distinct: the lexer finds the longest character match in its current mode, while the parser predicts token alternatives using rule-return context.
+
 Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order.
 
 ### Compiled objects and caches
