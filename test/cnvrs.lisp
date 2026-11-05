@@ -1302,7 +1302,33 @@
          "zero-length lexer rule rejected")
   (check (signals cnvrs:grammar-error
            (cnvrs:compile-lexer '((:a :b) (:b :a))))
-         "recursive lexer rule rejected")
+         "lexer recursion without progress rejected")
+  (let ((lexer (cnvrs:compile-lexer
+                '((:block (and #\{ (* (or :block (not-one-of "{}"))) #\}))
+                  (:other (any))))))
+    (check (equal (map 'list #'cnvrs:lexeme-text
+                       (cnvrs:lex lexer "{a{b}c}x"))
+                  '("{a{b}c}" "x"))
+           "direct recursive lexer rule balances delimiters")
+    (check (equal (map 'list #'cnvrs:lexeme-kind
+                       (cnvrs:lex lexer "{a{b}c}x"))
+                  '(:block :other))
+           "recursive lexer rule competes with ordinary rules"))
+  (let ((lexer (cnvrs:compile-lexer
+                '((:outer (and #\[ :inner #\]))
+                  (:inner (or #\x (and #\( :outer #\))))
+                  (:other (any))))))
+    (check (equal (map 'list #'cnvrs:lexeme-text
+                       (cnvrs:lex lexer "[( [x] )]"))
+                  '("[" "(" " " "[x]" " " ")" "]"))
+           "invalid nesting falls back to other rules")
+    (check (equal (map 'list #'cnvrs:lexeme-text
+                       (cnvrs:lex lexer "[([x])]"))
+                  '("[([x])]"))
+           "indirect recursive lexer rules match nested input"))
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-lexer '((:a (or (and :a #\x) #\a)))))
+         "left recursive lexer rule rejected")
   (multiple-value-bind (lexer match)
       (cnvrs:compile-lexer '((:long "ab") (:short "a")))
     (declare (ignore lexer))
@@ -1644,6 +1670,12 @@ options {")))
                          (cnvrs:lex grammar "<x>y>"))
                     '("<x>" "y" ">"))
              "nongreedy suffix works through a fragment reference"))
+    (let ((grammar (cnvrs/antlr4:parse
+                    "lexer grammar Nested; BLOCK : NESTED; fragment NESTED : '{' (NESTED | ~[{}])* '}'; OTHER : .;")))
+      (check (equal (map 'list #'cnvrs:lexeme-text
+                         (cnvrs:lex grammar "{a{b}c}x"))
+                    '("{a{b}c}" "x"))
+             "ANTLR4 recursive lexer fragment balances delimiters"))
     (let ((grammar (cnvrs/antlr4:parse
                     "lexer grammar Modes; OPEN : '<' -> pushMode(TAG); WORD : [a-z]+; mode TAG; CLOSE : '>' -> popMode; TEXT : [a-z]+;")))
       (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "<abc>abc"))

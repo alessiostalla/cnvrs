@@ -1,6 +1,6 @@
 # CNVRS and ANTLR 4/Java: current differences
 
-Updated 2026-11-04. This compares the current CNVRS working tree with the
+Updated 2026-11-05. This compares the current CNVRS working tree with the
 ANTLR 4.13.2 Java tool and runtime used by this repository's benchmark. Java is the
 reference target here because the ANTLR tool is written in Java and the
 measurements use its Java runtime; this is not a ranking of ANTLR targets.
@@ -24,7 +24,7 @@ structure](https://github.com/antlr/antlr4/blob/4.13.2/doc/grammars.md).
 | Build artifact | In-memory graphs and compiled Lisp rule runners; no generated source file | Generated Java lexer/parser classes, plus runtime ATN and DFA machinery |
 | Parsing path | Compiled rule runner for ordinary strict parsing; general graph loop for recovery and custom builders | Generated recursive-descent rule methods; `ParserATNSimulator` predicts decisions. `ParserInterpreter` is also available to walk an ATN |
 | Prediction | Direct one- or two-token choices where possible, then cached SLL DFA and caller-context retry | Generated direct checks where possible; adaptive SLL DFA and full-context ATN retry on conflict |
-| Lexer | Character graph and DFA for ordinary rules; separate ordered matcher for nongreedy rules | `LexerATNSimulator` with ATN/DFA simulation, lexer actions and predicates |
+| Lexer | Character graph and DFA for ordinary rules; separate ordered matcher for recursive, nongreedy, or semantic rules | `LexerATNSimulator` with ATN/DFA simulation, lexer actions and predicates, including recursive rule calls |
 | Trees | Generic `node` with rule, children, token offsets, optional label; custom builders and event hooks | Generated rule/alternative context classes, token nodes, listeners and visitors |
 | Errors | Strict conditions by default; opt-in automatic recovery or caller-selected Common Lisp restarts | `DefaultErrorStrategy` recovers by default; listeners and replaceable error strategies |
 | Runtime cache ownership | Per compiled object; `clone-compiled` shares graph but starts with empty caches | Generated Java parsers share decision DFAs and prediction-context cache across instances |
@@ -110,14 +110,30 @@ their simulators interchangeable. See [`src/graph.lisp`](../src/graph.lisp).
   lists multiplication before addition and shows the corresponding tree.
 
 - **Lexer coverage.** Both support modes, skips, channels, character ranges,
-  and nongreedy repetition. CNVRS rejects recursive lexer references and
-  uses a separate ordered matcher for rules containing nongreedy operators.
-  ANTLR allows recursive lexer rules and supports commands such as `more` and
-  `type(...)`; CNVRS's converter supports `skip`, `channel`, `pushMode`,
-  `popMode`, and `mode`, but not `more` or `type`. CNVRS also restricts where
-  converted commands can appear. See [`src/lexer.lisp`](../src/lexer.lisp),
-  [`src/antlr4-convert.lisp`](../src/antlr4-convert.lisp), and
-  [ANTLR lexer rules](https://github.com/antlr/antlr4/blob/4.13.2/doc/lexer-rules.md).
+  nongreedy repetition, and direct or indirect lexer recursion after consuming
+  input. CNVRS rejects rule cycles that can recur without consuming a character;
+  ANTLR 4.13.2/Java also rejects the tested left-recursive lexer rule with
+  `error(119)`. CNVRS handles rules that reach recursion with an ordered,
+  backtracking matcher, while ANTLR/Java handles recursive rule calls in its
+  lexer ATN simulator and caches DFA transitions. Thus recursive matching is
+  supported in CNVRS, but the execution and caching paths differ. ANTLR also
+  supports commands such as `more` and `type(...)`; CNVRS's converter supports
+  `skip`, `channel`, `pushMode`, `popMode`, and `mode`, but not `more` or `type`.
+  CNVRS restricts where converted commands can appear. See
+  [`src/lexer.lisp`](../src/lexer.lisp),
+  [`src/antlr4-convert.lisp`](../src/antlr4-convert.lisp),
+  [ANTLR lexer rules](https://github.com/antlr/antlr4/blob/4.13.2/doc/lexer-rules.md),
+  and [ANTLR's Java lexer simulator](https://github.com/antlr/antlr4/blob/4.13.2/runtime/Java/src/org/antlr/v4/runtime/atn/LexerATNSimulator.java).
+
+  A paired ANTLR 4.13.2/Java and CNVRS check of a recursive nested-brace
+  fragment produced the same tokens for `{a{b}c}{a}x`: the two brace blocks
+  and then `x`. Both selected the earlier `BLOCK` rule over an equal-length
+  `SHORT` rule for `{a}`. Both matched `[([x])]` as one token with mutually
+  recursive rules that have consuming prefixes. These focused checks do not
+  establish equivalence for all recursive grammars, especially when nongreedy
+  choices, predicates, or actions interact with recursion. ANTLR's own
+  [recursive lexer example](https://github.com/antlr/antlr4/blob/4.13.2/doc/lexer-rules.md#recursive-lexer-rules)
+  uses nested brace blocks.
 
 - **Entry-rule EOF.** `cnvrs:parse` requires the selected entry rule to
   consume all input by default; `:require-eof nil` permits a prefix. Calling
@@ -157,7 +173,7 @@ shared-graph refactor. Results for other languages and grammars may differ.
 Use CNVRS when an in-image Lisp grammar, Lisp-native tree building and
 restarts, or inspectable and cloneable parser objects fit the task. Use the
 ANTLR/Java toolchain when a `.g4` grammar needs ANTLR's full grammar semantics,
-generated Java APIs, recursive lexer rules, or its established runtime
+generated Java APIs, or its established runtime
 facilities. For a grammar being moved between them, verify accepted inputs,
 operator precedence, tree shape, EOF behavior, token channels, and recovery
 behavior with paired tests; syntax conversion alone is not a parity check.
