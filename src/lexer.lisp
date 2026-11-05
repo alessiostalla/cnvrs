@@ -59,6 +59,7 @@
 
 (defvar *lx-after-nongreedy* nil)
 (defvar *lx-action-events* nil)
+(defvar *lx-suppress-actions* nil)
 
 (defclass lx-expr ()
   ((source :initarg :source :reader lx-expr-source)))
@@ -287,7 +288,16 @@
 
 (defgeneric lx-ordered-matcher (expression definitions))
 (defmethod lx-ordered-matcher ((expression lx-reference-expr) definitions)
-  (lx-ordered-matcher (gethash (lx-expr-name expression) definitions) definitions))
+  (let ((matcher (lx-ordered-matcher
+                  (gethash (lx-expr-name expression) definitions)
+                  definitions)))
+    (lambda (source at next)
+      (let ((outer *lx-suppress-actions*))
+        (let ((*lx-suppress-actions* t))
+          (funcall matcher source at
+                   (lambda (end)
+                     (let ((*lx-suppress-actions* outer))
+                       (funcall next end)))))))))
 (defmethod lx-ordered-matcher ((expression lx-literal-expr) definitions)
   (declare (ignore definitions))
   (let ((literal (lx-expr-text expression)))
@@ -331,7 +341,8 @@
   (let ((callback (lx-expr-callback expression)))
     (lambda (source at next)
       (let ((end (funcall next at)))
-        (when end (push (cons callback at) *lx-action-events*))
+        (when (and end (not *lx-suppress-actions*))
+          (push (cons callback at) *lx-action-events*))
         end))))
 (defmethod lx-ordered-matcher ((expression lx-sequence-expr) definitions)
   (let ((parts (mapcar (lambda (part) (lx-ordered-matcher part definitions))

@@ -1684,6 +1684,21 @@ options {")))
       (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex grammar "x") 0))
                  :guarded)
              "ANTLR4 lexer predicate can select a rule"))
+    (let* ((events nil)
+           (grammar (cnvrs/antlr4:parse
+                     "lexer grammar FragmentAction; fragment PART : 'a' {fragmentSeen()}; TOP : PART {topSeen()};"
+                     :callbacks
+                     (list (cons "{fragmentSeen()}"
+                                 (lambda (source at)
+                                   (declare (ignore source at))
+                                   (push :fragment events)))
+                           (cons "{topSeen()}"
+                                 (lambda (source at)
+                                   (declare (ignore source at))
+                                   (push :top events)))))))
+      (cnvrs:lex grammar "a")
+      (check (equal events '(:top))
+             "referenced lexer rule actions do not run"))
     (let* ((enabled t) (events nil)
            (parser (cnvrs:compile-grammar
                     (list (list 'start
