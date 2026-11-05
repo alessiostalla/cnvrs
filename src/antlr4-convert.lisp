@@ -129,26 +129,49 @@
       (setf *implicit-literals* (append *implicit-literals* (list entry))))
     (cdr entry)))
 
-(defun parser-expression (node)
+(defun parser-associativity (options)
+  (let* ((entries (child-nodes options 'element-option))
+         (entry (first entries))
+         (value (and entry (first-node entry 'qualified-identifier))))
+    (unless (and (= (length entries) 1)
+                 (string= (cnvrs:lexeme-text (first-token entry)) "assoc")
+                 (token-of-kind entry :assign)
+                 value
+                 (= (length (child-nodes value 'identifier)) 1)
+                 (member (cnvrs:lexeme-text (first-token value))
+                         '("left" "right") :test #'string=))
+      (conversion-error options
+                        "only <assoc=left> or <assoc=right> is supported on parser alternatives"))
+    (if (string= (cnvrs:lexeme-text (first-token value)) "right")
+        :right :left)))
+
+(defun parser-expression (node &optional allow-associativity)
   (case (cnvrs:node-rule node)
     (rule-alt-list
      (choice-form (mapcar #'parser-expression (child-nodes node 'labeled-alt))))
     (alt-list
      (choice-form (mapcar #'parser-expression (child-nodes node 'alternative))))
     (labeled-alt
-     (let ((expression (parser-expression (first-node node 'alternative)))
+     (let ((expression (parser-expression (first-node node 'alternative)
+                                          allow-associativity))
            (label (first-node node 'identifier)))
        (if label (list 'alt-label (antlr-name label) expression)
            expression)))
     (alternative
-     (when (first-node node 'element-options)
-       (conversion-error node "element options are not supported"))
-     (let ((parts (mapcar #'parser-expression (child-nodes node 'element))))
+     (let* ((options (first-node node 'element-options))
+            (associativity (and options allow-associativity
+                                (parser-associativity options)))
+            (parts (mapcar #'parser-expression (child-nodes node 'element))))
+       (when (and options (not allow-associativity))
+         (conversion-error node "element options are not supported"))
        (when (and parts (eq (car (last parts)) :eof))
          (setf parts (butlast parts)))
        (when (member :eof parts)
          (conversion-error node "EOF is only supported at the end of an alternative"))
-       (sequence-form parts)))
+       (let ((expression (sequence-form parts)))
+         (if (eq associativity :right)
+             (list 'right expression)
+             expression))))
     (element
      (when (first-node node 'action-block)
        (conversion-error node "actions are not supported"))
@@ -364,9 +387,37 @@
             (first-node node 'rule-prequel)
             (child-nodes (first-node node 'exception-group)))
     (conversion-error node "rule modifiers, arguments, actions, and exceptions are not supported"))
-  (list (antlr-name node)
-        (parser-expression (first-node (first-node node 'rule-block)
-                                       'rule-alt-list))))
+  (let* ((rule (antlr-name node))
+         (alternatives (child-nodes
+                        (first-node (first-node node 'rule-block) 'rule-alt-list)
+                        'labeled-alt))
+         (forms (mapcar
+                 (lambda (alternative)
+                   (let* ((form (parser-expression alternative t))
+                          (labeled (eq (cnvrs::expression-kind form)
+                                       :alt-label))
+                          (body (if labeled (third form) form)))
+                     (if (and (consp body) (eq (first body) 'right))
+                         (let ((plain (if labeled
+                                          (list 'alt-label (second form)
+                                                (second body))
+                                          (second body))))
+                           ;; ANTLR accepts assoc on primary alternatives,
+                           ;; but only recursive operators use its value.
+                           (if (nth-value 0
+                                (cnvrs::direct-left-alternative rule plain))
+                               form plain))
+                         form)))
+                 alternatives))
+         (recursive (loop for form in forms
+                          when (nth-value 0
+                                (cnvrs::direct-left-alternative rule form))
+                            collect form)))
+    ;; Keep ANTLR's source order so the left-recursion rewrite can assign
+    ;; precedence to prefix as well as recursive alternatives.
+    (list rule (if recursive
+                   (list 'cnvrs::antlr-precedence (choice-form forms))
+                   (choice-form forms)))))
 
 (defun identifier-text (node)
   (cnvrs:lexeme-text (first-token node)))

@@ -1511,6 +1511,77 @@ options {")))
                        (first (cnvrs:node-children (first children))))
                       'cnvrs/antlr4::number))
              "left-recursive ANTLR element labels survive normalization"))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "parser grammar Precedence; expr : expr STAR expr #Multiply | expr PLUS expr #Add | INT #Number;"))
+           (sum (cnvrs:parse grammar '(:int :plus :int :star :int)))
+           (product (cnvrs:parse grammar '(:int :star :int :plus :int))))
+      (check (and (eq (cnvrs:node-label sum) 'cnvrs/antlr4::add)
+                  (eq (cnvrs:node-label
+                       (third (cnvrs:node-children sum)))
+                      'cnvrs/antlr4::multiply)
+                  (eq (cnvrs:node-label product) 'cnvrs/antlr4::add)
+                  (eq (cnvrs:node-label
+                       (first (cnvrs:node-children product)))
+                      'cnvrs/antlr4::multiply))
+             "ANTLR4 earlier recursive alternative has higher precedence"))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "parser grammar Associativity; expr : <assoc=right> expr CARET expr #Power | <assoc=left> expr STAR expr #Multiply | INT #Number;"))
+           (power (cnvrs:parse grammar '(:int :caret :int :caret :int)))
+           (product (cnvrs:parse grammar '(:int :caret :int :star :int))))
+      (check (and (eq (cnvrs:node-label power) 'cnvrs/antlr4::power)
+                  (eq (cnvrs:node-label
+                       (third (cnvrs:node-children power)))
+                      'cnvrs/antlr4::power)
+                  (eq (cnvrs:node-label product)
+                      'cnvrs/antlr4::multiply)
+                  (eq (cnvrs:node-label
+                       (first (cnvrs:node-children product)))
+                      'cnvrs/antlr4::power))
+             "ANTLR4 associativity and precedence options convert"))
+    (check (signals cnvrs:grammar-error
+             (cnvrs/antlr4:parse
+              "parser grammar BadAssoc; expr : <assoc=middle> expr CARET expr | INT;"))
+           "unsupported ANTLR4 associativity option is rejected")
+    (let* ((tight (cnvrs/antlr4:parse
+                   "parser grammar TightPrefix; expr : MINUS expr #Negate | expr STAR expr #Multiply | INT #Number;"))
+           (loose (cnvrs/antlr4:parse
+                   "parser grammar LoosePrefix; expr : expr STAR expr #Multiply | MINUS expr #Negate | INT #Number;"))
+           (tight-tree (cnvrs:parse tight '(:minus :int :star :int)))
+           (loose-tree (cnvrs:parse loose '(:minus :int :star :int))))
+      (check (and (eq (cnvrs:node-label tight-tree)
+                      'cnvrs/antlr4::multiply)
+                  (eq (cnvrs:node-label
+                       (first (cnvrs:node-children tight-tree)))
+                      'cnvrs/antlr4::negate)
+                  (eq (cnvrs:node-label loose-tree)
+                      'cnvrs/antlr4::negate)
+                  (eq (cnvrs:node-label
+                       (second (cnvrs:node-children loose-tree)))
+                      'cnvrs/antlr4::multiply))
+             "ANTLR4 prefix alternatives use source-order precedence"))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "parser grammar LabeledOperand; expr : expr STAR rhs=expr #Multiply | expr PLUS expr #Add | INT #Number;"))
+           (tree (cnvrs:parse grammar '(:int :plus :int :star :int))))
+      (check (and (eq (cnvrs:node-label tree) 'cnvrs/antlr4::add)
+                  (eq (cnvrs:node-label
+                       (third (cnvrs:node-children tree)))
+                      'cnvrs/antlr4::multiply))
+             "labeled right operands retain ANTLR4 precedence"))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "parser grammar LabeledPower; expr : <assoc=right> expr CARET rhs=expr #Power | INT #Number;"))
+           (tree (cnvrs:parse grammar '(:int :caret :int :caret :int)))
+           (right-label (third (cnvrs:node-children tree))))
+      (check (and (eq (cnvrs:node-label right-label)
+                      'cnvrs/antlr4::rhs)
+                  (eq (cnvrs:node-label
+                       (first (cnvrs:node-children right-label)))
+                      'cnvrs/antlr4::power))
+             "labeled right operands retain ANTLR4 right associativity"))
+    (let* ((grammar (cnvrs/antlr4:parse
+                     "parser grammar PrefixAssoc; expr : <assoc=right> MINUS expr #Negate | expr STAR expr #Multiply | INT #Number;"))
+           (tree (cnvrs:parse grammar '(:minus :int :star :int))))
+      (check (eq (cnvrs:node-label tree) 'cnvrs/antlr4::multiply)
+             "associativity option on ANTLR4 prefix alternative is accepted"))
     (let ((grammar (cnvrs/antlr4:parse "lexer grammar Letters; A : 'a';")))
       (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "aa"))
                     '(:a :a))

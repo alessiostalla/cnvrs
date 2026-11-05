@@ -2,6 +2,8 @@
 
 CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is a clean-room Common Lisp implementation of adaptive LL(*) parsing, inspired by the algorithm described by Parr et al. It compiles Lisp grammar forms into an in-memory parser. It does not read grammar text or generate parser source.
 
+See [CNVRS and ANTLR 4/Java: current differences](docs/cnvrs-vs-antlr-java.md) for feature, algorithm, and benchmark comparisons.
+
 ## Example
 
 ```lisp
@@ -224,6 +226,8 @@ The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars
 The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; compilation happens on first use. `cnvrs/antlr4:parse-tree` returns the ANTLR syntax tree and accepts `:rule` to select a grammar entry rule. `cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer adaptor handles action blocks, brackets, and context-dependent identifier token types.
 
 Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, nongreedy lexer suffixes `??`, `*?`, `+?`, literals, character ranges and sets, negated block sets (`~(A|B)` in parser rules and `~('a'|'b'..'d')` in lexer rules), fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. Parser element labels (`name=atom`, `names+=atom`, and labeled groups) become labeled element nodes; alternative labels (`#Name`) appear on the matching rule node. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Parser negated token sets compile to `(not-token (:a :b))` and consume one token whose kind is outside the set.
+
+For direct left recursion in `.g4` input, the converter preserves ANTLR's source-order precedence for recursive and prefix alternatives: earlier alternatives bind more tightly. It accepts `<assoc=right>` and `<assoc=left>` on outer parser alternatives. Native Lisp grammar forms continue to list recursive alternatives from lowest to highest precedence, with `(right ...)` for right associativity.
 
 Grammar prequels (`options`, `import`, `tokens`, `channels`, and `@` actions) are retained in source order as `(:prequels ...)` metadata. Read them through `parser-definition-metadata` on the returned definition, `parser-metadata` on a compiled parser, or `compiled-lexer-metadata` on a compiled lexer. Each entry is `(:options ((name value) ...))`, `(:imports ((alias name) ...))` (alias is `nil` when absent), `(:tokens (name ...))`, `(:channels (name ...))`, or `(:action (:scope scope :name name :body source))`. These declarations are available for inspection; CNVRS does not execute actions, load imported grammars, or apply grammar options such as `caseInsensitive` and `tokenVocab`. Rule actions, predicates, and unsupported lexer commands still raise `cnvrs:grammar-error` during conversion.
 
