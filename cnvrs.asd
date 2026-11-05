@@ -9,6 +9,7 @@
                (:file "src/tokens")
                (:file "src/tree")
                (:file "src/cnvrs")
+               (:file "src/semantic")
                (:file "src/dfa-compiler")
                (:file "src/lexer")
                (:file "src/macros")

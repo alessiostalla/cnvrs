@@ -32,7 +32,7 @@
 (defstruct dfa-state configurations alternatives accepted edges)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
-  has-negated-tokens metadata
+  has-negated-tokens metadata semantic-rules
   (cache-backend :hash-table)
   (full-context-strategy :cached) full-context-start
   decisions sll-decisions direct-decisions contexts
@@ -69,6 +69,8 @@
                  ((string= operator "ALT-LABEL") :alt-label)
                  ((string= operator "TOKEN") :token-form)
                  ((string= operator "NOT-TOKEN") :not-token)
+                 ((string= operator "PREDICATE") :predicate)
+                 ((string= operator "ACTION") :action)
                  (t nil))))
         (t nil)))
 
@@ -80,6 +82,18 @@
   ((value :initarg :value :reader parser-expr-value)))
 (defclass parser-not-token-expr (parser-expr)
   ((excluded :initarg :excluded :reader parser-expr-excluded)))
+(defclass parser-callback-expr (parser-expr)
+  ((callback :initarg :callback :reader parser-expr-callback)))
+(defclass parser-predicate-expr (parser-callback-expr) ())
+(defclass parser-action-expr (parser-callback-expr) ())
+
+(defun semantic-callback (form)
+  (unless (and (= (length form) 2)
+               (or (functionp (second form))
+                   (and (symbolp (second form)) (not (keywordp (second form))))))
+    (grammar-fail "~A requires a function or function name: ~S"
+                  (first form) form))
+  (second form))
 (defclass parser-sequence-expr (parser-expr)
   ((parts :initarg :parts :reader parser-expr-parts)))
 (defclass parser-choice-expr (parser-sequence-expr) ())
@@ -104,6 +118,10 @@
       (case kind
         (:reference (make-instance 'parser-reference-expr :source form :name form))
         (:token (make-instance 'parser-token-expr :source form :value form))
+        (:predicate (make-instance 'parser-predicate-expr :source form
+                                   :callback (semantic-callback form)))
+        (:action (make-instance 'parser-action-expr :source form
+                                :callback (semantic-callback form)))
         (:token-form
          (unless (= (length form) 2)
            (grammar-fail "TOKEN requires one value: ~S" form))
@@ -154,6 +172,8 @@
   (declare (ignore nullable)) nil)
 (defmethod nullable-p ((expression parser-reference-expr) nullable)
   (gethash (parser-expr-name expression) nullable))
+(defmethod nullable-p ((expression parser-callback-expr) nullable)
+  (declare (ignore nullable)) t)
 (defmethod nullable-p ((expression parser-sequence-expr) nullable)
   (every (lambda (part) (nullable-p part nullable))
          (parser-expr-parts expression)))
@@ -210,6 +230,17 @@ NULLABLE maps rule names to whether they can match empty input."))
   (add-edge grammar entry :token exit (parser-expr-value expression)))
 (defmethod compile-expression (grammar (expression parser-not-token-expr) entry exit)
   (add-edge grammar entry :not-token exit (parser-expr-excluded expression)))
+(defmethod compile-expression (grammar (expression parser-callback-expr) entry exit)
+  ;; Semantic grammars use the ordered matcher; the graph remains inspectable.
+  (add-edge grammar entry :epsilon exit))
+
+(defgeneric semantic-expression-p (expression))
+(defmethod semantic-expression-p ((expression parser-expr)) nil)
+(defmethod semantic-expression-p ((expression parser-callback-expr)) t)
+(defmethod semantic-expression-p ((expression parser-sequence-expr))
+  (some #'semantic-expression-p (parser-expr-parts expression)))
+(defmethod semantic-expression-p ((expression parser-unary-expr))
+  (semantic-expression-p (parser-expr-body expression)))
 (defmethod compile-expression (grammar (expression parser-sequence-expr) entry exit)
   (let ((parts (parser-expr-parts expression)) (current entry))
     (if (null parts)
@@ -528,17 +559,25 @@ function of (parser state-id return-stack) that returns a start DFA state."
         (compile-expression grammar (second definition)
                             (gethash (first definition) (parser-starts grammar))
                             (gethash (first definition) (parser-stops grammar))))
+      (when (some (lambda (definition)
+                    (semantic-expression-p (second definition))) definitions)
+        (setf (parser-semantic-rules grammar) (make-hash-table :test 'eq))
+        (dolist (definition definitions)
+          (setf (gethash (first definition) (parser-semantic-rules grammar))
+                (second definition))))
       (setf (parser-has-negated-tokens grammar)
             (loop for state across (parser-states grammar)
                   thereis (find :not-token (state-edges state)
                                 :key #'transition-kind)))
       (setf (parser-context-shift grammar)
             (integer-length (1- (length (parser-states grammar)))))
-      (unless (parser-has-negated-tokens grammar)
+      (unless (or (parser-has-negated-tokens grammar)
+                  (parser-semantic-rules grammar))
         (initialize-direct-lookahead grammar)
         (initialize-follow-lookahead grammar))
-      (setf (parser-runner grammar) (compile-parser-runner grammar nil)
-            (parser-node-runner grammar) (compile-parser-runner grammar t))
+      (unless (parser-semantic-rules grammar)
+        (setf (parser-runner grammar) (compile-parser-runner grammar nil)
+              (parser-node-runner grammar) (compile-parser-runner grammar t)))
       grammar)))
 
 (defun configuration-key (configuration)
@@ -1153,6 +1192,12 @@ the restarts at each error site to make a different local repair."
     (declare (type fixnum position state-id
                    automatic-insert-position automatic-insert-count)
              (type vector input))
+    (when (parser-semantic-rules grammar)
+      (when recover
+        (grammar-fail "Recovery is not supported with semantic callbacks"))
+      (return-from parse
+        (values (parse-semantic grammar input start require-eof tree-builder)
+                nil)))
     (when (not recover)
       (let ((runner (case tree-builder
                       (:none (parser-runner grammar))

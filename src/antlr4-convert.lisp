@@ -11,6 +11,21 @@
                                         (cnvrs:node-rule node) node)
                  (apply #'format nil control arguments))))
 
+(defvar *semantic-callbacks* nil)
+
+(defun action-expression (node predicate-p)
+  (let* ((source (cnvrs:lexeme-text (first-token node)))
+         (callback (if (hash-table-p *semantic-callbacks*)
+                       (gethash source *semantic-callbacks*)
+                       (cdr (assoc source *semantic-callbacks* :test #'string=)))))
+    (unless callback
+      (conversion-error node "no callback supplied for action block ~S" source))
+    (unless (or (functionp callback)
+                (and (symbolp callback) (not (keywordp callback))))
+      (conversion-error node "callback for ~S must be a function or function name"
+                        source))
+    (list (if predicate-p 'predicate 'action) callback)))
+
 (defun child-nodes (node &optional rule)
   (remove-if-not (lambda (child)
                    (and (cnvrs:node-p child)
@@ -174,7 +189,11 @@
              expression))))
     (element
      (when (first-node node 'action-block)
-       (conversion-error node "actions are not supported"))
+       (when (first-node node 'predicate-options)
+         (conversion-error node "predicate options are not supported"))
+       (return-from parser-expression
+         (action-expression (first-node node 'action-block)
+                            (not (null (token-of-kind node :question))))))
      (let* ((base (or (first-node node 'labeled-element)
                       (first-node node 'atom) (first-node node 'ebnf)))
             (expression (parser-expression base))
@@ -276,7 +295,9 @@
      (sequence-form (mapcar #'lexer-expression (child-nodes node 'lexer-element))))
     (lexer-element
      (when (first-node node 'action-block)
-       (conversion-error node "lexer actions are not supported"))
+       (return-from lexer-expression
+         (action-expression (first-node node 'action-block)
+                            (not (null (token-of-kind node :question))))))
      (let* ((base (or (first-node node 'lexer-atom)
                       (first-node node 'lexer-block)))
             (expression (lexer-expression base))
@@ -506,8 +527,11 @@
                                   :hash-table :node :cached forms
                                   :metadata metadata))))
 
-(defun parse (source &key lexer)
+(defun parse (source &key lexer callbacks)
   "Parse ANTLR4 SOURCE into a CNVRS grammar definition ready for ENSURE-COMPILED.
 For parser grammars, :LEXER optionally supplies a CNVRS lexer; otherwise
-PARSE accepts token sequences. Use PARSE-TREE to inspect the syntax tree."
-  (grammar-from-tree (parse-tree source) :lexer lexer))
+PARSE accepts token sequences. CALLBACKS maps exact action block text,
+including braces, to functions of (input position). Use PARSE-TREE to inspect
+the syntax tree."
+  (let ((*semantic-callbacks* callbacks))
+    (grammar-from-tree (parse-tree source) :lexer lexer)))

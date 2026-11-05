@@ -1651,7 +1651,102 @@ options {")))
              "ANTLR4 lexer modes and commands compile"))
     (check (signals cnvrs:grammar-error
              (cnvrs/antlr4:parse "grammar Actions; start : ID {run();}; ID : 'x';"))
-           "ANTLR4 conversion rejects unsupported actions")
+           "ANTLR4 conversion requires explicit callbacks")
+    (let* ((events nil)
+           (grammar (cnvrs/antlr4:parse
+                     "grammar Semantic; start : {allow()}? ID {done()}; ID : 'x' {seen()};"
+                     :callbacks
+                     (list (cons "{allow()}"
+                                 (lambda (input at)
+                                   (declare (ignore input at)) t))
+                           (cons "{done()}"
+                                 (lambda (input at)
+                                   (declare (ignore input))
+                                   (push (list :parser at) events)))
+                           (cons "{seen()}"
+                                 (lambda (source at)
+                                   (declare (ignore source))
+                                   (push (list :lexer at) events)))))))
+      (cnvrs:parse grammar "x")
+      (check (equal (reverse events) '((:lexer 1) (:parser 1)))
+             "ANTLR4 parser and lexer action blocks use callbacks"))
+    (let* ((allowed nil)
+           (grammar (cnvrs/antlr4:parse
+                     "lexer grammar Guard; GUARDED : {allowed()}? 'x'; FALLBACK : 'x';"
+                     :callbacks
+                     (list (cons "{allowed()}"
+                                 (lambda (source at)
+                                   (declare (ignore source at)) allowed))))))
+      (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex grammar "x") 0))
+                 :fallback)
+             "ANTLR4 lexer predicate can reject a rule")
+      (setf allowed t)
+      (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex grammar "x") 0))
+                 :guarded)
+             "ANTLR4 lexer predicate can select a rule"))
+    (let* ((enabled t) (events nil)
+           (parser (cnvrs:compile-grammar
+                    (list (list 'start
+                                (list 'or
+                                      (list 'and
+                                            (list 'predicate
+                                                  (lambda (input at)
+                                                    (declare (ignore input at))
+                                                    enabled))
+                                            :a
+                                            (list 'action
+                                                  (lambda (input at)
+                                                    (declare (ignore input))
+                                                    (push at events))))
+                                      (list 'and :a
+                                            (list 'action
+                                                  (lambda (input at)
+                                                    (declare (ignore input))
+                                                    (push (+ at 10) events))))))))))
+      (cnvrs:parse parser '(:a))
+      (check (equal events '(1)) "parser action runs on selected path")
+      (setf enabled nil events nil)
+      (cnvrs:parse parser '(:a))
+      (check (equal events '(11)) "parser predicate is reevaluated"))
+    (let* ((events nil)
+           (lexer (cnvrs:compile-lexer
+                   (list (list :short
+                               (list 'and #\a
+                                     (list 'action
+                                           (lambda (source at)
+                                             (declare (ignore source))
+                                             (push at events)))))
+                         (list :long
+                               (list 'and
+                                     (list 'predicate
+                                           (lambda (source at)
+                                             (char= (char source at) #\a)))
+                                     "ab"
+                                     (list 'action
+                                           (lambda (source at)
+                                             (declare (ignore source))
+                                             (push (+ at 10) events)))))))))
+      (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex lexer "ab"))
+                    '(:long))
+             "semantic lexer keeps longest-match priority")
+      (check (equal events '(12)) "only winning lexer action runs"))
+    (let* ((allow nil)
+           (lexer (cnvrs:compile-lexer
+                   (list (list :guarded
+                               (list 'and
+                                     (list 'predicate
+                                           (lambda (source at)
+                                             (declare (ignore source at))
+                                             allow))
+                                     #\x))
+                         (list :fallback #\x)))))
+      (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex lexer "x") 0))
+                 :fallback)
+             "false lexer predicate excludes a rule")
+      (setf allow t)
+      (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex lexer "x") 0))
+                 :guarded)
+             "lexer predicate is reevaluated on the next call"))
     (let* ((tokens (cnvrs/antlr4:lex "// note
 grammar T;"))
            (channels (map 'list #'cnvrs:lexeme-channel tokens)))

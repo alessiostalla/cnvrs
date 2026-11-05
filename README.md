@@ -71,6 +71,26 @@ The incremental style separates the declaration from its rules. `in-parser` sele
 
 Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. Definitions compile in the current Lisp image on first use, allowing forward references in the incremental style. Adding a rule invalidates the compiled definition. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
 
+### Semantic predicates and actions
+
+Both parser and lexer expressions accept `(predicate callback)` and `(action callback)` as zero-width elements, including inside sequences, alternatives, and repetitions. `callback` is a Common Lisp function or a non-keyword function name. In `compile-grammar` and `compile-lexer`, function objects can be placed directly in the supplied forms; in quoted `define-parser` and `defrule` forms, use a function name. A callback receives `(input position)`: parser input is the filtered token vector and position is a token offset; lexer input is the source string and position is a character offset. A predicate succeeds on a non-`nil` return value. Actions ignore their return values and run once, in source order, after the winning parse path or lexer rule has been selected. A failed or losing candidate does not run its actions.
+
+```lisp
+(defun word-allowed (source position)
+  (declare (ignore position))
+  (not (find #\! source)))
+
+(defun word-seen (source position)
+  (format t "Matched through character ~D in ~S~%" position source))
+
+(cnvrs:compile-lexer
+ '((:word (and (predicate word-allowed)
+               (+ (range #\a #\z))
+               (action word-seen)))))
+```
+
+Predicates are reevaluated for each parse or lex call; grammars containing them use an ordered semantic matcher instead of cached DFA prediction. The parser semantic matcher supports `:node`, `:none`, and custom node builders, but error recovery is unavailable for semantic grammars. Semantic callbacks can affect application state, so callers should keep predicates free of side effects. Action callbacks should also avoid changing input used by the active match.
+
 ### Direct left recursion
 
 An alternative may start with its own rule name. Recursive alternatives are listed from lowest to highest precedence; repetitions of one alternative associate to the left. Wrap an alternative in `(right ...)` to associate to the right:
@@ -227,9 +247,18 @@ The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; 
 
 Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, nongreedy lexer suffixes `??`, `*?`, `+?`, literals, character ranges and sets, negated block sets (`~(A|B)` in parser rules and `~('a'|'b'..'d')` in lexer rules), fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. Parser element labels (`name=atom`, `names+=atom`, and labeled groups) become labeled element nodes; alternative labels (`#Name`) appear on the matching rule node. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Parser negated token sets compile to `(not-token (:a :b))` and consume one token whose kind is outside the set.
 
+ANTLR rule action blocks and semantic predicates (`{...}?`) can be connected to Common Lisp callbacks with `cnvrs/antlr4:parse`'s `:callbacks` argument. Supply an alist or hash table mapping the exact block text, including braces, to function names or function objects. The callback contract is the same as for Lisp grammar forms. Every rule action or predicate block needs a mapping; CNVRS does not evaluate code written in another ANTLR target language.
+
+```lisp
+(cnvrs/antlr4:parse
+ "grammar Example; start : {ready()}? WORD {record()}; WORD : [a-z]+;"
+ :callbacks (list (cons "{ready()}" #'ready-p)
+                  (cons "{record()}" #'record-match)))
+```
+
 For direct left recursion in `.g4` input, the converter preserves ANTLR's source-order precedence for recursive and prefix alternatives: earlier alternatives bind more tightly. It accepts `<assoc=right>` and `<assoc=left>` on outer parser alternatives. Native Lisp grammar forms continue to list recursive alternatives from lowest to highest precedence, with `(right ...)` for right associativity.
 
-Grammar prequels (`options`, `import`, `tokens`, `channels`, and `@` actions) are retained in source order as `(:prequels ...)` metadata. Read them through `parser-definition-metadata` on the returned definition, `parser-metadata` on a compiled parser, or `compiled-lexer-metadata` on a compiled lexer. Each entry is `(:options ((name value) ...))`, `(:imports ((alias name) ...))` (alias is `nil` when absent), `(:tokens (name ...))`, `(:channels (name ...))`, or `(:action (:scope scope :name name :body source))`. These declarations are available for inspection; CNVRS does not execute actions, load imported grammars, or apply grammar options such as `caseInsensitive` and `tokenVocab`. Rule actions, predicates, and unsupported lexer commands still raise `cnvrs:grammar-error` during conversion.
+Grammar prequels (`options`, `import`, `tokens`, `channels`, and `@` actions) are retained in source order as `(:prequels ...)` metadata. Read them through `parser-definition-metadata` on the returned definition, `parser-metadata` on a compiled parser, or `compiled-lexer-metadata` on a compiled lexer. Each entry is `(:options ((name value) ...))`, `(:imports ((alias name) ...))` (alias is `nil` when absent), `(:tokens (name ...))`, `(:channels (name ...))`, or `(:action (:scope scope :name name :body source))`. These declarations are available for inspection; CNVRS does not execute prequel actions, load imported grammars, or apply grammar options such as `caseInsensitive` and `tokenVocab`. Rule actions and predicates without callback mappings, and unsupported lexer commands, raise `cnvrs:grammar-error` during conversion.
 
 The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4` syntax trees offline. Those grammars use ANTLR features outside the current conversion subset.
 
@@ -239,7 +268,7 @@ Compilation builds an in-memory transition graph with rule calls, token edges, a
 
 The parser and lexer graphs use a common state base and transition type, with shared state creation, edge insertion, and closure traversal. Their matching policies remain distinct: the lexer finds the longest character match in its current mode, while the parser predicts token alternatives using rule-return context.
 
-Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. The core compiler accepts Lisp forms and has no semantic actions. Ambiguous alternatives use their written order.
+Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. Ambiguous alternatives use their written order.
 
 ### Compiled objects and caches
 

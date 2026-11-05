@@ -52,10 +52,13 @@
                  ((string= name "RANGE") :range)
                  ((string= name "ONE-OF") :one-of)
                  ((string= name "NOT-ONE-OF") :not-one-of)
-                 ((string= name "ANY") :any))))
+                 ((string= name "ANY") :any)
+                 ((string= name "PREDICATE") :predicate)
+                 ((string= name "ACTION") :action))))
         (t nil)))
 
 (defvar *lx-after-nongreedy* nil)
+(defvar *lx-action-events* nil)
 
 (defclass lx-expr ()
   ((source :initarg :source :reader lx-expr-source)))
@@ -71,6 +74,10 @@
 (defclass lx-one-of-expr (lx-characters-expr) ())
 (defclass lx-not-one-of-expr (lx-characters-expr) ())
 (defclass lx-any-expr (lx-expr) ())
+(defclass lx-callback-expr (lx-expr)
+  ((callback :initarg :callback :reader lx-expr-callback)))
+(defclass lx-predicate-expr (lx-callback-expr) ())
+(defclass lx-action-expr (lx-callback-expr) ())
 (defclass lx-sequence-expr (lx-expr)
   ((parts :initarg :parts :reader lx-expr-parts)))
 (defclass lx-choice-expr (lx-sequence-expr) ())
@@ -95,6 +102,10 @@
                                   :body (lx-expression-from-form (second form)))))
       (case kind
         (:reference (make-instance 'lx-reference-expr :source form :name form))
+        (:predicate (make-instance 'lx-predicate-expr :source form
+                                   :callback (semantic-callback form)))
+        (:action (make-instance 'lx-action-expr :source form
+                                :callback (semantic-callback form)))
         (:literal (make-instance 'lx-literal-expr :source form :text (string form)))
         (:sequence
          (make-instance 'lx-sequence-expr :source form
@@ -174,6 +185,19 @@
 (defmethod lx-has-nongreedy ((expression lx-lazy-plus-expr) definitions)
   (declare (ignore definitions)) t)
 
+(defgeneric lx-has-semantic (expression definitions))
+(defmethod lx-has-semantic ((expression lx-expr) definitions)
+  (declare (ignore definitions)) nil)
+(defmethod lx-has-semantic ((expression lx-callback-expr) definitions)
+  (declare (ignore definitions)) t)
+(defmethod lx-has-semantic ((expression lx-reference-expr) definitions)
+  (lx-has-semantic (gethash (lx-expr-name expression) definitions) definitions))
+(defmethod lx-has-semantic ((expression lx-sequence-expr) definitions)
+  (some (lambda (part) (lx-has-semantic part definitions))
+        (lx-expr-parts expression)))
+(defmethod lx-has-semantic ((expression lx-unary-expr) definitions)
+  (lx-has-semantic (lx-expr-body expression) definitions))
+
 (defgeneric lx-nullable (expression definitions))
 (defmethod lx-nullable ((expression lx-expr) definitions)
   (declare (ignore definitions)) nil)
@@ -181,6 +205,8 @@
   (lx-nullable (gethash (lx-expr-name expression) definitions) definitions))
 (defmethod lx-nullable ((expression lx-literal-expr) definitions)
   (declare (ignore definitions)) (zerop (length (lx-expr-text expression))))
+(defmethod lx-nullable ((expression lx-callback-expr) definitions)
+  (declare (ignore definitions)) t)
 (defmethod lx-nullable ((expression lx-sequence-expr) definitions)
   (every (lambda (part) (lx-nullable part definitions))
          (lx-expr-parts expression)))
@@ -295,6 +321,18 @@
   (declare (ignore definitions))
   (lambda (source at next)
     (and (< at (length source)) (funcall next (1+ at)))))
+(defmethod lx-ordered-matcher ((expression lx-predicate-expr) definitions)
+  (declare (ignore definitions))
+  (let ((callback (lx-expr-callback expression)))
+    (lambda (source at next)
+      (and (semantic-call callback source at) (funcall next at)))))
+(defmethod lx-ordered-matcher ((expression lx-action-expr) definitions)
+  (declare (ignore definitions))
+  (let ((callback (lx-expr-callback expression)))
+    (lambda (source at next)
+      (let ((end (funcall next at)))
+        (when end (push (cons callback at) *lx-action-events*))
+        end))))
 (defmethod lx-ordered-matcher ((expression lx-sequence-expr) definitions)
   (let ((parts (mapcar (lambda (part) (lx-ordered-matcher part definitions))
                        (lx-expr-parts expression))))
@@ -311,11 +349,14 @@
     (lambda (source at next)
       (if *lx-after-nongreedy*
           (some (lambda (part) (funcall part source at next)) parts)
-          (let ((best nil))
-            (dolist (part parts best)
+          (let ((best nil) (best-events nil) (baseline *lx-action-events*))
+            (dolist (part parts)
+              (setf *lx-action-events* baseline)
               (let ((end (funcall part source at next)))
                 (when (and end (or (null best) (> end best)))
-                  (setf best end)))))))))
+                  (setf best end best-events *lx-action-events*))))
+            (setf *lx-action-events* (if best best-events baseline))
+            best)))))
 (defun lx-repeat-matcher (body lazy-p)
   (lambda (source at next)
     (labels ((repeat (position)
@@ -359,8 +400,9 @@
 (defun lx-compile-ordered-matcher (expression definitions)
   (let ((matcher (lx-ordered-matcher expression definitions)))
     (lambda (source position)
-      (let ((*lx-after-nongreedy* nil))
-        (funcall matcher source position #'identity)))))
+      (let ((*lx-after-nongreedy* nil) (*lx-action-events* nil))
+        (let ((end (funcall matcher source position #'identity)))
+          (values end *lx-action-events*))))))
 
 (defun lx-closure (states seeds)
   (graph-closure
@@ -454,7 +496,7 @@
                               states
                               (lx-closure states
                                           (list (gethash mode mode-starts)))))))
-                     (best-end nil) (best-rule nil))
+                     (best-end nil) (best-rule nil) (best-actions nil))
                  (loop for offset of-type fixnum from position below (length source) do
                    (setf dfa (lx-next-dfa-state
                               states cache dfa (char source offset) locked-p))
@@ -465,12 +507,16 @@
                  (dolist (entry ordered-rules)
                    (destructuring-bind (rule-mode rule-index matcher) entry
                      (when (eq rule-mode mode)
-                       (let ((end (funcall matcher source position)))
+                       (multiple-value-bind (end actions)
+                           (funcall matcher source position)
                          (when (and end (> end position)
                                     (or (null best-end) (> end best-end)
                                         (and (= end best-end)
                                              (< rule-index best-rule))))
-                           (setf best-end end best-rule rule-index))))))
+                           (setf best-end end best-rule rule-index
+                                 best-actions actions))))))
+                 (dolist (event best-actions)
+                   (semantic-call (car event) source (cdr event)))
                  (values (and best-rule (aref kinds best-rule))
                          best-end best-rule))))
       (setf (compiled-lexer-matcher lexer) #'match-one
@@ -570,8 +616,7 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
     (dolist (definition definitions)
       (lx-validate (gethash (first definition) patterns)
                    patterns (list (first definition)))
-      (when (and (lx-has-nongreedy (gethash (first definition) patterns) patterns)
-                 (lx-nullable (gethash (first definition) patterns) patterns))
+      (when (lx-nullable (gethash (first definition) patterns) patterns)
         (grammar-fail "Lexer rules must consume at least one character"))
       (dolist (key '(:push-mode :set-mode))
         (when (and (plist-key-p (cddr definition) key)
@@ -579,7 +624,8 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
           (grammar-fail "Lexer rule ~S targets undefined mode ~S"
                         (first definition) (getf (cddr definition) key)))))
     (loop for definition in definitions for index from 0 do
-      (if (lx-has-nongreedy (gethash (first definition) patterns) patterns)
+      (if (or (lx-has-nongreedy (gethash (first definition) patterns) patterns)
+              (lx-has-semantic (gethash (first definition) patterns) patterns))
           (push (list (getf (cddr definition) :mode :default)
                       index (lx-compile-ordered-matcher
                              (gethash (first definition) patterns) patterns))
