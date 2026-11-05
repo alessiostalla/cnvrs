@@ -7,7 +7,9 @@
 (let* ((source (uiop:read-file-string
                 (merge-pathnames "test/fixtures/IRI.g4"
                                  (asdf:system-source-directory :cnvrs))))
-       (definition (cnvrs/antlr4:parse source))
+       (definition (cnvrs/antlr4:parse source
+                                        :parser-package '#:cnvrs/antlr4
+                                        :lexer-package :keyword))
        (base (cnvrs:ensure-compiled definition))
        (input (with-output-to-string (out)
                 (write-string "https://example.org/" out)

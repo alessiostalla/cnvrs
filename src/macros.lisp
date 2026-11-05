@@ -8,7 +8,8 @@
 (defun parser-option-list-p (form)
   (and (consp form)
        (member (first form) '(:kind :default-rule :lexer :cache-backend
-                              :tree-builder :full-context-strategy :metadata))))
+                              :tree-builder :full-context-strategy :metadata
+                              :parser-package :lexer-package))))
 
 (defun checked-options (options allowed context)
   (unless (and (listp options) (evenp (length options)))
@@ -22,6 +23,10 @@
         (grammar-fail "Duplicate option ~S for ~A" key context))
       (push key seen)))
   options)
+
+(defun grammar-package (designator context)
+  (or (and designator (find-package designator))
+      (grammar-fail "Unknown ~A package ~S" context designator)))
 
 (defun rule-with-mode (form mode)
   (let* ((defrule-p (and (consp form) (eq (first form) 'defrule)))
@@ -48,10 +53,8 @@
           (expand-mode-rule-forms nested new-mode))
         (list (if mode (rule-with-mode form mode) form)))))
 
-(defun normalize-rule-form (form kind)
-  (let* ((body (if (and (consp form)
-                        (symbolp (first form))
-                        (string-equal (symbol-name (first form)) "DEFRULE"))
+(defun normalize-rule-form (form kind lexer-package)
+  (let* ((body (if (and (consp form) (eq (first form) 'defrule))
                    (rest form)
                    form)))
     (unless (and (consp body) (>= (length body) 2)
@@ -69,15 +72,17 @@
                       (:lexer t)
                       (:parser nil)
                       (:combined (if (eq lexer-option :unspecified)
-                                     (keywordp name) lexer-option)))))
+                                     (eq (symbol-package name) lexer-package)
+                                     lexer-option)))))
+      (when (grammar-operator-p name)
+        (grammar-fail "Rule name or token kind ~S is a CNVRS grammar operator"
+                      name))
       (unless (member lexer-option '(:unspecified nil t))
         (grammar-fail ":LEXER for ~S must be T or NIL" name))
       (when (and (eq kind :parser) (eq lexer-option t))
         (grammar-fail "Lexer rule ~S is not allowed in a parser grammar" name))
       (when (and (eq kind :lexer) (eq lexer-option nil))
         (grammar-fail "Parser rule ~S is not allowed in a lexer grammar" name))
-      (when (and (not lexer-p) (keywordp name))
-        (grammar-fail "Parser rule name cannot be a keyword: ~S" name))
       (when (and (not lexer-p)
                  (some (lambda (key) (plist-key-p options key))
                        '(:skip :channel :mode :push-mode :pop-mode :set-mode)))
@@ -93,7 +98,9 @@
 (defun register-parser-rule (definition form)
   (unless (parser-definition-p definition)
     (grammar-fail "DEFRULE target is not a parser definition: ~S" definition))
-  (let* ((rule (normalize-rule-form form (parser-definition-kind definition)))
+  (let* ((rule (normalize-rule-form
+                form (parser-definition-kind definition)
+                (parser-definition-lexer-package definition)))
          (name (first rule)))
     (when (find name (parser-definition-rules definition)
                 :key #'first :test #'eq)
@@ -106,7 +113,7 @@
 
 (defun make-defined-parser (name kind default-rule lexer cache-backend
                             tree-builder full-context-strategy forms
-                            &key metadata)
+                            &key metadata parser-package lexer-package)
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (unless (member kind '(:parser :lexer :combined))
@@ -119,15 +126,23 @@
     (grammar-fail "A combined grammar defines its lexer rules in the same form"))
   (when (and (eq kind :lexer) (not (eq full-context-strategy :cached)))
     (grammar-fail "A lexer grammar has no full-context prediction"))
-  (let ((definition (make-parser-definition
+  (let* ((parser-package (grammar-package
+                          (or parser-package (symbol-package name)) "parser"))
+         (lexer-package (grammar-package
+                         (or lexer-package :keyword) "lexer")))
+    (when (and (eq kind :combined) (eq parser-package lexer-package))
+      (grammar-fail "Combined grammar needs distinct parser and lexer packages"))
+    (let ((definition (make-parser-definition
                      :name name :kind kind :default-rule default-rule
                      :lexer lexer :cache-backend cache-backend
+                     :parser-package parser-package
+                     :lexer-package lexer-package
                      :metadata metadata
                      :full-context-strategy full-context-strategy
                      :tree-builder tree-builder)))
-    (dolist (form forms)
-      (register-parser-rule definition form))
-    definition))
+      (dolist (form forms)
+        (register-parser-rule definition form))
+      definition)))
 
 (defun ensure-parser-compiled (definition)
   (or (parser-definition-compiled definition)
@@ -292,6 +307,7 @@ WITH-MODE blocks containing lexer rules."
   (let* ((options (if (and body (parser-option-list-p (first body)))
                       (pop body) nil))
          (options (checked-options options '(:kind :default-rule :lexer
+                                             :parser-package :lexer-package
                                              :cache-backend :tree-builder
                                              :full-context-strategy :metadata)
                                    (format nil "parser ~S" name)))
@@ -301,13 +317,17 @@ WITH-MODE blocks containing lexer rules."
          (cache-backend (getf options :cache-backend :hash-table))
          (tree-builder (getf options :tree-builder :node))
          (metadata (getf options :metadata nil))
+         (parser-package (getf options :parser-package nil))
+         (lexer-package (getf options :lexer-package nil))
          (full-context-strategy
            (getf options :full-context-strategy :cached)))
     `(defparameter ,name
        (make-defined-parser ',name ',kind ',default-rule ,lexer ',cache-backend
                             ,tree-builder ,full-context-strategy
                             ',(expand-mode-rule-forms body)
-                            :metadata ,metadata))))
+                            :metadata ,metadata
+                            :parser-package ,parser-package
+                            :lexer-package ,lexer-package))))
 
 (defmacro in-parser (name)
   "Select the parser definition receiving subsequent top-level DEFRULE forms."

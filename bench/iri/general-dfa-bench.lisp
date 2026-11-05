@@ -14,7 +14,9 @@
          #'<)))
 
 (let* ((source (uiop:read-file-string "test/fixtures/IRI.g4"))
-       (definition (cnvrs/antlr4:parse source))
+       (definition (cnvrs/antlr4:parse source
+                                        :parser-package '#:cnvrs/antlr4
+                                        :lexer-package :keyword))
        (base (cnvrs:ensure-compiled definition))
        (ordinary (cnvrs:clone-compiled base))
        (generated (cnvrs:clone-compiled base))

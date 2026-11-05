@@ -12,6 +12,8 @@
                  (apply #'format nil control arguments))))
 
 (defvar *semantic-callbacks* nil)
+(defvar *antlr-parser-package* nil)
+(defvar *antlr-lexer-package* nil)
 
 (defun action-expression (node predicate-p)
   (let* ((source (cnvrs:lexeme-text (first-token node)))
@@ -50,8 +52,8 @@
 
 (defun antlr-name (node &optional token-p)
   (let ((name (cnvrs:lexeme-text (first-token node))))
-    (if token-p (intern (string-upcase name) :keyword)
-        (intern (string-upcase name) (find-package '#:cnvrs/antlr4)))))
+    (intern (string-upcase name)
+            (if token-p *antlr-lexer-package* *antlr-parser-package*))))
 
 (defun antlr-char (text position node)
   (if (char/= (char text position) #\\)
@@ -140,7 +142,8 @@
     (unless entry
       (setf entry (cons literal
                         (intern (format nil "ANTLR-LITERAL-~D"
-                                        (length *implicit-literals*)) :keyword)))
+                                        (length *implicit-literals*))
+                                *antlr-lexer-package*)))
       (setf *implicit-literals* (append *implicit-literals* (list entry))))
     (cdr entry)))
 
@@ -379,9 +382,7 @@
     options))
 
 (defun lexer-rule-form (node &optional (mode :default))
-  (let* ((name (intern (string-upcase
-                        (cnvrs:lexeme-text (token-of-kind node :token_ref)))
-                       :keyword))
+  (let* ((name (antlr-name (token-of-kind node :token_ref) t))
          (fragment (token-of-kind node :fragment))
          (block (first-node node 'lexer-rule-block))
          (alternatives (first-node block 'lexer-alt-list))
@@ -484,10 +485,12 @@
                                                      'action-block)))))))
       (otherwise (conversion-error node "unsupported prequel construct")))))
 
-(defun grammar-from-tree (tree &key lexer)
+(defun grammar-from-tree (tree &key lexer parser-package lexer-package)
   (unless (eq (cnvrs:node-rule tree) 'grammar-spec)
     (conversion-error tree "expected a complete grammar"))
-  (let* ((declaration (first-node tree 'grammar-decl))
+  (let* ((*antlr-parser-package* parser-package)
+         (*antlr-lexer-package* lexer-package)
+         (declaration (first-node tree 'grammar-decl))
          (type-token (first-token (first-node declaration 'grammar-type)))
          (kind (case (cnvrs:lexeme-kind type-token)
                  (:lexer :lexer) (:parser :parser) (:grammar :combined)))
@@ -525,13 +528,22 @@
       (cnvrs::make-defined-parser name kind
                                   (caar parser-rules) lexer
                                   :hash-table :node :cached forms
-                                  :metadata metadata))))
+                                  :metadata metadata
+                                  :parser-package parser-package
+                                  :lexer-package lexer-package))))
 
-(defun parse (source &key lexer callbacks)
+(defun parse (source &key lexer callbacks parser-package lexer-package)
   "Parse ANTLR4 SOURCE into a CNVRS grammar definition ready for ENSURE-COMPILED.
 For parser grammars, :LEXER optionally supplies a CNVRS lexer; otherwise
-PARSE accepts token sequences. CALLBACKS maps exact action block text,
+PARSE accepts token sequences. :PARSER-PACKAGE and :LEXER-PACKAGE are required
+package designators for parser rule names and lexer token kinds. CALLBACKS maps exact action block text,
 including braces, to functions of (input position). Use PARSE-TREE to inspect
 the syntax tree."
-  (let ((*semantic-callbacks* callbacks))
-    (grammar-from-tree (parse-tree source) :lexer lexer)))
+  (let ((*semantic-callbacks* callbacks)
+        (parser-package (cnvrs::grammar-package parser-package "parser"))
+        (lexer-package (cnvrs::grammar-package lexer-package "lexer")))
+    (when (eq parser-package lexer-package)
+      (cnvrs::grammar-fail "ANTLR parser and lexer packages must differ"))
+    (grammar-from-tree (parse-tree source) :lexer lexer
+                       :parser-package parser-package
+                       :lexer-package lexer-package)))

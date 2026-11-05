@@ -39,6 +39,7 @@
   (context-count 0) context-shift runner node-runner
   compiled-sll compiled-full)
 (defstruct parser-definition name kind default-rule lexer cache-backend metadata
+  parser-package lexer-package
   (full-context-strategy :cached)
   (tree-builder :node)
   (rules nil) compiled)
@@ -53,25 +54,26 @@
   (loop for tail on plist by #'cddr
         thereis (eq (first tail) key)))
 
+(defun grammar-operator-p (symbol)
+  (member symbol '(and or * + seq ? *? +? ?? range one-of not-one-of any
+                   label alt-label token not-token predicate action right
+                   antlr-precedence defrule with-mode)))
+
+(defvar *parser-rule-packages* nil)
+
 (defun expression-kind (expression)
   (cond ((atom expression)
-         (cond ((and (symbolp expression) (not (keywordp expression)))
+         (cond ((and (symbolp expression)
+                     (member (symbol-package expression)
+                             *parser-rule-packages*))
                 :reference)
                (t :token)))
         ((and (consp expression) (symbolp (first expression)))
-         (let ((operator (string-upcase (symbol-name (first expression)))))
-           (cond ((member operator '("AND" "SEQ") :test #'string=) :sequence)
-                 ((string= operator "OR") :choice)
-                 ((string= operator "*") :star)
-                 ((string= operator "+") :plus)
-                 ((string= operator "?") :optional)
-                 ((string= operator "LABEL") :label)
-                 ((string= operator "ALT-LABEL") :alt-label)
-                 ((string= operator "TOKEN") :token-form)
-                 ((string= operator "NOT-TOKEN") :not-token)
-                 ((string= operator "PREDICATE") :predicate)
-                 ((string= operator "ACTION") :action)
-                 (t nil))))
+         (case (first expression)
+           ((and seq) :sequence) (or :choice) (* :star) (+ :plus)
+           (? :optional) (label :label) (alt-label :alt-label)
+           (token :token-form) (not-token :not-token)
+           (predicate :predicate) (action :action)))
         (t nil)))
 
 (defclass parser-expr ()
@@ -301,7 +303,7 @@ NULLABLE maps rule names to whether they can match empty input."))
          (unlabeled (if alternative-label (third alternative) alternative))
          (right (and (consp unlabeled)
                      (symbolp (first unlabeled))
-                     (string= (symbol-name (first unlabeled)) "RIGHT")))
+                     (eq (first unlabeled) 'right)))
          (body (if right (second unlabeled) unlabeled))
          (parts (if (eq (expression-kind body) :sequence)
                     (rest body) (list body)))
@@ -490,7 +492,9 @@ DEFINITIONS is a list of (name expression) pairs. Expressions use
 (LABEL name x), and (ALT-LABEL name x).
 Direct left-recursive alternatives are ordered from low to high precedence;
 (RIGHT alternative) gives a recursive alternative right associativity.
-Bare symbols name rules; other atoms are literal tokens. DEFAULT-RULE chooses
+Bare symbols in a parser rule package name rules; symbols from other packages
+and other atoms are literal tokens. (TOKEN value) forces a literal token when
+a parser rule and token kind use the same package. DEFAULT-RULE chooses
 the entry rule used by PARSE when no :RULE is supplied; otherwise the first
 definition is used. LEXER maps source input to tokens before parsing.
 CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
@@ -501,13 +505,23 @@ FULL-CONTEXT-STRATEGY selects :CACHED (the default), :RECOMPUTE, or a
 function of (parser state-id return-stack) that returns a start DFA state."
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
-  (let ((names (make-hash-table :test 'eq))
+  (let* ((names (make-hash-table :test 'eq))
         (nullable (make-hash-table :test 'eq))
-        (rewrites nil))
+        (rewrites nil)
+        (*parser-rule-packages*
+          (cons nil (remove-duplicates
+                     (mapcar (lambda (definition)
+                               (and (consp definition)
+                                    (symbolp (first definition))
+                                    (symbol-package (first definition))))
+                             definitions)))))
     (dolist (definition definitions)
       (unless (and (listp definition) (= (length definition) 2)
                    (symbolp (first definition)) (not (keywordp (first definition))))
         (grammar-fail "Expected (rule-name expression), got ~S" definition))
+      (when (grammar-operator-p (first definition))
+        (grammar-fail "Parser rule name ~S is a CNVRS grammar operator"
+                      (first definition)))
       (when (gethash (first definition) names)
         (grammar-fail "Duplicate rule ~S" (first definition)))
       (setf (gethash (first definition) names) t))

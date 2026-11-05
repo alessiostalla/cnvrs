@@ -23,28 +23,30 @@ See [CNVRS and ANTLR 4/Java: current differences](docs/cnvrs-vs-antlr-java.md) f
 
 | Form | Meaning |
 | --- | --- |
-| `(and a b ...)` or `(seq a b ...)` | Sequence; `(and)` matches empty input |
+| `(and a b ...)` or `(cnvrs:seq a b ...)` | Sequence; `(and)` matches empty input |
 | `(or a b ...)` | Ordered alternatives; first wins if both match |
-| `(* a)`, `(+ a)`, `(? a)` | Zero or more, one or more, optional |
-| `(label name a)` | Wrap a match in a node with `node-label` set to `name` |
-| `(alt-label name a)` | Set `node-label` on the enclosing rule node when this alternative matches |
-| `rule-name` | Reference to a rule |
-| `(token value)` | Match a token with `equal` |
-| Character, string, number, or keyword | Literal token |
+| `(* a)`, `(+ a)`, `(cnvrs:? a)` | Zero or more, one or more, optional |
+| `(cnvrs:label name a)` | Wrap a match in a node with `node-label` set to `name` |
+| `(cnvrs:alt-label name a)` | Set `node-label` on the enclosing rule node when this alternative matches |
+| `rule-name` | Reference to the exact rule symbol |
+| `(cnvrs:token value)` | Match a token with `equal` |
+| Character, string, number, or symbol from a token package | Literal token |
+
+Grammar operators are recognized by symbol identity. Use the exported `cnvrs:` operators or import them into the grammar's package. `cnvrs:and`, `cnvrs:or`, `cnvrs:*`, and `cnvrs:+` are the corresponding symbols inherited from `COMMON-LISP`. A same-named symbol in another package is a different symbol: `cnvrs:predicate`, `my-parser:predicate`, and `my-lexer:predicate` can each have a separate role. A CNVRS operator symbol cannot name a parser rule or lexer token kind; for example, `CL:AND` is `CNVRS:AND` and is rejected as a rule name. Bare parser references use exact defined rule symbols; symbols from the packages containing parser rules that are not defined signal an undefined-rule error. Use `(cnvrs:token symbol)` to match a token symbol from one of those packages explicitly.
 
 ## Defining grammars with macros
 
-`define-parser` declares a grammar in one form. The first form after its name is an optional plist with `:kind`, `:default-rule`, and `:lexer`; the remaining forms are rules. Rules may be written as `(defrule name expression ...)` or simply `(name expression ...)`:
+`define-parser` declares a grammar in one form. The first form after its name is an optional plist with `:kind`, `:default-rule`, `:lexer`, `:parser-package`, and `:lexer-package`; the remaining forms are rules. Rules may be written as `(defrule name expression ...)` or simply `(name expression ...)`:
 
 ```lisp
 (cnvrs:define-parser *assignment* (:kind :combined)
   (cnvrs:defrule assignment (and :let :name :equals value))
   (cnvrs:defrule value :number)
-  (cnvrs:defrule :space (+ (one-of " ")) :skip t)
+  (cnvrs:defrule :space (+ (cnvrs:one-of " ")) :skip t)
   (cnvrs:defrule :let "let")
-  (cnvrs:defrule :name (+ (range #\a #\z)))
+  (cnvrs:defrule :name (+ (cnvrs:range #\a #\z)))
   (cnvrs:defrule :equals #\=)
-  (cnvrs:defrule :number (+ (range #\0 #\9))))
+  (cnvrs:defrule :number (+ (cnvrs:range #\0 #\9))))
 
 (cnvrs:parse *assignment* "let x = 42")
 (cnvrs:parse *assignment* "42" :rule 'value) ; starts at any named parser rule
@@ -55,8 +57,8 @@ The incremental style separates the declaration from its rules. `in-parser` sele
 ```lisp
 (cnvrs:define-parser *words* (:kind :lexer))
 (cnvrs:in-parser *words*)
-(cnvrs:defrule :space (+ (one-of " ")) :skip t)
-(cnvrs:defrule :word (+ (range #\a #\z)))
+(cnvrs:defrule :space (+ (cnvrs:one-of " ")) :skip t)
+(cnvrs:defrule :word (+ (cnvrs:range #\a #\z)))
 
 (cnvrs:lex *words* "one two")
 ```
@@ -65,7 +67,9 @@ The incremental style separates the declaration from its rules. `in-parser` sele
 | --- | --- |
 | `:parser` (default) | All rules are parser rules. `parse` accepts token sequences; an optional `:lexer` option attaches an existing lexer function. |
 | `:lexer` | All rules are lexer rules. `lex` accepts a source string and returns lexemes. |
-| `:combined` | Ordinary symbol names define parser rules; keyword names define lexer rules. Use `:lexer t` on a rule to give a lexer rule an ordinary symbol name. `parse` lexes and parses source strings. |
+| `:combined` | Rule symbols in `:lexer-package` define lexer rules; other rule symbols define parser rules. Use `:lexer t` to select a lexer rule explicitly. `parse` lexes and parses source strings. |
+
+For macro definitions, `:parser-package` defaults to the package of the definition variable, and `:lexer-package` defaults to `KEYWORD` for existing grammars. Supply both to put parser rules and token kinds in separate application packages. A combined grammar requires distinct packages.
 
 `:default-rule` only changes the rule used when `parse` is called without `:rule`; otherwise the first parser rule is the default. Every `parse` call may select any parser rule with `:rule`, whether the grammar was built with `compile-grammar` or `define-parser`. Only the selected entry rule must consume the entire input by default, even if its definition does not mention EOF. Calls to that same rule from within other rules have no EOF requirement. Use `:require-eof nil` to accept a prefix and inspect `node-end` for the position reached. This EOF check happens at parse time and does not alter the rule. The older `parse :start` argument remains an alias for `:rule`.
 
@@ -73,7 +77,7 @@ Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ti
 
 ### Semantic predicates and actions
 
-Both parser and lexer expressions accept `(predicate callback)` and `(action callback)` as zero-width elements, including inside sequences, alternatives, and repetitions. `callback` is a Common Lisp function or a non-keyword function name. In `compile-grammar` and `compile-lexer`, function objects can be placed directly in the supplied forms; in quoted `define-parser` and `defrule` forms, use a function name. A callback receives `(input position)`: parser input is the filtered token vector and position is a token offset; lexer input is the source string and position is a character offset. A predicate succeeds on a non-`nil` return value. Actions ignore their return values and run once, in source order, after the winning parse path or lexer rule has been selected. A failed or losing candidate does not run its actions.
+Both parser and lexer expressions accept `(cnvrs:predicate callback)` and `(cnvrs:action callback)` as zero-width elements, including inside sequences, alternatives, and repetitions. `callback` is a Common Lisp function or a non-keyword function name. In `compile-grammar` and `compile-lexer`, function objects can be placed directly in the supplied forms; in quoted `define-parser` and `defrule` forms, use a function name. A callback receives `(input position)`: parser input is the filtered token vector and position is a token offset; lexer input is the source string and position is a character offset. A predicate succeeds on a non-`nil` return value. Actions ignore their return values and run once, in source order, after the winning parse path or lexer rule has been selected. A failed or losing candidate does not run its actions.
 
 ```lisp
 (defun word-allowed (source position)
@@ -84,9 +88,9 @@ Both parser and lexer expressions accept `(predicate callback)` and `(action cal
   (format t "Matched through character ~D in ~S~%" position source))
 
 (cnvrs:compile-lexer
- '((:word (and (predicate word-allowed)
-               (+ (range #\a #\z))
-               (action word-seen)))))
+ '((:word (and (cnvrs:predicate word-allowed)
+               (+ (cnvrs:range #\a #\z))
+               (cnvrs:action word-seen)))))
 ```
 
 Predicates are reevaluated for each parse or lex call; grammars containing them use an ordered semantic matcher instead of cached DFA prediction. The parser semantic matcher supports `:node`, `:none`, and custom node builders, but error recovery is unavailable for semantic grammars. Semantic callbacks can affect application state, so callers should keep predicates free of side effects. Action callbacks should also avoid changing input used by the active match.
@@ -95,14 +99,14 @@ This callback API is not fully equivalent to ANTLR's generated Java parser. CNVR
 
 ### Direct left recursion
 
-An alternative may start with its own rule name. Recursive alternatives are listed from lowest to highest precedence; repetitions of one alternative associate to the left. Wrap an alternative in `(right ...)` to associate to the right:
+An alternative may start with its own rule name. Recursive alternatives are listed from lowest to highest precedence; repetitions of one alternative associate to the left. Wrap an alternative in `(cnvrs:right ...)` to associate to the right:
 
 ```lisp
 (defparameter *expr*
   (cnvrs:compile-grammar
    '((expr (or (and expr :+ expr)
                (and expr :* expr)
-               (right (and expr :^ expr))
+               (cnvrs:right (and expr :^ expr))
                (and :open expr :close)
                :number)))))
 ```
@@ -111,7 +115,7 @@ Here multiplication binds more tightly than addition, and exponentiation binds m
 
 `parse` accepts a sequence of tokens: a string is a sequence of characters, while a list or vector can contain arbitrary token values. It consumes the whole input and returns `node` structs. Each node has a rule name, ordered children, start/end token offsets, and an optional `node-label` (NIL when absent). Children are literal tokens or nodes for referenced rules. A labeled element produces a `:label` node containing its matched tokens or rule nodes; repetition produces one such node per match. An alternative label appears on the enclosing rule node. Invalid grammars signal `cnvrs:grammar-error`.
 
-Use `(not-token (:a :b))` in a parser rule to consume one token whose kind is neither `:a` nor `:b`. It never matches end of input. With `lexeme` input, the comparison uses `lexeme-kind`.
+Use `(cnvrs:not-token (:a :b))` in a parser rule to consume one token whose kind is neither `:a` nor `:b`. It never matches end of input. With `lexeme` input, the comparison uses `lexeme-kind`.
 
 ## Lexing
 
@@ -128,18 +132,18 @@ Supply a lexer to `compile-grammar` with `:lexer`, or override it for one call w
 (cnvrs:parse *parser* "x")
 ```
 
-`compile-lexer` compiles lexer rules in the Lisp image and returns a `compiled-lexer` structure. Pass it to `lex`, or attach it to a parser with `:lexer`. Rules have the form `(kind expression &key skip channel mode push-mode pop-mode set-mode)`. Expressions support characters, strings, rule references, `(and ...)`/`(seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(? expression)`, nongreedy `(*? expression)`, `(+? expression)`, `(?? expression)`, `(range low high)`, `(one-of "characters")`, `(not-one-of (#\a #\b ...))`, and `(any)`. Lexer references may use symbols or keywords, including direct and indirect recursion for nested constructs. Every recursive path must consume a character before returning to the same rule; left recursion and cycles without progress are rejected. A rule must consume at least one character. A second return value matches one token at a given source position; `lexer-matcher` exposes it for compiled lexers and macro-defined lexer grammars. The compiled lexer itself is no longer a function designator, so use `lex` instead of `funcall`.
+`compile-lexer` compiles lexer rules in the Lisp image and returns a `compiled-lexer` structure. Pass it to `lex`, or attach it to a parser with `:lexer`. Rules have the form `(kind expression &key skip channel mode push-mode pop-mode set-mode)`. Expressions support characters, strings, rule references, `(and ...)`/`(cnvrs:seq ...)`, `(or ...)`, `(* expression)`, `(+ expression)`, `(cnvrs:? expression)`, nongreedy `(cnvrs:*? expression)`, `(cnvrs:+? expression)`, `(cnvrs:?? expression)`, `(cnvrs:range low high)`, `(cnvrs:one-of "characters")`, `(cnvrs:not-one-of (#\a #\b ...))`, and `(cnvrs:any)`. Lexer references may use symbols or keywords, including direct and indirect recursion for nested constructs. Every recursive path must consume a character before returning to the same rule; left recursion and cycles without progress are rejected. A rule must consume at least one character. A second return value matches one token at a given source position; `lexer-matcher` exposes it for compiled lexers and macro-defined lexer grammars. The compiled lexer itself is no longer a function designator, so use `lex` instead of `funcall`.
 
-For example, `((:block (and #\{ (* (or :block (not-one-of "{}"))) #\})) (:other (any)))` matches `{a{b}c}` as one token. Recursive rules use the ordered matcher; ordinary rules retain the DFA path.
+For example, `((:block (and #\{ (* (or :block (cnvrs:not-one-of "{}"))) #\})) (:other (cnvrs:any)))` matches `{a{b}c}` as one token. Recursive rules use the ordered matcher; ordinary rules retain the DFA path.
 
 ```lisp
 (defparameter *lexer*
   (cnvrs:compile-lexer
-   '((:space (+ (one-of " ")) :skip t)
+   '((:space (+ (cnvrs:one-of " ")) :skip t)
      (:let "let")
-     (:name (+ (range #\a #\z)))
+     (:name (+ (cnvrs:range #\a #\z)))
      (:equals #\=)
-     (:number (+ (range #\0 #\9))))))
+     (:number (+ (cnvrs:range #\0 #\9))))))
 
 (defparameter *parser*
   (cnvrs:compile-grammar
@@ -157,11 +161,11 @@ Lexer rules belong to `:default` mode unless they specify `:mode`. Only rules in
 
 ```lisp
 (cnvrs:define-parser *quoted-words* (:kind :lexer)
-  (cnvrs:defrule :word (+ (range #\a #\z)))
+  (cnvrs:defrule :word (+ (cnvrs:range #\a #\z)))
   (cnvrs:defrule :space #\Space :skip t)
   (cnvrs:defrule :open #\" :push-mode :string :skip t)
   (cnvrs:with-mode :string
-    (cnvrs:defrule :text (+ (range #\a #\z)))
+    (cnvrs:defrule :text (+ (cnvrs:range #\a #\z)))
     (cnvrs:defrule :close #\" :pop-mode t :skip t)))
 
 (map 'list #'cnvrs:lexeme-kind
@@ -180,8 +184,8 @@ Rules use the `:default` channel unless they specify `:channel`. Tokens on other
 ```lisp
 (defparameter *lexer*
   (cnvrs:compile-lexer
-   '((:name (+ (range #\a #\z)))
-     (:space (+ (one-of " ")) :channel :trivia))))
+   '((:name (+ (cnvrs:range #\a #\z)))
+     (:space (+ (cnvrs:one-of " ")) :channel :trivia))))
 
 (cnvrs:lex *lexer* "x ")  ; => lexemes on :default and :trivia
 (cnvrs:parse (cnvrs:compile-grammar '((start :name)) :lexer *lexer*) "x ")
@@ -240,27 +244,34 @@ At a token mismatch, no argument to `insert-tokens` inserts the expected token. 
 The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars-v4/tree/master/antlr/antlr4) is implemented in the `cnvrs/antlr4` package with CNVRS parser and lexer rules. `parse` converts supported `.g4` syntax into a CNVRS grammar definition:
 
 ```lisp
+(defpackage #:example/parser (:use #:cl) (:export #:start))
+(defpackage #:example/lexer (:use #:cl) (:export #:id #:ws))
+
 (let* ((grammar (cnvrs/antlr4:parse
-                 "grammar Example; start : ID EOF; ID : [a-z]+; WS : [ ]+ -> skip;"))
+                 "grammar Example; start : ID EOF; ID : [a-z]+; WS : [ ]+ -> skip;"
+                 :parser-package (find-package '#:example/parser)
+                 :lexer-package (find-package '#:example/lexer)))
        (compiled (cnvrs:ensure-compiled grammar)))
   (cnvrs:parse compiled "hello"))
 ;; => a START node
 ```
 
-The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; compilation happens on first use. `cnvrs/antlr4:parse-tree` returns the ANTLR syntax tree and accepts `:rule` to select a grammar entry rule. `cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer adaptor handles action blocks, brackets, and context-dependent identifier token types.
+`cnvrs/antlr4:parse` requires `:parser-package` and `:lexer-package` package designators. It interns parser rule names in the former and lexer rule names, token kinds, and lexer mode names in the latter. Imported symbols remain the user's package choice; it does not force token kinds into `KEYWORD`. The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; compilation happens on first use. `cnvrs/antlr4:parse-tree` returns the ANTLR syntax tree and accepts `:rule` to select a grammar entry rule. `cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer adaptor handles action blocks, brackets, and context-dependent identifier token types.
 
-Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, nongreedy lexer suffixes `??`, `*?`, `+?`, literals, character ranges and sets, negated block sets (`~(A|B)` in parser rules and `~('a'|'b'..'d')` in lexer rules), fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. Parser element labels (`name=atom`, `names+=atom`, and labeled groups) become labeled element nodes; alternative labels (`#Name`) appear on the matching rule node. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Parser negated token sets compile to `(not-token (:a :b))` and consume one token whose kind is outside the set.
+Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, nongreedy lexer suffixes `??`, `*?`, `+?`, literals, character ranges and sets, negated block sets (`~(A|B)` in parser rules and `~('a'|'b'..'d')` in lexer rules), fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. Parser element labels (`name=atom`, `names+=atom`, and labeled groups) become labeled element nodes; alternative labels (`#Name`) appear on the matching rule node. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Parser negated token sets compile to `(cnvrs:not-token (:a :b))` and consume one token whose kind is outside the set.
 
 ANTLR rule action blocks and semantic predicates (`{...}?`) can be connected to Common Lisp callbacks with `cnvrs/antlr4:parse`'s `:callbacks` argument. Supply an alist or hash table mapping the exact block text, including braces, to function names or function objects. The callback contract is the same as for Lisp grammar forms. Every rule action or predicate block needs a mapping; CNVRS does not evaluate code written in another ANTLR target language.
 
 ```lisp
 (cnvrs/antlr4:parse
  "grammar Example; start : {ready()}? WORD {record()}; WORD : [a-z]+;"
+ :parser-package (find-package '#:example/parser)
+ :lexer-package (find-package '#:example/lexer)
  :callbacks (list (cons "{ready()}" #'ready-p)
                   (cons "{record()}" #'record-match)))
 ```
 
-For direct left recursion in `.g4` input, the converter preserves ANTLR's source-order precedence for recursive and prefix alternatives: earlier alternatives bind more tightly. It accepts `<assoc=right>` and `<assoc=left>` on outer parser alternatives. Native Lisp grammar forms continue to list recursive alternatives from lowest to highest precedence, with `(right ...)` for right associativity.
+For direct left recursion in `.g4` input, the converter preserves ANTLR's source-order precedence for recursive and prefix alternatives: earlier alternatives bind more tightly. It accepts `<assoc=right>` and `<assoc=left>` on outer parser alternatives. Native Lisp grammar forms continue to list recursive alternatives from lowest to highest precedence, with `(cnvrs:right ...)` for right associativity.
 
 Grammar prequels (`options`, `import`, `tokens`, `channels`, and `@` actions) are retained in source order as `(:prequels ...)` metadata. Read them through `parser-definition-metadata` on the returned definition, `parser-metadata` on a compiled parser, or `compiled-lexer-metadata` on a compiled lexer. Each entry is `(:options ((name value) ...))`, `(:imports ((alias name) ...))` (alias is `nil` when absent), `(:tokens (name ...))`, `(:channels (name ...))`, or `(:action (:scope scope :name name :body source))`. These declarations are available for inspection; CNVRS does not execute prequel actions, load imported grammars, or apply grammar options such as `caseInsensitive` and `tokenVocab`. Rule actions and predicates without callback mappings, and unsupported lexer commands, raise `cnvrs:grammar-error` during conversion.
 

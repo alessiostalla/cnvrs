@@ -1,8 +1,26 @@
+(defpackage #:cnvrs/tests/parser
+  (:use #:cl)
+  (:shadow #:predicate)
+  (:export #:start #:predicate))
+
+(defpackage #:cnvrs/tests/lexer
+  (:use #:cl)
+  (:export #:predicate))
+
 (defpackage #:cnvrs/tests
   (:use #:cl)
+  (:import-from #:cnvrs #:seq #:? #:*? #:+? #:?? #:range #:one-of
+                #:not-one-of #:any #:label #:alt-label #:token #:not-token
+                #:predicate #:action #:right)
   (:export #:run-tests))
 
 (in-package #:cnvrs/tests)
+
+(defun antlr-parse (source &rest options)
+  (apply #'cnvrs/antlr4:parse source
+         :parser-package (find-package '#:cnvrs/antlr4)
+         :lexer-package (find-package :keyword)
+         options))
 
 (cnvrs:define-parser *inline-parser* (:kind :parser :default-rule start)
   (cnvrs:defrule start (and :open item :close))
@@ -109,6 +127,13 @@
     (cnvrs:defrule :string-text (+ (range #\a #\z)))
     (cnvrs:defrule :close #\" :skip t :pop-mode t)))
 
+(cnvrs:define-parser *packaged-combined*
+    (:kind :combined
+     :parser-package (find-package '#:cnvrs/tests/parser)
+     :lexer-package (find-package '#:cnvrs/tests/lexer))
+  (cnvrs/tests/parser:start cnvrs/tests/lexer:predicate)
+  (cnvrs/tests/lexer:predicate "x"))
+
 (defvar *checks* 0)
 
 (defun check (condition description)
@@ -125,6 +150,66 @@
 
 (defun run-tests ()
   (setf *checks* 0)
+  (check (and (not (eq 'cnvrs:predicate
+                       'cnvrs/tests/parser:predicate))
+              (not (eq 'cnvrs:predicate
+                       'cnvrs/tests/lexer:predicate))
+              (not (eq 'cnvrs/tests/parser:predicate
+                       'cnvrs/tests/lexer:predicate))
+              (eq 'cnvrs:and 'cl:and))
+         "operator, parser rule, and token symbols have distinct identities")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-grammar '((cl:and :x))))
+         "CL:AND cannot be used as a parser rule name because it is CNVRS:AND")
+  (check (signals cnvrs:grammar-error
+           (cnvrs:compile-lexer '((cnvrs:predicate "x"))))
+         "CNVRS operator cannot be used as a lexer token kind")
+  (let* ((lexer (cnvrs:compile-lexer
+                 '((cnvrs/tests/lexer:predicate "x"))))
+         (parser (cnvrs:compile-grammar
+                  '((cnvrs/tests/parser:start
+                     (cnvrs:and cnvrs/tests/parser:predicate
+                                cnvrs/tests/lexer:predicate))
+                    (cnvrs/tests/parser:predicate
+                     cnvrs/tests/lexer:predicate))
+                  :lexer lexer)))
+    (check (eq (cnvrs:node-rule (cnvrs:parse parser "xx"))
+               'cnvrs/tests/parser:start)
+           "native grammar distinguishes parser and lexer packages")
+    (check (signals cnvrs:grammar-error
+             (cnvrs:compile-grammar
+              '((cnvrs/tests/parser:start
+                 (cnvrs/tests/parser:predicate
+                  cnvrs/tests/lexer:predicate)))))
+           "same-named parser symbol cannot impersonate a CNVRS operator")
+    (check (signals cnvrs:grammar-error
+             (cnvrs:compile-lexer
+              '((cnvrs/tests/lexer:predicate
+                 (cnvrs/tests/lexer:predicate "x")))))
+           "same-named lexer symbol cannot impersonate a CNVRS operator"))
+  (let ((parser (cnvrs:compile-grammar
+                 '((cnvrs/tests/parser:start
+                    (cnvrs:token cnvrs/tests/parser:predicate))))))
+    (check (eq (cnvrs:node-rule
+                (cnvrs:parse parser '(cnvrs/tests/parser:predicate)))
+               'cnvrs/tests/parser:start)
+           "explicit token form disambiguates a token in the parser package"))
+  (check (eq (cnvrs:node-rule (cnvrs:parse *packaged-combined* "x"))
+             'cnvrs/tests/parser:start)
+         "combined grammar classifies rules by selected packages")
+  (let* ((grammar (cnvrs/antlr4:parse
+                   "grammar Packaged; start : PREDICATE; PREDICATE : 'x';"
+                   :parser-package (find-package '#:cnvrs/tests/parser)
+                   :lexer-package (find-package '#:cnvrs/tests/lexer)))
+         (tree (cnvrs:parse grammar "x")))
+    (check (eq (cnvrs:node-rule tree) 'cnvrs/tests/parser:start)
+           "ANTLR importer interns parser rules in the selected package")
+    (check (eq (cnvrs:lexeme-kind (aref (cnvrs:lex grammar "x") 0))
+               'cnvrs/tests/lexer:predicate)
+           "ANTLR importer interns token kinds in the selected package"))
+  (check (signals cnvrs:grammar-error
+           (cnvrs/antlr4:parse "lexer grammar Missing; X : 'x';"))
+         "ANTLR importer requires explicit packages")
   (let* ((parser (cnvrs:compile-grammar
                   '((start (and item :end)) (item :name))))
          (sink (make-event-sink)))
@@ -351,7 +436,7 @@
            "disjoint optional bypasses contextual prediction"))
   (let* ((grammar (cnvrs:compile-grammar
                    '((left (and opt :b))
-                     (right (and opt :c))
+                     (right-branch (and opt :c))
                      (opt (? :a)))))
          (choice (find-if (lambda (state)
                             (and (cnvrs:state-exit-alternative state)
@@ -360,7 +445,7 @@
     (check (hash-table-p (cnvrs:state-direct-lookahead choice))
            "optional FOLLOW includes every caller and EOF")
     (dolist (case '((left (:b)) (left (:a :b))
-                    (right (:c)) (right (:a :c))
+                    (right-branch (:c)) (right-branch (:a :c))
                     (opt ()) (opt (:a))))
       (check (eq (cnvrs:node-rule
                   (cnvrs:parse grammar (second case) :rule (first case)))
@@ -1392,7 +1477,7 @@ options {")))
               (cnvrs/antlr4:parse-tree
                "grammar T; r : ID { a=`}`; b=\"\"\"}\"\"\"; }; ID : 'x';"))
              "ANTLR4 adaptor handles backtick and triple quoted actions"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "grammar Tiny; start : 'let' ID EOF; fragment LETTER : [a-z]; ID : LETTER+; WS : [ ]+ -> skip;"))
            (compiled (cnvrs:ensure-compiled grammar)))
       (check (cnvrs:parser-definition-p grammar)
@@ -1406,7 +1491,7 @@ options {")))
              "ANTLR4 grammar rejects invalid input"))
     (let* ((source (uiop:read-file-string
                     (merge-pathnames "JSON.g4" directory)))
-           (grammar (cnvrs/antlr4:parse source))
+           (grammar (antlr-parse source))
            (compiled (cnvrs:ensure-compiled grammar)))
       (check (cnvrs:parser-p compiled)
              "grammars-v4 JSON grammar compiles unchanged")
@@ -1425,7 +1510,7 @@ options {")))
              "grammars-v4 JSON excludes unescaped control characters"))
     (let* ((source (uiop:read-file-string
                     (merge-pathnames "IRI.g4" directory)))
-           (grammar (cnvrs/antlr4:parse source))
+           (grammar (antlr-parse source))
            (compiled (cnvrs:ensure-compiled grammar)))
       (check (cnvrs:parser-p compiled)
              "grammars-v4 IRI grammar compiles unchanged")
@@ -1441,7 +1526,7 @@ options {")))
                        "http://example.org/%GG"))
         (check (signals error (cnvrs:parse compiled input))
                (format nil "grammars-v4 IRI rejects ~S" input))))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "grammar LabeledToken; start : item=ID EOF; ID : [a-z]+;"))
            (tree (cnvrs:parse grammar "word"))
            (item (first (cnvrs:node-children tree))))
@@ -1451,10 +1536,10 @@ options {")))
                             (first (cnvrs:node-children item)))
                            "word"))
              "combined ANTLR grammar retains token label and lexeme"))
-    (let ((grammar (cnvrs/antlr4:parse "parser grammar Tokens; start : ID EOF;")))
+    (let ((grammar (antlr-parse "parser grammar Tokens; start : ID EOF;")))
       (check (cnvrs:parser-p (cnvrs:ensure-compiled grammar))
              "parser grammar compiles without an attached lexer"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "parser grammar Negated; start : ~(A|B)+ EOF;")))
       (check (cnvrs:node-p (cnvrs:parse grammar '(:c :d)))
              "ANTLR4 parser negated block set accepts other token kinds")
@@ -1462,11 +1547,11 @@ options {")))
              "ANTLR4 parser negated block set rejects excluded token")
       (check (signals cnvrs:parse-error (cnvrs:parse grammar '()))
              "ANTLR4 parser negated block set requires input"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "parser grammar NegatedSingle; start : ~A EOF;")))
       (check (cnvrs:node-p (cnvrs:parse grammar '(:b)))
              "ANTLR4 parser single negated token compiles"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "parser grammar Prequels; options { tokenVocab = Shared; language = Java; } import Base, Alias=Other; tokens { EXTERNAL, } channels { CUSTOM, } @header {class X {}} start : EXTERNAL EOF;"))
            (metadata (cnvrs:parser-definition-metadata grammar))
            (prequels (getf metadata :prequels))
@@ -1490,12 +1575,12 @@ options {")))
              "prequel metadata survives parser compilation")
       (check (cnvrs:node-p (cnvrs:parse grammar '(:external)))
              "declared external token remains usable in parser grammar"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "grammar Choice; start : ('a' | 'b')+ EOF;")))
       (check (eq (cnvrs:node-rule (cnvrs:parse grammar "abba"))
                  'cnvrs/antlr4::start)
              "ANTLR4 grouped alternatives and suffix compile"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "parser grammar Labels; start : first=ID more+=ID* #Many | pair=(A B)+ #Pair;")))
       (let* ((tree (cnvrs:parse grammar '(:id :id :id)))
              (children (cnvrs:node-children tree)))
@@ -1523,7 +1608,7 @@ options {")))
       (check (signals cnvrs:parse-error
                (cnvrs:parse grammar '(:a :b :a)))
              "ANTLR4 labeled group still enforces its repetition"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "parser grammar LabeledExpr; expr : left=expr PLUS right=expr #Add | INT #Number;"))
            (tree (cnvrs:parse grammar '(:int :plus :int)))
            (children (cnvrs:node-children tree)))
@@ -1537,7 +1622,7 @@ options {")))
                        (first (cnvrs:node-children (first children))))
                       'cnvrs/antlr4::number))
              "left-recursive ANTLR element labels survive normalization"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "parser grammar Precedence; expr : expr STAR expr #Multiply | expr PLUS expr #Add | INT #Number;"))
            (sum (cnvrs:parse grammar '(:int :plus :int :star :int)))
            (product (cnvrs:parse grammar '(:int :star :int :plus :int))))
@@ -1550,7 +1635,7 @@ options {")))
                        (first (cnvrs:node-children product)))
                       'cnvrs/antlr4::multiply))
              "ANTLR4 earlier recursive alternative has higher precedence"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "parser grammar Associativity; expr : <assoc=right> expr CARET expr #Power | <assoc=left> expr STAR expr #Multiply | INT #Number;"))
            (power (cnvrs:parse grammar '(:int :caret :int :caret :int)))
            (product (cnvrs:parse grammar '(:int :caret :int :star :int))))
@@ -1565,12 +1650,12 @@ options {")))
                       'cnvrs/antlr4::power))
              "ANTLR4 associativity and precedence options convert"))
     (check (signals cnvrs:grammar-error
-             (cnvrs/antlr4:parse
+             (antlr-parse
               "parser grammar BadAssoc; expr : <assoc=middle> expr CARET expr | INT;"))
            "unsupported ANTLR4 associativity option is rejected")
-    (let* ((tight (cnvrs/antlr4:parse
+    (let* ((tight (antlr-parse
                    "parser grammar TightPrefix; expr : MINUS expr #Negate | expr STAR expr #Multiply | INT #Number;"))
-           (loose (cnvrs/antlr4:parse
+           (loose (antlr-parse
                    "parser grammar LoosePrefix; expr : expr STAR expr #Multiply | MINUS expr #Negate | INT #Number;"))
            (tight-tree (cnvrs:parse tight '(:minus :int :star :int)))
            (loose-tree (cnvrs:parse loose '(:minus :int :star :int))))
@@ -1585,7 +1670,7 @@ options {")))
                        (second (cnvrs:node-children loose-tree)))
                       'cnvrs/antlr4::multiply))
              "ANTLR4 prefix alternatives use source-order precedence"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "parser grammar LabeledOperand; expr : expr STAR rhs=expr #Multiply | expr PLUS expr #Add | INT #Number;"))
            (tree (cnvrs:parse grammar '(:int :plus :int :star :int))))
       (check (and (eq (cnvrs:node-label tree) 'cnvrs/antlr4::add)
@@ -1593,7 +1678,7 @@ options {")))
                        (third (cnvrs:node-children tree)))
                       'cnvrs/antlr4::multiply))
              "labeled right operands retain ANTLR4 precedence"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "parser grammar LabeledPower; expr : <assoc=right> expr CARET rhs=expr #Power | INT #Number;"))
            (tree (cnvrs:parse grammar '(:int :caret :int :caret :int)))
            (right-label (third (cnvrs:node-children tree))))
@@ -1603,16 +1688,16 @@ options {")))
                        (first (cnvrs:node-children right-label)))
                       'cnvrs/antlr4::power))
              "labeled right operands retain ANTLR4 right associativity"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "parser grammar PrefixAssoc; expr : <assoc=right> MINUS expr #Negate | expr STAR expr #Multiply | INT #Number;"))
            (tree (cnvrs:parse grammar '(:minus :int :star :int))))
       (check (eq (cnvrs:node-label tree) 'cnvrs/antlr4::multiply)
              "associativity option on ANTLR4 prefix alternative is accepted"))
-    (let ((grammar (cnvrs/antlr4:parse "lexer grammar Letters; A : 'a';")))
+    (let ((grammar (antlr-parse "lexer grammar Letters; A : 'a';")))
       (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "aa"))
                     '(:a :a))
              "ANTLR4 lexer grammar compiles"))
-    (let* ((grammar (cnvrs/antlr4:parse
+    (let* ((grammar (antlr-parse
                      "lexer grammar NegatedChars; options { language = Java; } NOT : ~('a' | 'b'..'d' | [x-z])+;"))
            (compiled (cnvrs:ensure-compiled grammar)))
       (check (equal (map 'list #'cnvrs:lexeme-text (cnvrs:lex grammar "ew"))
@@ -1623,7 +1708,7 @@ options {")))
       (check (equal (cnvrs:parser-definition-metadata grammar)
                     (cnvrs:compiled-lexer-metadata compiled))
              "prequel metadata survives lexer compilation"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "lexer grammar Lazy; STAR : '<' .*? '>'; PLUS : '[' .+? ']'; OPTIONAL : 'a' 'x'?? 'x'; OTHER : .;")))
       (check (every (lambda (entry) (functionp (third entry)))
                     (cnvrs::compiled-lexer-ordered-rules
@@ -1648,7 +1733,7 @@ options {")))
                          (cnvrs:lex grammar "xxc"))
                     '("xxc"))
              "compiled nongreedy matcher honors negated character ranges"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "lexer grammar LazyPriority; SHORT : '<' .*? '>'; LONG : '<' .* '>'; OTHER : .;")))
       (check (equal (map 'list #'cnvrs:lexeme-kind
                          (cnvrs:lex grammar "<x>"))
@@ -1658,34 +1743,34 @@ options {")))
                          (cnvrs:lex grammar "<x>y>"))
                     '(:long))
              "longer greedy rule wins over a nongreedy rule"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "lexer grammar LazyAlternatives; TOKEN : 'a' | 'ab' .*? 'c'; OTHER : .;")))
       (check (equal (map 'list #'cnvrs:lexeme-text
                          (cnvrs:lex grammar "abc"))
                     '("abc"))
              "alternatives before a nongreedy suffix still take the longest match"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "lexer grammar LazyFragment; fragment BODY : .*? '>'; SHORT : '<' BODY; OTHER : .;")))
       (check (equal (map 'list #'cnvrs:lexeme-text
                          (cnvrs:lex grammar "<x>y>"))
                     '("<x>" "y" ">"))
              "nongreedy suffix works through a fragment reference"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "lexer grammar Nested; BLOCK : NESTED; fragment NESTED : '{' (NESTED | ~[{}])* '}'; OTHER : .;")))
       (check (equal (map 'list #'cnvrs:lexeme-text
                          (cnvrs:lex grammar "{a{b}c}x"))
                     '("{a{b}c}" "x"))
              "ANTLR4 recursive lexer fragment balances delimiters"))
-    (let ((grammar (cnvrs/antlr4:parse
+    (let ((grammar (antlr-parse
                     "lexer grammar Modes; OPEN : '<' -> pushMode(TAG); WORD : [a-z]+; mode TAG; CLOSE : '>' -> popMode; TEXT : [a-z]+;")))
       (check (equal (map 'list #'cnvrs:lexeme-kind (cnvrs:lex grammar "<abc>abc"))
                     '(:open :text :close :word))
              "ANTLR4 lexer modes and commands compile"))
     (check (signals cnvrs:grammar-error
-             (cnvrs/antlr4:parse "grammar Actions; start : ID {run();}; ID : 'x';"))
+             (antlr-parse "grammar Actions; start : ID {run();}; ID : 'x';"))
            "ANTLR4 conversion requires explicit callbacks")
     (let* ((events nil)
-           (grammar (cnvrs/antlr4:parse
+           (grammar (antlr-parse
                      "grammar Semantic; start : {allow()}? ID {done()}; ID : 'x' {seen()};"
                      :callbacks
                      (list (cons "{allow()}"
@@ -1703,7 +1788,7 @@ options {")))
       (check (equal (reverse events) '((:lexer 1) (:parser 1)))
              "ANTLR4 parser and lexer action blocks use callbacks"))
     (let* ((allowed nil)
-           (grammar (cnvrs/antlr4:parse
+           (grammar (antlr-parse
                      "lexer grammar Guard; GUARDED : {allowed()}? 'x'; FALLBACK : 'x';"
                      :callbacks
                      (list (cons "{allowed()}"
@@ -1717,7 +1802,7 @@ options {")))
                  :guarded)
              "ANTLR4 lexer predicate can select a rule"))
     (let* ((events nil)
-           (grammar (cnvrs/antlr4:parse
+           (grammar (antlr-parse
                      "lexer grammar FragmentAction; fragment PART : 'a' {fragmentSeen()}; TOP : PART {topSeen()};"
                      :callbacks
                      (list (cons "{fragmentSeen()}"

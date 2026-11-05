@@ -1,7 +1,11 @@
 (defpackage #:cnvrs
   (:use #:cl)
   (:shadow #:parse-error)
-  (:export #:compile-grammar #:compile-lexer #:compile-cached-dfa #:parse #:lex
+  (:export #:seq #:? #:*? #:+? #:?? #:range #:one-of #:not-one-of #:any
+           #:label #:alt-label #:token #:not-token #:predicate #:action #:right
+           #:antlr-precedence
+           #:and #:or #:* #:+
+           #:compile-grammar #:compile-lexer #:compile-cached-dfa #:parse #:lex
            #:ensure-compiled #:clone-compiled #:clear-cache
            #:make-parse-node #:parse-node-components
            #:parse-build-tree-p #:parse-rule-enter #:parse-token-consumed
@@ -15,6 +19,7 @@
            #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
            #:parser-metadata #:parser-definition-metadata
+           #:parser-definition-parser-package #:parser-definition-lexer-package
            #:parser-tree-builder #:parser-runner #:parser-node-runner
            #:parser-decisions #:parser-sll-decisions #:parser-direct-decisions
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
