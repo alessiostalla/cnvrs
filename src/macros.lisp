@@ -102,10 +102,15 @@
                 form (parser-definition-kind definition)
                 (parser-definition-lexer-package definition)))
          (name (first rule)))
-    (when (find name (parser-definition-rules definition)
-                :key #'first :test #'eq)
-      (grammar-fail "Duplicate rule ~S in ~S"
-                    name (parser-definition-name definition)))
+    (let ((previous (find name (parser-definition-rules definition)
+                          :key #'first :test #'eq)))
+      (when previous
+        (if (eq (third previous) (third rule))
+            (grammar-fail "Duplicate rule ~S in ~S"
+                          name (parser-definition-name definition))
+            (grammar-fail
+             "~S is both a parser rule name and a lexer token kind in ~S"
+             name (parser-definition-name definition)))))
     (setf (parser-definition-rules definition)
           (append (parser-definition-rules definition) (list rule))
           (parser-definition-compiled definition) nil)

@@ -164,6 +164,22 @@
   (check (signals cnvrs:grammar-error
            (cnvrs:compile-lexer '((cnvrs:predicate "x"))))
          "CNVRS operator cannot be used as a lexer token kind")
+  (let ((lexer (cnvrs:compile-lexer
+                '((cnvrs/tests/parser:start "x")))))
+    (check (signals cnvrs:grammar-error
+             (cnvrs:compile-grammar
+              '((cnvrs/tests/parser:start
+                 (cnvrs:token cnvrs/tests/parser:start)))
+              :lexer lexer))
+           "compiled parser rejects a rule and lexer kind with one symbol"))
+  (let ((parser (cnvrs:compile-grammar
+                 '((cnvrs/tests/parser:start :x)))))
+    (check (signals cnvrs:grammar-error
+             (cnvrs:parse parser "x"
+                          :lexer (lambda (source)
+                                   (declare (ignore source))
+                                   (vector 'cnvrs/tests/parser:start))))
+           "custom lexer overlap is detected when its tokens are returned"))
   (let* ((lexer (cnvrs:compile-lexer
                  '((cnvrs/tests/lexer:predicate "x"))))
          (parser (cnvrs:compile-grammar
@@ -210,6 +226,18 @@
   (check (signals cnvrs:grammar-error
            (cnvrs/antlr4:parse "lexer grammar Missing; X : 'x';"))
          "ANTLR importer requires explicit packages")
+  (check (signals cnvrs:grammar-error
+           (cnvrs/antlr4:parse
+            "grammar Same; start : X; X : 'x';"
+            :parser-package '#:cnvrs/tests/parser
+            :lexer-package '#:cnvrs/tests/parser))
+         "ANTLR importer rejects identical parser and lexer packages")
+  (check (signals cnvrs:grammar-error
+           (cnvrs/antlr4:parse
+            "grammar Clash; block : BLOCK; BLOCK : 'x';"
+            :parser-package '#:cnvrs/tests/parser
+            :lexer-package '#:cnvrs/tests/lexer))
+         "ANTLR importer rejects one imported symbol in both roles")
   (let* ((parser (cnvrs:compile-grammar
                   '((start (and item :end)) (item :name))))
          (sink (make-event-sink)))

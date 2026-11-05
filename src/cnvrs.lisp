@@ -59,6 +59,13 @@
                    label alt-label token not-token predicate action right
                    antlr-precedence defrule with-mode)))
 
+(defun check-lexer-kind-overlap (rule-names lexer)
+  (when (compiled-lexer-p lexer)
+    (loop for kind across (compiled-lexer-kinds lexer)
+          when (gethash kind rule-names)
+            do (grammar-fail "~S is both a parser rule name and a lexer token kind"
+                             kind))))
+
 (defvar *parser-rule-packages* nil)
 
 (defun expression-kind (expression)
@@ -525,6 +532,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
       (when (gethash (first definition) names)
         (grammar-fail "Duplicate rule ~S" (first definition)))
       (setf (gethash (first definition) names) t))
+    (check-lexer-kind-overlap names lexer)
     (setf default-rule (or default-rule (first (first definitions))))
     (unless (gethash default-rule names)
       (grammar-fail "Unknown default rule ~S" default-rule))
@@ -1206,6 +1214,16 @@ the restarts at each error site to make a different local repair."
     (declare (type fixnum position state-id
                    automatic-insert-position automatic-insert-count)
              (type vector input))
+    (when lexer
+      (when lexer-supplied-p
+        (check-lexer-kind-overlap (parser-starts grammar) lexer))
+      (unless (compiled-lexer-p lexer)
+        (loop for token across lexed
+              for kind = (token-key token)
+              when (gethash kind (parser-starts grammar))
+                do (grammar-fail
+                     "~S is both a parser rule name and a lexer token kind"
+                     kind))))
     (when (parser-semantic-rules grammar)
       (when recover
         (grammar-fail "Recovery is not supported with semantic callbacks"))
