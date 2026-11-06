@@ -474,6 +474,26 @@
                   (signals cnvrs:parse-error
                     (cnvrs:parse interpreted '(:a :wrong) :tree-builder builder)))
              "invalid input retains generic parser errors")))
+  (let* ((names (loop for i below 300
+                      collect (make-symbol (format nil "LARGE-RULE-~D" i))))
+         (grammar (cnvrs:compile-grammar
+                   (cons (list 'start (first names))
+                         (loop for (name next) on names
+                               collect (list name (if next `(and :x ,next) :x))))))
+         (tokens (make-array 300 :initial-element :x))
+         (copy (cnvrs:clone-compiled grammar)))
+    ;; Call the runners directly: PARSE can fall back to the generic engine.
+    (check (funcall (cnvrs:parser-runner grammar) grammar tokens 'start t)
+           "separately compiled rules recognize a large rule-call chain")
+    (let ((tree (funcall (cnvrs:parser-node-runner copy) copy tokens 'start t)))
+      (check (and (eq (cnvrs:node-rule tree) 'start)
+                  (= (cnvrs:node-end tree) 300))
+             "cloned runners build trees across independently compiled rules"))
+    (check (not (funcall (cnvrs:parser-runner grammar)
+                        grammar (subseq tokens 0 299) 'start t))
+           "separately compiled rules propagate a nested failure")
+    (check (funcall (cnvrs:parser-runner grammar) grammar tokens 'start t)
+           "failed runner calls leave subsequent parse cursors independent"))
   (let ((grammar (cnvrs:compile-grammar
                   '((start (and item :b)) (item :a)))))
     (cnvrs:parse grammar '(:a :b) :tree-builder :none)
@@ -1783,6 +1803,69 @@ options {")))
                             (first (cnvrs:node-children item)))
                            "word"))
              "combined ANTLR grammar retains token label and lexeme"))
+    (let* ((vocabulary (antlr-parse
+                        "lexer grammar Shared; LP : '('; RP : ')'; fragment LETTER : [a-z]; ID : LETTER+; WS : [ ]+ -> skip;"))
+           (vocabs (list (cons "Shared" vocabulary)))
+           (source "parser grammar Wired; options { tokenVocab = Shared; } start : '(' name=ID RP EOF;")
+           (grammar (antlr-parse source :token-vocabulary vocabs)))
+      (check (cnvrs:node-p (cnvrs:parse grammar "(hello)"))
+             "tokenVocab attaches lexer and resolves literal and named tokens")
+      (check (signals cnvrs:parse-error (cnvrs:parse grammar "(hello hello)"))
+             "tokenVocab parser rejects invalid source")
+      (check (eq (cnvrs:parser-lexer (cnvrs:ensure-compiled grammar)) vocabulary)
+             "tokenVocab keeps the supplied lexer definition")
+      (let ((table (make-hash-table :test #'equal)))
+        (setf (gethash "Shared" table) vocabulary)
+        (check (cnvrs:node-p
+                (cnvrs:parse (antlr-parse source :token-vocabulary table) "(x)"))
+               "tokenVocab accepts a hash table registry"))
+      (check (signals cnvrs:grammar-error (antlr-parse source))
+             "unresolved tokenVocab is rejected")
+      (dolist (body '("MISSING" "LETTER" "'missing'"))
+        (check (signals cnvrs:grammar-error
+                 (antlr-parse
+                  (format nil "parser grammar Bad; options { tokenVocab=Shared; } start : ~A EOF;" body)
+                  :token-vocabulary vocabs))
+               (format nil "tokenVocab rejects unknown token or literal ~A" body)))
+      (check (signals cnvrs:grammar-error
+               (antlr-parse source :token-vocabulary vocabs :lexer *inline-lexer*))
+             "tokenVocab rejects a conflicting explicit lexer")
+      (check (signals cnvrs:grammar-error
+               (antlr-parse source :token-vocabulary (list (cons "Shared" grammar))))
+             "tokenVocab rejects a parser definition as vocabulary")
+      (check (signals cnvrs:grammar-error
+               (cnvrs/antlr4:parse source :token-vocabulary vocabs
+                                  :parser-package (find-package '#:cnvrs/tests/parser)
+                                  :lexer-package (find-package '#:cnvrs/tests/lexer)))
+             "tokenVocab rejects mismatched token packages"))
+    (let* ((vocabulary (antlr-parse
+                        "lexer grammar Declared; tokens { EXTRA } X : 'x';"))
+           (grammar (antlr-parse
+                     "parser grammar DeclaredParser; options { tokenVocab=Declared; } tokens { LOCAL } start : (EXTRA | LOCAL) EOF;"
+                     :token-vocabulary (list (cons "Declared" vocabulary)))))
+      (dolist (input '((:extra) (:local)))
+        (check (cnvrs:node-p (cnvrs:parse grammar input :lexer nil))
+               "tokenVocab preserves lexer and parser token declarations")))
+    (let* ((vocabulary (cnvrs/antlr4:parse
+                        "lexer grammar Modes; OPEN : '<' -> pushMode(TAG); WS : [ ]+ -> channel(HIDDEN); mode TAG; CLOSE : '>' -> popMode; ID : [a-z]+;"
+                        :parser-package '#:cnvrs/tests/parser
+                        :lexer-package '#:cnvrs/tests/lexer))
+           (grammar (cnvrs/antlr4:parse
+                     "parser grammar ModeParser; options { tokenVocab=Modes; } start : ('<' ID '>')+ EOF;"
+                     :parser-package '#:cnvrs/tests/parser
+                     :lexer-package '#:cnvrs/tests/lexer
+                     :token-vocabulary (list (cons "Modes" vocabulary))))
+           (tree (cnvrs:parse grammar " <hello> <world>")))
+      (check (eq (cnvrs:node-rule tree) 'cnvrs/tests/parser:start)
+             "tokenVocab preserves lexer modes, channels, and application packages")
+      (check (eq (cnvrs:lexeme-kind (first (cnvrs:node-children tree)))
+                 (find-symbol "OPEN" '#:cnvrs/tests/lexer))
+             "tokenVocab literal aliases use vocabulary token symbols"))
+    (let* ((vocabulary (antlr-parse "lexer grammar Duplicate; A : 'x'; B : 'x';")))
+      (check (signals cnvrs:grammar-error
+               (antlr-parse "parser grammar Bad; options { tokenVocab=Duplicate; } start : 'x';"
+                            :token-vocabulary (list (cons "Duplicate" vocabulary))))
+             "tokenVocab rejects ambiguous literal aliases"))
     (let ((grammar (antlr-parse "parser grammar Tokens; start : ID EOF;")))
       (check (cnvrs:parser-p (cnvrs:ensure-compiled grammar))
              "parser grammar compiles without an attached lexer"))
@@ -1799,7 +1882,9 @@ options {")))
       (check (cnvrs:node-p (cnvrs:parse grammar '(:b)))
              "ANTLR4 parser single negated token compiles"))
     (let* ((grammar (antlr-parse
-                     "parser grammar Prequels; options { tokenVocab = Shared; language = Java; } import Base, Alias=Other; tokens { EXTERNAL, } channels { CUSTOM, } @header {class X {}} start : EXTERNAL EOF;"))
+                     "parser grammar Prequels; options { tokenVocab = Shared; language = Java; } import Base, Alias=Other; tokens { EXTERNAL, } channels { CUSTOM, } @header {class X {}} start : EXTERNAL EOF;"
+                     :token-vocabulary (list (cons "Shared"
+                                              (antlr-parse "lexer grammar Shared; EXTERNAL : 'x';")))))
            (metadata (cnvrs:parser-definition-metadata grammar))
            (prequels (getf metadata :prequels))
            (compiled (cnvrs:ensure-compiled grammar)))
@@ -1820,7 +1905,7 @@ options {")))
              "ANTLR4 action declaration retained")
       (check (equal metadata (cnvrs:parser-metadata compiled))
              "prequel metadata survives parser compilation")
-      (check (cnvrs:node-p (cnvrs:parse grammar '(:external)))
+      (check (cnvrs:node-p (cnvrs:parse grammar '(:external) :lexer nil))
              "declared external token remains usable in parser grammar"))
     (let ((grammar (antlr-parse
                     "grammar Choice; start : ('a' | 'b')+ EOF;")))

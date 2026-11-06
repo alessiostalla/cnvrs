@@ -1,6 +1,6 @@
 # CNVRS and ANTLR 4/Java: current differences
 
-Updated 2026-11-05. This compares the current CNVRS working tree with the
+Updated 2026-11-06. This compares the current CNVRS working tree with the
 ANTLR 4.13.2 Java tool and runtime used by this repository's benchmark. Java is the
 reference target here because the ANTLR tool is written in Java and the
 measurements use its Java runtime; this is not a ranking of ANTLR targets.
@@ -41,7 +41,8 @@ The CNVRS paths are implemented in
 ## Prediction and execution
 
 CNVRS builds parser states with token, negated-token, rule-call, and epsilon
-edges. It chooses disjoint alternatives with compiled direct lookahead where
+edges. Each rule is compiled independently for recognition and node building;
+rule calls use an immutable function table and a per-parse cursor state. It chooses disjoint alternatives with compiled direct lookahead where
 possible. Other decisions use an SLL DFA, then retry prediction with the
 active return stack when caller context matters. Its default `:cached`
 strategy retains a full-context DFA start for each decision and return stack;
@@ -86,7 +87,10 @@ their simulators interchangeable. See [`src/graph.lisp`](../src/graph.lisp).
   predicates, rule arguments/returns/locals, and unsupported element or rule
   options. It preserves top-level `options`, `import`, `tokens`, `channels`,
   and named actions as metadata but does not execute actions, load imports,
-  or apply options such as `tokenVocab` and `caseInsensitive`. Thus accepting
+  or apply options such as `caseInsensitive`. Parser `tokenVocab` wiring accepts
+  an explicit registry of imported lexer definitions, resolves named tokens and
+  unique literal aliases, and attaches the lexer; it does not load `.tokens`
+  files or search grammar paths. Thus accepting
   the syntax is not the same as implementing its semantics. See
   [ANTLR parser rules](https://github.com/antlr/antlr4/blob/4.13.2/doc/parser-rules.md),
   [ANTLR lexer rules](https://github.com/antlr/antlr4/blob/4.13.2/doc/lexer-rules.md),

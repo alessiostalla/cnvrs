@@ -50,6 +50,11 @@
   (full-context-strategy :cached)
   (tree-builder :node)
   (rules nil) (imports nil) (origins nil) compiled)
+(defstruct parser-run-state
+  input
+  (tokens #() :type simple-vector)
+  (position 0 :type fixnum)
+  (logical-position 0 :type fixnum))
 (declaim (ftype function ensure-parser-compiled))
 (declaim (ftype function resolve-full-context-strategy))
 (declaim (ftype function compile-parser-runner))
@@ -1236,16 +1241,24 @@ overlapping decision keeps its contextual predictor."
               (push (transition-target edge) pending))))))
     (nreverse result)))
 
-(defun parser-runner-form (grammar build-tree-p)
-  "Generate one named local function per rule for recognition or node building."
-  (let ((rules nil))
+(defun parser-rule-runner-forms (grammar build-tree-p)
+  "Return independent rule lambda forms and their dispatch names."
+  (let ((rules nil)
+        (rule-indices (make-hash-table :test 'eq))
+        (forms (make-array (hash-table-count (parser-starts grammar)))))
     (maphash (lambda (name start)
+               (setf (gethash name rule-indices) (hash-table-count rule-indices))
                (push (list name start
                            (make-symbol (format nil "PARSE-~A" name)))
                      rules))
              (parser-starts grammar))
-    (labels ((rule-function (name)
-               (third (assoc name rules :test #'eq)))
+    (labels ((rule-call (edge)
+               `(funcall (the function
+                              (svref runners ,(gethash (transition-value edge)
+                                                       rule-indices)))
+                         grammar run runners
+                         (cons ,(transition-target edge) stack)
+                         (make-rule-context ,(transition-target edge) context)))
              (edge-form (edge function-name)
                (let ((target (transition-target edge)))
                  (case (transition-kind edge)
@@ -1276,16 +1289,12 @@ overlapping decision keeps its contextual predictor."
                    (:call
                     (if build-tree-p
                         `(let ((child
-                                 (,(rule-function (transition-value edge))
-                                  (cons ,target stack)
-                                  (make-rule-context ,target context))))
+                                 ,(rule-call edge)))
                            (unless child (return-from ,function-name nil))
                            (push child children)
                            (setf state-id ,target))
                         `(progn
-                           (unless (,(rule-function (transition-value edge))
-                                    (cons ,target stack)
-                                    (make-rule-context ,target context))
+                           (unless ,(rule-call edge)
                              (return-from ,function-name nil))
                            (setf state-id ,target)))))))
              (choice-form (id state)
@@ -1332,44 +1341,61 @@ overlapping decision keeps its contextual predictor."
                                       collect `(,index
                                                 ,(edge-form edge function-name)))
                               (otherwise (return-from ,function-name nil)))))))))
-      `(lambda (grammar input start require-eof)
-          #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
-                                     (space 0) (compilation-speed 0)))
-          (declare (type (or simple-vector filtered-token-input) input)
-                   (ignorable grammar))
-          (let ((position (input-start-position input))
-                (tokens (if (filtered-token-input-p input)
-                            (filtered-token-input-tokens input) input))
-                ,@(when build-tree-p '((logical-position 0))))
-            (declare (type simple-vector tokens)
-                     (type fixnum position)
-                     ,@(when build-tree-p '((type fixnum logical-position))))
-            (labels
-                ,(loop for (name first-state function-name) in rules
-                       collect `(,function-name (stack context)
-                                 (declare (ignorable stack context))
-                                 (let ((state-id ,first-state)
-                                       ,@(when build-tree-p
-                                           '((start-position logical-position)
-                                             (children nil))))
-                                   (declare (type fixnum state-id))
-                                   (loop
-                                     (ecase state-id
-                                       ,@(loop for id in
-                                               (compiled-rule-states grammar
-                                                                     first-state)
-                                               collect (state-form id function-name)))))))
-              (let ((result
-                      (case start
-                        ,@(loop for (name first-state function-name) in rules
-                                collect `(,name (,function-name nil nil))))))
-                (and result
-                     (or (not require-eof)
-                         (= position (length tokens)))
-                     result))))))))
+      (loop for (name first-state function-name) in rules do
+        (setf (svref forms (gethash name rule-indices))
+              `(lambda (grammar run runners stack context)
+                  #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
+                                             (space 0) (compilation-speed 0)))
+                  (declare (type parser grammar)
+                           (type parser-run-state run)
+                           (type simple-vector runners)
+                           (ignorable grammar run runners stack context))
+                  (symbol-macrolet ((input (parser-run-state-input run))
+                                    (tokens (parser-run-state-tokens run))
+                                    (position (parser-run-state-position run))
+                                    (logical-position
+                                      (parser-run-state-logical-position run)))
+                    (block ,function-name
+                      (let ((state-id ,first-state)
+                            ,@(when build-tree-p
+                                '((start-position logical-position)
+                                  (children nil))))
+                        (declare (type fixnum state-id))
+                        (loop
+                          (ecase state-id
+                            ,@(loop for id in
+                                    (compiled-rule-states grammar first-state)
+                                    collect (state-form id function-name))))))))))
+      (values (coerce forms 'list) (mapcar #'first (reverse rules))))))
+
+(defun make-parser-runner (runners names)
+  ;; The table is immutable after compilation. Mutable cursor state belongs
+  ;; to each invocation, so runners can be shared by clones and threads.
+  (let ((rule-indices (make-hash-table :test 'eq)))
+    (loop for name in names for index from 0 do
+      (setf (gethash name rule-indices) index))
+    (lambda (grammar input start require-eof)
+      (let* ((tokens (if (filtered-token-input-p input)
+                         (filtered-token-input-tokens input) input))
+             (run (make-parser-run-state :input input :tokens tokens
+                                         :position (input-start-position input)))
+             (result (funcall (the function
+                                  (svref runners (gethash start rule-indices)))
+                              grammar run runners nil nil)))
+        (and result
+             (or (not require-eof)
+                 (= (parser-run-state-position run) (length tokens)))
+             result)))))
+
+(defun parser-runner-form (grammar build-tree-p)
+  "Emit independent rule functions for COMPILE-FILE without runtime compilation."
+  (multiple-value-bind (forms names) (parser-rule-runner-forms grammar build-tree-p)
+    `(make-parser-runner (vector ,@forms) ',names)))
 
 (defun compile-parser-runner (grammar build-tree-p)
-  (compile nil (parser-runner-form grammar build-tree-p)))
+  (multiple-value-bind (forms names) (parser-rule-runner-forms grammar build-tree-p)
+    (make-parser-runner (map 'vector (lambda (form) (compile nil form)) forms)
+                       names)))
 
 (defun possible-tokens (grammar configurations)
   (remove-duplicates

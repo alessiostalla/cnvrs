@@ -307,6 +307,30 @@ The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars
 
 Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, nongreedy lexer suffixes `??`, `*?`, `+?`, literals, character ranges and sets, negated block sets (`~(A|B)` in parser rules and `~('a'|'b'..'d')` in lexer rules), fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. Parser element labels (`name=atom`, `names+=atom`, and labeled groups) become labeled element nodes; alternative labels (`#Name`) appear on the matching rule node. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Parser negated token sets compile to `(cnvrs:not-token (:a :b))` and consume one token whose kind is outside the set.
 
+For split ANTLR grammars, resolve `options { tokenVocab = Shared; }` with
+`:token-vocabulary`, an alist or `equal` hash table mapping the exact vocabulary
+name to an imported lexer definition:
+
+```lisp
+(let* ((lexer (cnvrs/antlr4:parse
+               "lexer grammar Shared; OPEN : '('; CLOSE : ')'; ID : [a-z]+; WS : [ ]+ -> skip;"
+               :parser-package '#:example/parser :lexer-package '#:example/lexer))
+       (parser (cnvrs/antlr4:parse
+                "parser grammar Example; options { tokenVocab = Shared; } start : '(' ID CLOSE EOF;"
+                :parser-package '#:example/parser :lexer-package '#:example/lexer
+                :token-vocabulary (list (cons "Shared" lexer)))))
+  (cnvrs:parse parser "(hello)"))
+```
+
+The parser attaches that lexer definition and uses its token symbols. Both imports
+must use the same lexer package. Parser literals resolve to unique lexer rules
+whose complete expression is a string literal; fragments do not provide token
+aliases. Missing vocabularies, unknown token names, missing or ambiguous literal
+aliases, and conflicting `:lexer` arguments signal `grammar-error`. This wiring
+supports parser grammars and lexer definitions; it does not read `.tokens` files,
+search the filesystem, or resolve ANTLR `import` declarations. Grammars without
+`tokenVocab` retain the existing external-lexer and token-sequence behavior.
+
 ANTLR rule action blocks and semantic predicates (`{...}?`) can be connected to Common Lisp callbacks with `cnvrs/antlr4:parse`'s `:callbacks` argument. Supply an alist or hash table mapping the exact block text, including braces, to function names or function objects. The callback contract is the same as for Lisp grammar forms. Every rule action or predicate block needs a mapping; CNVRS does not evaluate code written in another ANTLR target language.
 
 ```lisp
@@ -320,13 +344,13 @@ ANTLR rule action blocks and semantic predicates (`{...}?`) can be connected to 
 
 For direct left recursion in `.g4` input, the converter preserves ANTLR's source-order precedence for recursive and prefix alternatives: earlier alternatives bind more tightly. It accepts `<assoc=right>` and `<assoc=left>` on outer parser alternatives. Native Lisp grammar forms continue to list recursive alternatives from lowest to highest precedence, with `(cnvrs:right ...)` for right associativity.
 
-Grammar prequels (`options`, `import`, `tokens`, `channels`, and `@` actions) are retained in source order as `(:prequels ...)` metadata. Read them through `parser-definition-metadata` on the returned definition, `parser-metadata` on a compiled parser, or `compiled-lexer-metadata` on a compiled lexer. Each entry is `(:options ((name value) ...))`, `(:imports ((alias name) ...))` (alias is `nil` when absent), `(:tokens (name ...))`, `(:channels (name ...))`, or `(:action (:scope scope :name name :body source))`. These declarations are available for inspection; CNVRS does not execute prequel actions, load imported grammars, or apply grammar options such as `caseInsensitive` and `tokenVocab`. Rule actions and predicates without callback mappings, and unsupported lexer commands, raise `cnvrs:grammar-error` during conversion.
+Grammar prequels (`options`, `import`, `tokens`, `channels`, and `@` actions) are retained in source order as `(:prequels ...)` metadata. Read them through `parser-definition-metadata` on the returned definition, `parser-metadata` on a compiled parser, or `compiled-lexer-metadata` on a compiled lexer. Each entry is `(:options ((name value) ...))`, `(:imports ((alias name) ...))` (alias is `nil` when absent), `(:tokens (name ...))`, `(:channels (name ...))`, or `(:action (:scope scope :name name :body source))`. These declarations are available for inspection; CNVRS does not execute prequel actions, load imported grammars, or apply grammar options such as `caseInsensitive`. Parser `tokenVocab` options are resolved through `:token-vocabulary` as described above. Rule actions and predicates without callback mappings, and unsupported lexer commands, raise `cnvrs:grammar-error` during conversion.
 
 The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4` syntax trees offline. Those grammars use ANTLR features outside the current conversion subset.
 
 ## Implementation
 
-Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. Decisions with disjoint first tokens use a direct one-token table; caller-dependent tables are cached by return stack. Remaining decisions explore graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
+Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. Each parser rule is compiled separately for recognition and node building, with rule calls dispatched through an immutable function table and cursor state allocated per parse. Decisions with disjoint first tokens use a direct one-token table; caller-dependent tables are cached by return stack. Remaining decisions explore graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
 The parser and lexer graphs use a common state base and transition type, with shared state creation, edge insertion, and closure traversal. Their matching policies remain distinct: the lexer finds the longest character match in its current mode, while the parser predicts token alternatives using rule-return context.
 

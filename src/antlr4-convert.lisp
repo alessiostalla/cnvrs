@@ -14,6 +14,7 @@
 (defvar *semantic-callbacks* nil)
 (defvar *antlr-parser-package* nil)
 (defvar *antlr-lexer-package* nil)
+(defvar *token-vocabulary* nil)
 
 (defun action-expression (node predicate-p)
   (let* ((source (cnvrs:lexeme-text (first-token node)))
@@ -52,8 +53,12 @@
 
 (defun antlr-name (node &optional token-p)
   (let ((name (cnvrs:lexeme-text (first-token node))))
-    (intern (string-upcase name)
-            (if token-p *antlr-lexer-package* *antlr-parser-package*))))
+    (let ((symbol (intern (string-upcase name)
+                          (if token-p *antlr-lexer-package* *antlr-parser-package*))))
+      (when (and token-p *token-vocabulary*
+                 (not (find symbol *token-vocabulary* :key #'first)))
+        (conversion-error node "unknown token ~A in tokenVocab" name))
+      symbol)))
 
 (defun antlr-char (text position node)
   (if (char/= (char text position) #\\)
@@ -139,6 +144,17 @@
 (defun implicit-token (node)
   (let* ((literal (antlr-string node))
          (entry (assoc literal *implicit-literals* :test #'string=)))
+    (when *token-vocabulary*
+      (let ((matches (remove-if-not
+                      (lambda (rule)
+                        (and (stringp (second rule))
+                             (string= literal (second rule))
+                             (not (eq (sixth rule) :cnvrs-fragment))))
+                      *token-vocabulary*)))
+        (unless (= (length matches) 1)
+          (conversion-error node "literal ~S has ~D token aliases in tokenVocab"
+                            literal (length matches)))
+        (return-from implicit-token (caar matches))))
     (unless entry
       (setf entry (cons literal
                         (intern (format nil "ANTLR-LITERAL-~D"
@@ -485,7 +501,42 @@
                                                      'action-block)))))))
       (otherwise (conversion-error node "unsupported prequel construct")))))
 
-(defun grammar-from-tree (tree &key lexer parser-package lexer-package)
+(defun resolve-token-vocabulary (tree metadata kind lexer token-vocabulary lexer-package)
+  (let ((names (loop for prequel in (getf metadata :prequels)
+                     when (eq (first prequel) :options)
+                       append (loop for (name value) in (second prequel)
+                                    when (string= name "tokenVocab") collect value))))
+    (unless names (return-from resolve-token-vocabulary nil))
+    (unless (and (eq kind :parser) (= (length names) 1))
+      (conversion-error tree "tokenVocab requires a parser grammar and one vocabulary"))
+    (let* ((name (first names))
+           (vocabulary (if (hash-table-p token-vocabulary)
+                           (gethash name token-vocabulary)
+                           (cdr (assoc name token-vocabulary :test #'string=)))))
+      (unless (and (cnvrs:parser-definition-p vocabulary)
+                   (eq (cnvrs::parser-definition-kind vocabulary) :lexer))
+        (conversion-error tree "tokenVocab ~A requires a lexer definition in :TOKEN-VOCABULARY" name))
+      (unless (eq lexer-package (cnvrs:parser-definition-lexer-package vocabulary))
+        (conversion-error tree "tokenVocab ~A uses a different lexer package" name))
+      (when (and lexer (not (eq lexer vocabulary)))
+        (conversion-error tree ":LEXER conflicts with tokenVocab ~A" name))
+      vocabulary)))
+
+(defun vocabulary-token-rules (vocabulary metadata)
+  (let ((rules (remove-if (lambda (rule) (eq (sixth rule) :cnvrs-fragment))
+                          (cnvrs::parser-definition-rules vocabulary))))
+    ;; Declared tokens have no literal alias, but are legal named references.
+    (dolist (prequel (append (getf (cnvrs:parser-definition-metadata vocabulary)
+                                   :prequels)
+                            (getf metadata :prequels)))
+      (when (eq (first prequel) :tokens)
+        (dolist (name (second prequel))
+          (let ((symbol (intern (string-upcase name) *antlr-lexer-package*)))
+            (unless (find symbol rules :key #'first)
+              (setf rules (append rules (list (list symbol nil)))))))))
+    rules))
+
+(defun grammar-from-tree (tree &key lexer token-vocabulary parser-package lexer-package)
   (unless (eq (cnvrs:node-rule tree) 'grammar-spec)
     (conversion-error tree "expected a complete grammar"))
   (let* ((*antlr-parser-package* parser-package)
@@ -498,6 +549,11 @@
          (metadata (list :prequels
                          (mapcar #'prequel-metadata
                                  (child-nodes tree 'prequel-construct))))
+         (vocabulary (resolve-token-vocabulary tree metadata kind lexer
+                                                token-vocabulary lexer-package))
+         (*token-vocabulary*
+           (when vocabulary
+             (vocabulary-token-rules vocabulary metadata)))
          (*implicit-literals* nil)
          (parser-rules nil) (lexer-rules nil))
     (dolist (rule (child-nodes (first-node tree 'rules) 'rule-spec))
@@ -526,17 +582,19 @@
                                  lexer-rules)
                          parser-rules)))
       (cnvrs::make-defined-parser name kind
-                                  (caar parser-rules) lexer
+                                  (caar parser-rules) (or vocabulary lexer)
                                   :hash-table :node :cached forms
                                   :metadata metadata
                                   :parser-package parser-package
                                   :lexer-package lexer-package
                                   :rules-only t))))
 
-(defun parse (source &key lexer callbacks parser-package lexer-package)
+(defun parse (source &key lexer token-vocabulary callbacks parser-package lexer-package)
   "Parse ANTLR4 SOURCE into a CNVRS grammar definition ready for ENSURE-COMPILED.
 For parser grammars, :LEXER optionally supplies a CNVRS lexer; otherwise
-PARSE accepts token sequences. :PARSER-PACKAGE and :LEXER-PACKAGE are required
+PARSE accepts token sequences. TOKEN-VOCABULARY is an alist or EQUAL hash table
+mapping tokenVocab names (strings) to lexer definitions in :LEXER-PACKAGE.
+:PARSER-PACKAGE and :LEXER-PACKAGE are required
 package designators for parser rule names and lexer token kinds. CALLBACKS maps exact action block text,
 including braces, to functions of (input position). Parser callbacks use
 INPUT-TOKEN-AT and INPUT-TOKEN-COUNT to inspect visible tokens. Use PARSE-TREE to inspect
@@ -546,6 +604,6 @@ the syntax tree."
         (lexer-package (cnvrs::grammar-package lexer-package "lexer")))
     (when (eq parser-package lexer-package)
       (cnvrs::grammar-fail "ANTLR parser and lexer packages must differ"))
-    (grammar-from-tree (parse-tree source) :lexer lexer
+    (grammar-from-tree (parse-tree source) :lexer lexer :token-vocabulary token-vocabulary
                        :parser-package parser-package
                        :lexer-package lexer-package)))
