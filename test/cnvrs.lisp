@@ -965,6 +965,11 @@
                        (cnvrs:parse ordinary input))
                "compiled DFA agrees on trained and unseen transitions"))
       (cnvrs:compile-cached-dfa grammar :max-states 8)
+      (let* ((hidden (cnvrs:make-lexeme :kind :space :channel :trivia))
+             (with-channels (vector hidden #\a hidden #\b hidden #\b hidden)))
+        (check (equalp (cnvrs:parse grammar with-channels)
+                       (cnvrs:parse ordinary "abb"))
+               "compiled DFA skips filtered channels"))
       (let* ((root (cdr (first (cnvrs:cache-entries
                                 (cnvrs:parser-decisions grammar)))))
              (program (gethash root (cnvrs::parser-compiled-full grammar))))
@@ -1391,6 +1396,48 @@
                                           :channels '(:default :trivia))))
                     '(:a :space :b))
              "parser can select named channels")))
+  (let* ((hidden (cnvrs:make-lexeme :kind :space :channel :trivia))
+         (tokens (vector hidden :a hidden :c hidden))
+         (visible (vector :a :c))
+         (grammar (cnvrs:compile-grammar
+                   '((start (or (and :a :b) (and :a :c))))))
+         (input (cnvrs::make-token-input tokens '(:default))))
+    (check (and (cnvrs::filtered-token-input-p input)
+                (eq (cnvrs::filtered-token-input-tokens input) tokens)
+                (eq (cnvrs::filtered-token-input-tokens
+                     (cnvrs::make-token-input visible '(:default)))
+                    visible)
+                (eq (cnvrs::make-token-input visible :all) visible))
+           "filtered input retains the original token vector")
+    (let ((tree (cnvrs:parse grammar tokens)))
+      (check (and (equal (cnvrs:node-children tree) '(:a :c))
+                  (= (cnvrs:node-start tree) 0)
+                  (= (cnvrs:node-end tree) 2))
+             "compiled lookahead skips leading, middle, and trailing channels"))
+    (check (null (cnvrs:parse grammar tokens :tree-builder :none))
+           "recognition runner skips filtered channels")
+    (let ((recovery-grammar (cnvrs:compile-grammar
+                             '((start (and :a :c)))))
+          (with-extra (vector hidden :a hidden :x hidden :c hidden)))
+      (multiple-value-bind (tree repairs)
+          (cnvrs:parse recovery-grammar with-extra :recover t)
+        (check (and (= (cnvrs:node-end tree) 3)
+                    (equal (cnvrs:node-children tree) '(:a :c))
+                    (equal (cnvrs:recovery-token (first repairs)) '(:x))
+                    (= (cnvrs:parse-error-position
+                        (cnvrs:recovery-condition (first repairs))) 1))
+               "recovery counts visible tokens while skipping channels")))
+    (let ((semantic (cnvrs:compile-grammar
+                     (list (list 'start
+                                 (list 'and
+                                       (list 'predicate
+                                             (lambda (input position)
+                                               (and (= (length input) 2)
+                                                    (= position 0)
+                                                    (eq (aref input 0) :a))))
+                                       :a :c))))))
+      (check (= (cnvrs:node-end (cnvrs:parse semantic tokens)) 2)
+             "semantic callbacks retain visible-token positions")))
   (let* ((handwritten (lambda (source)
                         (declare (ignore source))
                         (vector (cnvrs:make-lexeme :kind :comment :text "#"

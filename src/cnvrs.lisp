@@ -710,12 +710,62 @@ function of (parser state-id return-stack) that returns a start DFA state."
           "Full-context strategy must be :CACHED, :RECOMPUTE, or a function, got ~S"
           strategy)))))
 
+;; Keep the original token vector. A filtered input uses physical vector
+;; positions and skips tokens on excluded channels as its cursor advances.
+(defstruct (filtered-token-input
+            (:constructor %make-filtered-token-input (tokens channels)))
+  (tokens #() :type simple-vector)
+  (channels nil :type list))
+
+(declaim (inline input-size input-token input-next-position))
+(defun input-size (input)
+  (if (filtered-token-input-p input)
+      (length (filtered-token-input-tokens input))
+      (length input)))
+
+(defun input-token (input position)
+  (aref (if (filtered-token-input-p input)
+            (filtered-token-input-tokens input)
+            input)
+        position))
+
+(defun input-next-position (input position)
+  (let ((next (1+ position)))
+    (when (filtered-token-input-p input)
+      (let ((tokens (filtered-token-input-tokens input))
+            (channels (filtered-token-input-channels input)))
+        (loop while (and (< next (length tokens))
+                         (not (member (token-channel (aref tokens next))
+                                      channels :test #'equal)))
+              do (incf next))))
+    next))
+
+(defun input-start-position (input)
+  (if (filtered-token-input-p input)
+      (input-next-position input -1)
+      0))
+
+(defun input-remaining-count (input position)
+  (loop for index = position then (input-next-position input index)
+        while (< index (input-size input))
+        count t))
+
+(defun input-remaining-values (input position)
+  (loop for index = position then (input-next-position input index)
+        while (< index (input-size input))
+        collect (input-token input index)))
+
+(defun make-token-input (tokens channels)
+  (if (eq channels :all)
+      tokens
+      (%make-filtered-token-input tokens channels)))
+
 (defun predict-full-context (grammar state-id stack tokens position)
   (declare (type parser grammar) (type fixnum state-id position)
-           (type list stack) (type simple-vector tokens))
+           (type list stack) (type (or simple-vector filtered-token-input) tokens))
   (let* ((dfa (funcall (parser-full-context-start grammar)
                        grammar state-id stack))
-         (length (length tokens)))
+         (length (input-size tokens)))
     (declare (type fixnum length))
     (when (parser-compiled-full grammar)
       (let ((program (gethash dfa (parser-compiled-full grammar))))
@@ -735,15 +785,15 @@ function of (parser state-id return-stack) that returns a start DFA state."
                              (member exit alternatives)
                              exit))
                       (first alternatives)))))
-      (setf dfa (advance-dfa grammar dfa (aref tokens position)))
-      (incf position))))
+      (setf dfa (advance-dfa grammar dfa (input-token tokens position)))
+      (setf position (input-next-position tokens position)))))
 
 (defun predict (grammar state-id stack tokens position)
   ;; The first DFA omits the caller's return stack. If an alternative can
   ;; finish in that shortened context while another remains viable, the
   ;; result depends on the caller and prediction retries with the full stack.
   (declare (type parser grammar) (type fixnum state-id position)
-           (type list stack) (type simple-vector tokens))
+           (type list stack) (type (or simple-vector filtered-token-input) tokens))
   (let* ((start-position position)
          (cache (parser-sll-decisions grammar))
          (dfa (cache-get-or-compute
@@ -755,7 +805,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                                       for alternative from 0
                                       collect (configuration-after-edge
                                                grammar edge nil alternative))))))
-         (length (length tokens)))
+         (length (input-size tokens)))
     (declare (type fixnum start-position length))
     (when (parser-compiled-sll grammar)
       (let ((program (gethash dfa (parser-compiled-sll grammar))))
@@ -772,8 +822,8 @@ function of (parser state-id return-stack) that returns a start DFA state."
                   (= position length))
           (return (predict-full-context grammar state-id stack tokens
                                         start-position))))
-      (setf dfa (advance-dfa grammar dfa (aref tokens position)))
-      (incf position))))
+      (setf dfa (advance-dfa grammar dfa (input-token tokens position)))
+      (setf position (input-next-position tokens position)))))
 
 (defun configuration-after-edge (grammar edge stack alternative)
   (case (transition-kind edge)
@@ -1003,7 +1053,8 @@ overlapping decision keeps its contextual predictor."
      #'compute)))
 
 (defun compiled-choice-index (grammar state-id stack context input position)
-  (declare (type simple-vector input) (type fixnum state-id context position))
+  (declare (type (or simple-vector filtered-token-input) input)
+           (type fixnum state-id context position))
   (when (parser-has-negated-tokens grammar)
     (return-from compiled-choice-index
       (predict grammar state-id stack input position)))
@@ -1015,18 +1066,19 @@ overlapping decision keeps its contextual predictor."
                     choice))
          (direct-table (if (direct-choice-p table)
                            (direct-choice-table table) table))
-         (current (when (< position (length input))
-                    (token-key (aref input position))))
+         (current (when (< position (input-size input))
+                    (token-key (input-token input position))))
          (direct (and current (hash-table-p direct-table)
                       (gethash current direct-table)))
          (two-token (and current (two-token-choice-p table)
                          (gethash current (two-token-choice-table table))))
          (two-token-result
            (if (hash-table-p two-token)
-               (gethash (if (< (1+ position) (length input))
-                            (token-key (aref input (1+ position)))
-                            +end-of-input+)
-                        two-token)
+               (let ((next (input-next-position input position)))
+                 (gethash (if (< next (input-size input))
+                              (token-key (input-token input next))
+                              +end-of-input+)
+                          two-token))
                two-token)))
     (cond (direct (1- (the fixnum direct)))
           (two-token-result (1- (the fixnum two-token-result)))
@@ -1063,25 +1115,27 @@ overlapping decision keeps its contextual predictor."
                  (case (transition-kind edge)
                    (:epsilon `(setf state-id ,target))
                    (:token
-                    `(if (and (< position (length input))
-                              (equal (token-key (aref input position))
+                    `(if (and (< position (length tokens))
+                              (equal (token-key (aref tokens position))
                                      ',(transition-value edge)))
                          (progn
                            ,@(when build-tree-p
-                               `((push (aref input position) children)))
+                               `((push (aref tokens position) children)
+                                 (incf logical-position)))
                            (setf state-id ,target
-                                 position (1+ position)))
+                                 position (input-next-position input position)))
                          (return-from ,function-name nil)))
                    (:not-token
-                    `(if (and (< position (length input))
-                              (not (member (token-key (aref input position))
+                    `(if (and (< position (length tokens))
+                              (not (member (token-key (aref tokens position))
                                            ',(transition-value edge)
                                            :test #'equal)))
                          (progn
                            ,@(when build-tree-p
-                               `((push (aref input position) children)))
+                               `((push (aref tokens position) children)
+                                 (incf logical-position)))
                            (setf state-id ,target
-                                 position (1+ position)))
+                                 position (input-next-position input position)))
                          (return-from ,function-name nil)))
                    (:call
                     (if build-tree-p
@@ -1105,8 +1159,8 @@ overlapping decision keeps its contextual predictor."
                        (maphash (lambda (key alternative)
                                   (push (cons key (1- alternative)) entries))
                                 table)
-                       `(or (let ((key (if (< position (length input))
-                                           (token-key (aref input position))
+                       `(or (let ((key (if (< position (length tokens))
+                                           (token-key (aref tokens position))
                                            +end-of-input+)))
                                 (when key
                                   ,(if (every (lambda (entry)
@@ -1132,7 +1186,7 @@ overlapping decision keeps its contextual predictor."
                                    `(make-node :rule ',(state-stop-rule state)
                                                :children (nreverse children)
                                                :start start-position
-                                               :end position)
+                                               :end logical-position)
                                    t)))
                           ((null (rest edges))
                           (edge-form (first edges) function-name))
@@ -1147,16 +1201,22 @@ overlapping decision keeps its contextual predictor."
        `(lambda (grammar input start require-eof)
           #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
                                      (space 0) (compilation-speed 0)))
-          (declare (type simple-vector input) (ignorable grammar))
-          (let ((position 0))
-            (declare (type fixnum position))
+          (declare (type (or simple-vector filtered-token-input) input)
+                   (ignorable grammar))
+          (let ((position (input-start-position input))
+                (tokens (if (filtered-token-input-p input)
+                            (filtered-token-input-tokens input) input))
+                ,@(when build-tree-p '((logical-position 0))))
+            (declare (type simple-vector tokens)
+                     (type fixnum position)
+                     ,@(when build-tree-p '((type fixnum logical-position))))
             (labels
                 ,(loop for (name first-state function-name) in rules
                        collect `(,function-name (stack context)
                                  (declare (ignorable stack context))
                                  (let ((state-id ,first-state)
                                        ,@(when build-tree-p
-                                           '((start-position position)
+                                           '((start-position logical-position)
                                              (children nil))))
                                    (declare (type fixnum state-id))
                                    (loop
@@ -1171,7 +1231,7 @@ overlapping decision keeps its contextual predictor."
                                 collect `(,name (,function-name nil 0))))))
                 (and result
                      (or (not require-eof)
-                         (= position (length input)))
+                         (= position (length tokens)))
                      result)))))))))
 
 (defun possible-tokens (grammar configurations)
@@ -1215,14 +1275,9 @@ the restarts at each error site to make a different local repair."
   (let* ((build-tree-p (parse-build-tree-p tree-builder))
          (lexed (coerce (if lexer (lex lexer tokens) tokens)
                         'simple-vector))
-         (input (if (eq channels :all)
-                    lexed
-                    (coerce (remove-if-not (lambda (token)
-                                             (member (token-channel token) channels
-                                                     :test #'equal))
-                                           lexed)
-                            'simple-vector)))
+         (input (make-token-input lexed channels))
          (position 0)
+         (physical-position (input-start-position input))
          (state-id (gethash start (parser-starts grammar)))
          (stack nil)
          (context 0)
@@ -1231,9 +1286,10 @@ the restarts at each error site to make a different local repair."
          (recoveries nil)
          (automatic-insert-position -1)
          (automatic-insert-count 0))
-    (declare (type fixnum position state-id
+    (declare (type fixnum position physical-position state-id
                    automatic-insert-position automatic-insert-count)
-             (type simple-vector lexed input))
+             (type simple-vector lexed)
+             (type (or simple-vector filtered-token-input) input))
     (when lexer
       (when lexer-supplied-p
         (check-lexer-kind-overlap (parser-starts grammar) lexer))
@@ -1244,11 +1300,18 @@ the restarts at each error site to make a different local repair."
                 do (grammar-fail
                      "~S is both a parser rule name and a lexer token kind"
                      kind))))
+    ;; Semantic callbacks receive a compact vector and logical positions.
     (when (parser-semantic-rules grammar)
       (when recover
         (grammar-fail "Recovery is not supported with semantic callbacks"))
       (return-from parse
-        (values (parse-semantic grammar input start require-eof tree-builder)
+        (values (parse-semantic
+                 grammar
+                 (if (filtered-token-input-p input)
+                     (coerce (input-remaining-values input physical-position)
+                             'simple-vector)
+                     input)
+                 start require-eof tree-builder)
                 nil)))
     (when (not recover)
       (let ((runner (case tree-builder
@@ -1272,25 +1335,30 @@ the restarts at each error site to make a different local repair."
                                     :token token)
                      recoveries))
              (has-token-p ()
-               (or pending (< position (length input))))
+               (or pending (< physical-position (input-size input))))
              (current-value ()
                (cond (pending (inserted-token-value (first pending)))
-                     ((< position (length input)) (aref input position))
+                     ((< physical-position (input-size input))
+                      (input-token input physical-position))
                      (t +end-of-input+)))
              (next-value ()
                (cond ((rest pending)
                       (inserted-token-value (second pending)))
                      (pending
-                      (if (< position (length input))
-                          (aref input position) +end-of-input+))
-                     ((< (1+ position) (length input))
-                      (aref input (1+ position)))
-                     (t +end-of-input+)))
+                      (if (< physical-position (input-size input))
+                          (input-token input physical-position) +end-of-input+))
+                     (t (let ((next (input-next-position input physical-position)))
+                          (if (< next (input-size input))
+                              (input-token input next) +end-of-input+)))))
              (consume-current ()
                (if pending (pop pending)
-                   (prog1 (aref input position) (incf position))))
+                   (prog1 (input-token input physical-position)
+                     (incf position)
+                     (setf physical-position
+                           (input-next-position input physical-position)))))
              (available-count ()
-               (+ (length pending) (- (length input) position)))
+               (+ (length pending)
+                  (input-remaining-count input physical-position)))
              (delete-current (count condition)
                (unless (and (integerp count) (<= 1 count)
                             (<= count (available-count)))
@@ -1300,7 +1368,7 @@ the restarts at each error site to make a different local repair."
                        (loop repeat count collect (consume-current))))
              (remaining-values ()
                (coerce (append (mapcar #'inserted-token-value pending)
-                               (coerce (subseq input position) 'list))
+                               (input-remaining-values input physical-position))
                        'vector))
              (predict-current ()
                (let* ((state (aref (parser-states grammar) state-id))
@@ -1328,7 +1396,7 @@ the restarts at each error site to make a different local repair."
                         (direct-choice-default-alternative table))
                        (pending
                         (predict grammar state-id stack (remaining-values) 0))
-                       (t (predict grammar state-id stack input position)))))
+                       (t (predict grammar state-id stack input physical-position)))))
              (inject (values condition &optional (required nil required-p))
                (let ((items (coerce values 'list)))
                  (unless items (error "INSERT-TOKENS requires a nonempty sequence"))
@@ -1418,7 +1486,10 @@ the restarts at each error site to make a different local repair."
                               (record :discard-input condition
                                       (remaining-values))
                               (setf pending nil
-                                    position (length input))))))
+                                    position (+ position
+                                                (input-remaining-count
+                                                 input physical-position))
+                                    physical-position (input-size input))))))
                       (return (values (if (and build-tree-p
                                                (plusp (hash-table-count
                                                        (parser-rewrites grammar))))
