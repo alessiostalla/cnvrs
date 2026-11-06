@@ -18,13 +18,14 @@
   (declare (type fixnum head) (type list tail))
   (let ((key (make-array (1+ (length tail)) :element-type 'fixnum)))
     (setf (aref key 0) head)
-    (loop for value in tail
-          for index from 1
+    (loop for value of-type fixnum in tail
+          for index of-type fixnum from 1
           do (setf (aref key index) value))
     key))
 
 (defun parser-context-key (head stack)
   "Use a small pair for shallow stacks and a flat array for deeper ones."
+  (declare (type fixnum head) (type list stack))
   (if (null (cdr stack))
       (cons head (first stack))
       (flat-cache-key head stack)))
@@ -90,9 +91,10 @@
 
 (defun flat-cache-key-compare (a b)
   "Compare uniform fixnum vectors by their contents."
-  (loop for index below (min (length a) (length b))
-        for left = (aref a index)
-        for right = (aref b index)
+  (declare (type (simple-array fixnum (*)) a b))
+  (loop for index of-type fixnum below (min (length a) (length b))
+        for left of-type fixnum = (aref a index)
+        for right of-type fixnum = (aref b index)
         unless (= left right)
           do (return-from flat-cache-key-compare
                (if (< left right) :less :greater)))

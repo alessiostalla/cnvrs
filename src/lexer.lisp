@@ -21,8 +21,11 @@
                      (lexer-mode-error-mode condition)
                      (lexical-error-position condition)))))
 
-(defstruct (lx-state (:include graph-state)) accept)
-(defstruct lx-dfa-state active best-rule edges
+(defstruct (lx-state (:include graph-state))
+  (accept nil :type (or null fixnum)))
+(defstruct lx-dfa-state (active nil :type list)
+  (best-rule nil :type (or null fixnum))
+  (edges nil :type (or null simple-vector))
   (lock (bt:make-lock "CNVRS lexer DFA state")))
 
 (defun lx-new-state (states)
@@ -464,9 +467,11 @@
         (values end *lx-action-events*)))))
 
 (defun lx-closure (states seeds)
+  (declare (type vector states) (type list seeds))
   (graph-closure
    seeds #'identity
    (lambda (id pending result)
+     (declare (type fixnum id) (type list pending result))
      (push id result)
      (dolist (edge (lx-state-edges (aref states id)))
        (when (eq (lx-edge-kind edge) :epsilon)
@@ -475,9 +480,10 @@
    :test 'eql))
 
 (defun lx-step (states active character)
+  (declare (type vector states) (type list active) (type character character))
   (lx-closure
    states
-   (loop for id in active
+   (loop for id of-type fixnum in active
          nconc (loop for edge in (lx-state-edges (aref states id))
                       when (case (lx-edge-kind edge)
                              (:character (char= character (lx-edge-value edge)))
@@ -497,17 +503,22 @@
                         collect (lx-edge-target edge)))))
 
 (defun lx-best-accept (states active)
-  (loop for id in active
+  (declare (type vector states) (type list active))
+  (loop for id of-type fixnum in active
         for accept = (lx-state-accept (aref states id))
         when accept collect accept into matches
         finally (return (and matches (apply #'min matches)))))
 
 (defun lx-make-dfa-state (states active)
+  (declare (type vector states) (type list active))
   (make-lx-dfa-state :active active
                      :best-rule (lx-best-accept states active)))
 
 (defun lx-next-dfa-state (states cache current character locked-p)
+  (declare (type vector states) (type lx-dfa-state current)
+           (type character character))
   (let ((code (char-code character)))
+    (declare (type fixnum code))
     (flet ((compute ()
              (cache-get-or-compute
               cache (flat-cache-key code (lx-dfa-state-active current))
@@ -545,7 +556,8 @@
         (cache (compiled-lexer-cache lexer))
         (locked-p (typep (compiled-lexer-cache lexer) 'locked-cache)))
     (declare (type simple-vector kinds skips channels push-modes pop-modes
-                   set-modes))
+                   set-modes)
+             (type vector states))
     (labels ((match-one (source position mode)
                (declare (type string source) (type fixnum position))
                (let ((dfa (cache-get-or-compute

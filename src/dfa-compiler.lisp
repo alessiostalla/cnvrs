@@ -61,8 +61,9 @@
       (values
        (compile nil
                 `(lambda (tokens position)
-                   (declare (type vector tokens))
+                   (declare (type simple-vector tokens) (type fixnum position))
                    (let ((length (length tokens)) (state-id 0))
+                     (declare (type fixnum length state-id))
                      (loop
                        (case state-id
                          ,@clauses

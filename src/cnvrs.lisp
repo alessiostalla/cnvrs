@@ -28,7 +28,8 @@
   direct-lookahead)
 (defstruct direct-choice table default-alternative)
 (defstruct two-token-choice table)
-(defstruct configuration state stack alternative)
+(defstruct configuration (state 0 :type fixnum) (stack nil :type list)
+  (alternative 0 :type fixnum))
 (defstruct dfa-state configurations alternatives accepted edges)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
@@ -603,11 +604,13 @@ function of (parser state-id return-stack) that returns a start DFA state."
       grammar)))
 
 (defun configuration-key (configuration)
+  (declare (type configuration configuration))
   (list (configuration-state configuration)
         (configuration-stack configuration)
         (configuration-alternative configuration)))
 
 (defun closure (grammar initial)
+  (declare (type parser grammar) (type list initial))
   (nreverse
    (graph-closure
     initial #'configuration-key
@@ -642,6 +645,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
         (values pending result))))))
 
 (defun dfa-state-for (grammar configurations)
+  (declare (type parser grammar) (type list configurations))
   (let* ((closed (closure grammar configurations))
          (alternatives (sort (remove-duplicates
                               (mapcar #'configuration-alternative closed)) #'<))
@@ -657,6 +661,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                     :edges (make-cache (parser-cache-backend grammar)))))
 
 (defun advance-dfa (grammar dfa token)
+  (declare (type parser grammar) (type dfa-state dfa))
   (cache-get-or-compute
    (dfa-state-edges dfa) (token-key token)
    (lambda ()
@@ -681,6 +686,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
 
 (defun make-full-context-start (grammar state-id stack)
   "Build the initial full-context DFA state for a decision and return stack."
+  (declare (type parser grammar) (type fixnum state-id) (type list stack))
   (dfa-state-for grammar
                  (loop for edge in (state-edges
                                     (aref (parser-states grammar) state-id))
@@ -689,6 +695,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                                 grammar edge stack alternative))))
 
 (defun cached-full-context-start (grammar state-id stack)
+  (declare (type parser grammar) (type fixnum state-id) (type list stack))
   (cache-get-or-compute
    (parser-decisions grammar) (parser-context-key state-id stack)
    (lambda () (make-full-context-start grammar state-id stack))))
@@ -704,9 +711,12 @@ function of (parser state-id return-stack) that returns a start DFA state."
           strategy)))))
 
 (defun predict-full-context (grammar state-id stack tokens position)
+  (declare (type parser grammar) (type fixnum state-id position)
+           (type list stack) (type simple-vector tokens))
   (let* ((dfa (funcall (parser-full-context-start grammar)
                        grammar state-id stack))
          (length (length tokens)))
+    (declare (type fixnum length))
     (when (parser-compiled-full grammar)
       (let ((program (gethash dfa (parser-compiled-full grammar))))
         (when program
@@ -732,6 +742,8 @@ function of (parser state-id return-stack) that returns a start DFA state."
   ;; The first DFA omits the caller's return stack. If an alternative can
   ;; finish in that shortened context while another remains viable, the
   ;; result depends on the caller and prediction retries with the full stack.
+  (declare (type parser grammar) (type fixnum state-id position)
+           (type list stack) (type simple-vector tokens))
   (let* ((start-position position)
          (cache (parser-sll-decisions grammar))
          (dfa (cache-get-or-compute
@@ -744,6 +756,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                                       collect (configuration-after-edge
                                                grammar edge nil alternative))))))
          (length (length tokens)))
+    (declare (type fixnum start-position length))
     (when (parser-compiled-sll grammar)
       (let ((program (gethash dfa (parser-compiled-sll grammar))))
         (when program
@@ -984,7 +997,7 @@ overlapping decision keeps its contextual predictor."
    (lambda () (contextual-choice grammar state-id stack))))
 
 (defun compiled-choice-index (grammar state-id stack context input position)
-  (declare (type vector input) (type fixnum state-id context position))
+  (declare (type simple-vector input) (type fixnum state-id context position))
   (when (parser-has-negated-tokens grammar)
     (return-from compiled-choice-index
       (predict grammar state-id stack input position)))
@@ -1128,7 +1141,7 @@ overlapping decision keeps its contextual predictor."
        `(lambda (grammar input start require-eof)
           #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
                                      (space 0) (compilation-speed 0)))
-          (declare (type vector input) (ignorable grammar))
+          (declare (type simple-vector input) (ignorable grammar))
           (let ((position 0))
             (declare (type fixnum position))
             (labels
@@ -1195,13 +1208,14 @@ the restarts at each error site to make a different local repair."
     (error 'type-error :datum channels :expected-type '(or list (eql :all))))
   (let* ((build-tree-p (parse-build-tree-p tree-builder))
          (lexed (coerce (if lexer (lex lexer tokens) tokens)
-                        'vector))
+                        'simple-vector))
          (input (if (eq channels :all)
                     lexed
-                    (remove-if-not (lambda (token)
-                                     (member (token-channel token) channels
-                                             :test #'equal))
-                                   lexed)))
+                    (coerce (remove-if-not (lambda (token)
+                                             (member (token-channel token) channels
+                                                     :test #'equal))
+                                           lexed)
+                            'simple-vector)))
          (position 0)
          (state-id (gethash start (parser-starts grammar)))
          (stack nil)
@@ -1213,7 +1227,7 @@ the restarts at each error site to make a different local repair."
          (automatic-insert-count 0))
     (declare (type fixnum position state-id
                    automatic-insert-position automatic-insert-count)
-             (type vector input))
+             (type simple-vector lexed input))
     (when lexer
       (when lexer-supplied-p
         (check-lexer-kind-overlap (parser-starts grammar) lexer))
