@@ -186,6 +186,40 @@
 
 (defun run-tests ()
   (setf *checks* 0)
+  (check (null (cnvrs::parser-definition-compiled
+                cnvrs/tests/file::*expression-rules*))
+         "cross-file imported rules remain uncompiled")
+  (check (eq (cnvrs:node-rule
+              (cnvrs:parse cnvrs/tests/file::*java-class*
+                           '(:class :id :semi)))
+             'cnvrs/tests/file::class)
+         "a FASL composes parser rules from an earlier file")
+  (check (equalp (map 'vector #'cnvrs:lexeme-kind
+                      (cnvrs:lex cnvrs/tests/file::*word-lexer* "abc"))
+                 #(:word))
+         "a lexer FASL reconstructs its transition graph")
+  (check (and (null (cnvrs::parser-definition-compiled
+                     cnvrs/tests/file::*lexer-rules-only*))
+              (= 1 (length (cnvrs:lex cnvrs/tests/file::*lexer-rules-only*
+                                      "abc"))))
+         "rules-only lexer definitions retain in-image compilation")
+  (check (= 1 (length (cnvrs:lex cnvrs/tests/file::*quoted-lexer*
+                                 "\"abc\"")))
+         "a lexer FASL contains an ordered matcher")
+  (check (cnvrs:node-p (cnvrs:parse cnvrs/tests/file::*combined-file* "abc"))
+         "a combined parser and lexer load from a FASL")
+  (check (cnvrs:node-p (cnvrs:parse cnvrs/tests/file::*semantic-file* '(:id)))
+         "a semantic parser loads from a FASL")
+  (check (= 1 (length (cnvrs:lex cnvrs/tests/file::*semantic-lexer* "abc")))
+         "a semantic lexer loads from a FASL")
+  (let ((definition
+          (symbol-value
+           (eval '(cnvrs:defparser *image-parser*
+                    (start :id))))))
+    (check (and (functionp (cnvrs:parser-runner
+                            (cnvrs:ensure-compiled definition)))
+                (cnvrs:node-p (cnvrs:parse definition '(:id))))
+           "evaluating defparser directly creates a working in-image parser"))
   (check (and (null (cnvrs::parser-definition-compiled *expression-rules*))
               (cnvrs:parser-p (cnvrs:ensure-compiled *java-parser*)))
          "rules-only definitions remain uncompiled when imported")
@@ -215,6 +249,16 @@
   (check (signals cnvrs:grammar-error
            (eval '(cnvrs:defrule cnvrs/tests/java:class :id)))
          "a complete defparser cannot be extended with later rules")
+  (check (signals cnvrs:grammar-error
+           (eval '(cnvrs:defparser *invalid-use*
+                    (cnvrs:use (identity *expression-rules*))
+                    (start :id))))
+         "USE names a defparser definition rather than an expression")
+  (check (signals cnvrs:grammar-error
+           (eval '(cnvrs:defparser *invalid-lexer-use* (:kind :lexer)
+                    (cnvrs:use *expression-rules*)
+                    (:word "a"))))
+         "lexer definitions reject USE")
   (check (signals cnvrs:grammar-error
            (let* ((left (cnvrs::make-defined-parser
                          '*import-left* :parser nil nil :hash-table

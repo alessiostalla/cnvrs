@@ -37,9 +37,12 @@ Grammar operators are recognized by symbol identity. Use the exported `cnvrs:` o
 ## Defining grammars with macros
 
 `defparser` defines a complete parser, lexer, or combined grammar in one form.
-It compiles the definition in the current Lisp image when the form is evaluated.
-A `use` subform
-copies rules from another parser definition before compilation; the resulting
+It prepares the grammar when the form is macroexpanded. Under `compile-file`,
+the FASL contains the prepared graph and compiled rule functions; loading it
+reconstructs the parser and fresh caches without compiling the grammar again.
+Evaluating the form directly still creates a usable parser in the current Lisp
+image. A `use` subform names an already defined parser definition variable and
+copies its rules before compilation; the resulting
 parser has one graph and one prediction context. Parser rule names are exact
 Lisp symbols, so rules may live in different packages:
 
@@ -64,11 +67,16 @@ imported rules. The first local rule is the default entry rule unless
 `:default-rule` selects another. Duplicate local rules, conflicting imports
 without a local override, and import cycles signal `grammar-error`. `defrule`
 and `with-mode` are only valid inside `defparser`. Reimporting the same
-originating rule is harmless. Composition copies the source definitions when
-the `defparser` form is evaluated; re-evaluate a dependent definition after
-changing an imported one. `use` composes parser rules only. Choose one lexer
+originating rule is harmless. Composition resolves source definitions when
+`defparser` is macroexpanded. In ASDF, declare the source file as a dependency
+of the importing file so a change recompiles the dependent grammar. Recompile
+or re-evaluate a dependent definition after changing an imported one. `use`
+composes parser rules only and signals `grammar-error` in a lexer definition.
+Choose one lexer
 for the resulting parser with `:lexer`, or pass an existing token sequence to
-`parse`. Embedding this prepared parser in a FASL is separate future work.
+`parse`. An expression supplied as `:lexer` is evaluated when the FASL loads;
+if it constructs a lexer itself, that work is separate from the compiled
+`defparser` definition.
 
 The first form after the name may be an option plist with `:kind`,
 `:default-rule`, `:lexer`, `:parser-package`, and `:lexer-package`; the remaining
@@ -106,12 +114,13 @@ For a lexer-only definition, put all rules in the same form:
 | `:combined` | Rule symbols in `:lexer-package` define lexer rules; other rule symbols define parser rules. Use `:lexer t` to select a lexer rule explicitly. `parse` lexes and parses source strings. |
 
 For `defparser` definitions, `:parser-package` defaults to the package of the definition variable, and `:lexer-package` defaults to `KEYWORD`. Supply both to put parser rules and token kinds in separate application packages. A combined grammar requires distinct packages.
+Package option expressions are evaluated while `defparser` is macroexpanded so the compiler can classify combined grammar rules.
 
 The same symbol cannot name both a parser rule and a lexer token kind. CNVRS checks this when compiling a grammar with a compiled lexer or combined rules, and when a hand-written lexer returns tokens during parsing.
 
 `:default-rule` changes the rule used when `parse` is called without `:rule`; otherwise the first local parser rule is the default, or the first imported rule when there are no local parser rules. Every `parse` call may select any parser rule with `:rule`, whether the grammar was built with `compile-grammar` or `defparser`. Only the selected entry rule must consume the entire input by default, even if its definition does not mention EOF. Calls to that same rule from within other rules have no EOF requirement. Use `:require-eof nil` to accept a prefix and inspect `node-end` for the position reached. This EOF check happens at parse time and does not alter the rule. The older `parse :start` argument remains an alias for `:rule`.
 
-Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. `defparser` compiles in the current Lisp image when evaluated unless `:rules-only t` is supplied. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
+Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. A normal `defparser` includes its prepared parser or lexer in the FASL; `:rules-only t` retains just its rules for import or later in-image compilation. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
 
 ### Semantic predicates and actions
 
@@ -325,7 +334,7 @@ Compilation rewrites direct left recursion into precedence levels before buildin
 
 ### Compiled objects and caches
 
-`compile-grammar` returns a `parser` structure; `compile-lexer` returns a `compiled-lexer` structure. `defparser` returns a complete definition compiled in the image unless `:rules-only t` is supplied. Call `ensure-compiled` on a rules-only definition to compile it before parsing or lexing. It returns the same compiled object on later calls. Definitions returned by the `.g4` converter also compile on first use.
+`compile-grammar` returns a `parser` structure; `compile-lexer` returns a `compiled-lexer` structure. `defparser` returns a complete definition containing a prepared parser or lexer unless `:rules-only t` is supplied. Call `ensure-compiled` on a rules-only definition to compile it before parsing or lexing. It returns the same compiled object on later calls. Definitions returned by the `.g4` converter also compile on first use.
 
 The exported `parser-states`, `parser-starts`, `parser-stops`, and `parser-lexer` accessors expose a parser's transition graph. `compiled-lexer-states`, `compiled-lexer-mode-starts`, and `compiled-lexer-kinds` expose a lexer's automaton. State and edge accessors are exported for inspection. Treat these graphs as immutable.
 
