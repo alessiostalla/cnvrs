@@ -537,7 +537,8 @@
 For parser grammars, :LEXER optionally supplies a CNVRS lexer; otherwise
 PARSE accepts token sequences. :PARSER-PACKAGE and :LEXER-PACKAGE are required
 package designators for parser rule names and lexer token kinds. CALLBACKS maps exact action block text,
-including braces, to functions of (input position). Use PARSE-TREE to inspect
+including braces, to functions of (input position). Parser callbacks use
+INPUT-TOKEN-AT and INPUT-TOKEN-COUNT to inspect visible tokens. Use PARSE-TREE to inspect
 the syntax tree."
   (let ((*semantic-callbacks* callbacks)
         (parser-package (cnvrs::grammar-package parser-package "parser"))

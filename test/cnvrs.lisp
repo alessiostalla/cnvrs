@@ -1427,17 +1427,44 @@
                     (= (cnvrs:parse-error-position
                         (cnvrs:recovery-condition (first repairs))) 1))
                "recovery counts visible tokens while skipping channels")))
-    (let ((semantic (cnvrs:compile-grammar
+    (let* ((seen nil)
+           (semantic (cnvrs:compile-grammar
+                      (list (list 'start
+                                  (list 'and
+                                        (list 'predicate
+                                              (lambda (input position)
+                                                (and (cnvrs::filtered-token-input-p input)
+                                                     (eq (cnvrs::filtered-token-input-tokens input)
+                                                         tokens)
+                                                     (= (cnvrs:input-token-count input) 2)
+                                                     (= position 0)
+                                                     (eq (cnvrs:input-token-at input 0) :a)
+                                                     (eq (cnvrs:input-token-at input 1) :c))))
+                                        :a
+                                        (list 'action
+                                              (lambda (input position)
+                                                (setf seen (and (= position 1)
+                                                                (eq (cnvrs:input-token-at
+                                                                     input position) :c)))))
+                                        :c))))))
+      (check (and (= (cnvrs:node-end (cnvrs:parse semantic tokens)) 2)
+                  seen)
+             "semantic callbacks retain visible-token positions"))
+    (let* ((failure (cnvrs:compile-grammar
                      (list (list 'start
-                                 (list 'and
-                                       (list 'predicate
-                                             (lambda (input position)
-                                               (and (= (length input) 2)
-                                                    (= position 0)
-                                                    (eq (aref input 0) :a))))
-                                       :a :c))))))
-      (check (= (cnvrs:node-end (cnvrs:parse semantic tokens)) 2)
-             "semantic callbacks retain visible-token positions")))
+                                 (list 'or :a
+                                       (list 'and :a :c
+                                             (list 'predicate
+                                                   (lambda (input position)
+                                                     (declare (ignore input position))
+                                                     t))))))))
+           (bad (vector hidden :a hidden :x hidden))
+           (condition (handler-case (progn (cnvrs:parse failure bad) nil)
+                        (cnvrs:parse-error (error) error))))
+      (check (and condition
+                  (= (cnvrs:parse-error-position condition) 1)
+                  (eq (cnvrs:parse-error-token condition) :x))
+             "semantic parse errors use visible-token positions")))
   (let* ((handwritten (lambda (source)
                         (declare (ignore source))
                         (vector (cnvrs:make-lexeme :kind :comment :text "#"

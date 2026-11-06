@@ -717,6 +717,15 @@ function of (parser state-id return-stack) that returns a start DFA state."
   (tokens #() :type simple-vector)
   (channels nil :type list))
 
+;; Callback accessors cache their last logical lookup without enlarging the
+;; filtered input used by ordinary parsers.
+(defstruct (semantic-token-input
+            (:include filtered-token-input)
+            (:constructor %make-semantic-token-input (tokens channels)))
+  (last-logical 0 :type fixnum)
+  last-physical
+  visible-count)
+
 (declaim (inline input-size input-token input-next-position))
 (defun input-size (input)
   (if (filtered-token-input-p input)
@@ -755,10 +764,46 @@ function of (parser state-id return-stack) that returns a start DFA state."
         while (< index (input-size input))
         collect (input-token input index)))
 
-(defun make-token-input (tokens channels)
+(defun make-token-input (tokens channels &optional semantic-p)
   (if (eq channels :all)
       tokens
-      (%make-filtered-token-input tokens channels)))
+      (if semantic-p
+          (%make-semantic-token-input tokens channels)
+          (%make-filtered-token-input tokens channels))))
+
+(defun input-token-count (input)
+  "Return the number of visible tokens in parser INPUT."
+  (cond ((semantic-token-input-p input)
+         (or (semantic-token-input-visible-count input)
+             (setf (semantic-token-input-visible-count input)
+                   (input-remaining-count input (input-start-position input)))))
+        ((filtered-token-input-p input)
+         (input-remaining-count input (input-start-position input)))
+        (t (length input))))
+
+(defun input-token-at (input index)
+  "Return the visible token at zero-based INDEX in parser INPUT."
+  (unless (and (integerp index) (<= 0 index))
+    (error 'type-error :datum index :expected-type '(integer 0 *)))
+  (if (filtered-token-input-p input)
+      (let* ((cached (and (semantic-token-input-p input)
+                          (semantic-token-input-last-physical input)))
+             (forward (and cached (>= index
+                                      (semantic-token-input-last-logical input))))
+             (position (if forward cached (input-start-position input)))
+             (logical (if forward
+                          (semantic-token-input-last-logical input) 0)))
+        (loop while (< logical index) do
+          (setf position (input-next-position input position))
+          (incf logical))
+        (when (>= position (input-size input))
+          (error "Visible token index ~D is out of bounds" index))
+        (when (semantic-token-input-p input)
+          (setf (semantic-token-input-last-logical input) logical
+                (semantic-token-input-last-physical input) position))
+        (input-token input position))
+      (aref input index)))
+
 
 (defun predict-full-context (grammar state-id stack tokens position)
   (declare (type parser grammar) (type fixnum state-id position)
@@ -1275,7 +1320,8 @@ the restarts at each error site to make a different local repair."
   (let* ((build-tree-p (parse-build-tree-p tree-builder))
          (lexed (coerce (if lexer (lex lexer tokens) tokens)
                         'simple-vector))
-         (input (make-token-input lexed channels))
+         (input (make-token-input lexed channels
+                                  (parser-semantic-rules grammar)))
          (position 0)
          (physical-position (input-start-position input))
          (state-id (gethash start (parser-starts grammar)))
@@ -1300,18 +1346,12 @@ the restarts at each error site to make a different local repair."
                 do (grammar-fail
                      "~S is both a parser rule name and a lexer token kind"
                      kind))))
-    ;; Semantic callbacks receive a compact vector and logical positions.
+    ;; Semantic callbacks use logical positions and access the shared input view.
     (when (parser-semantic-rules grammar)
       (when recover
         (grammar-fail "Recovery is not supported with semantic callbacks"))
       (return-from parse
-        (values (parse-semantic
-                 grammar
-                 (if (filtered-token-input-p input)
-                     (coerce (input-remaining-values input physical-position)
-                             'simple-vector)
-                     input)
-                 start require-eof tree-builder)
+        (values (parse-semantic grammar input start require-eof tree-builder)
                 nil)))
     (when (not recover)
       (let ((runner (case tree-builder

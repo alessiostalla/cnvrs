@@ -6,6 +6,7 @@
            #:antlr-precedence
            #:and #:or #:* #:+
            #:compile-grammar #:compile-lexer #:compile-cached-dfa #:parse #:lex
+           #:input-token-at #:input-token-count
            #:ensure-compiled #:clone-compiled #:clear-cache
            #:make-parse-node #:parse-node-components
            #:parse-build-tree-p #:parse-rule-enter #:parse-token-consumed
