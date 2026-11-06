@@ -558,13 +558,13 @@
              (type vector states))
     (labels ((match-one (source position mode)
                (declare (type string source) (type fixnum position))
-               (let ((dfa (cache-get-or-compute
-                           cache mode
-                           (lambda ()
-                             (lx-make-dfa-state
-                              states
-                              (lx-closure states
-                                          (list (gethash mode mode-starts)))))))
+               (let ((dfa (flet ((compute ()
+                                    (lx-make-dfa-state
+                                     states
+                                     (lx-closure states
+                                                 (list (gethash mode mode-starts))))))
+                            (declare (dynamic-extent #'compute))
+                            (cache-get-or-compute cache mode #'compute)))
                      (best-end nil) (best-rule nil) (best-actions nil))
                  (loop for offset of-type fixnum from position below (length source) do
                    (setf dfa (lx-next-dfa-state

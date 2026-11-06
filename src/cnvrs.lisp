@@ -987,14 +987,20 @@ overlapping decision keeps its contextual predictor."
 (defun intern-context (grammar return-state parent-id)
   "Return the unique numeric ID for RETURN-STATE below PARENT-ID."
   (declare (type fixnum return-state parent-id))
-  (cache-get-or-compute
-   (parser-contexts grammar) (context-key grammar return-state parent-id)
-   (lambda () (incf (the fixnum (parser-context-count grammar))))))
+  (flet ((compute ()
+           (incf (the fixnum (parser-context-count grammar)))))
+    (declare (dynamic-extent #'compute))
+    (cache-get-or-compute
+     (parser-contexts grammar) (context-key grammar return-state parent-id)
+     #'compute)))
 
 (defun contextual-direct-lookahead (grammar state-id stack context)
-  (cache-get-or-compute
-   (parser-direct-decisions grammar) (context-key grammar state-id context)
-   (lambda () (contextual-choice grammar state-id stack))))
+  (flet ((compute ()
+           (contextual-choice grammar state-id stack)))
+    (declare (dynamic-extent #'compute))
+    (cache-get-or-compute
+     (parser-direct-decisions grammar) (context-key grammar state-id context)
+     #'compute)))
 
 (defun compiled-choice-index (grammar state-id stack context input position)
   (declare (type simple-vector input) (type fixnum state-id context position))

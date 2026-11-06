@@ -5,7 +5,7 @@
 (defgeneric make-cache (backend)
   (:documentation "Create a cache for BACKEND, such as :HASH-TABLE, :FSET, or (:LOCKED backend)."))
 (defgeneric cache-get-or-compute (cache key thunk)
-  (:documentation "Return the value for KEY, computing and storing it with THUNK when absent."))
+  (:documentation "Return the value for KEY, computing and storing it with THUNK when absent. Invoke THUNK synchronously, and do not retain it after this call returns."))
 (defgeneric cache-clear (cache)
   (:documentation "Remove all entries from CACHE and return the cache."))
 (defgeneric cache-count (cache)
