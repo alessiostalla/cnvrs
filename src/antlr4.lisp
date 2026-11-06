@@ -34,7 +34,7 @@
 #+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
                            (space 0) (compilation-speed 0)))
 
-(cnvrs:define-parser *lexer* (:kind :lexer)
+(cnvrs:defparser *lexer* (:kind :lexer)
   (cnvrs:defrule :doc_comment
     (and "/**" (* (or (not-one-of (#\*))
                        (and #\* (not-one-of (#\/))))) "*/")

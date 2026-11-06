@@ -204,7 +204,7 @@ The default `:cached` strategy retains a full-context start DFA under each
 a fresh full-context start DFA for every SLL fallback and does not retain
 full-context DFA transitions between fallbacks. Both still use the same SLL
 cache and lexer. The strategy can also be supplied as a function to
-`compile-grammar`, `define-parser`, or `clone-compiled`.
+`compile-grammar`, `defparser`, or `clone-compiled`.
 
 Using the same ARM64 SBCL, corpus, and 10 warmups plus seven batches of 20
 parses per file, median milliseconds per parse were:

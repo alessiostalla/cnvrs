@@ -7,6 +7,14 @@
   (:use #:cl)
   (:export #:predicate))
 
+(defpackage #:cnvrs/tests/expression
+  (:use #:cl)
+  (:export #:expression #:atom))
+
+(defpackage #:cnvrs/tests/java
+  (:use #:cl)
+  (:export #:class))
+
 (defpackage #:cnvrs/tests
   (:use #:cl)
   (:import-from #:cnvrs #:seq #:? #:*? #:+? #:?? #:range #:one-of
@@ -22,65 +30,61 @@
          :lexer-package (find-package :keyword)
          options))
 
-(cnvrs:define-parser *inline-parser* (:kind :parser :default-rule start)
+(cnvrs:defparser *inline-parser* (:kind :parser :default-rule start)
   (cnvrs:defrule start (and :open item :close))
   (cnvrs:defrule item :name))
 
-(cnvrs:define-parser *package-parser* (:kind :parser :default-rule item))
-(cnvrs:in-parser *package-parser*)
-(cnvrs:defrule start (and item :end))
-(cnvrs:defrule item :name)
+(cnvrs:defparser *package-parser* (:kind :parser :default-rule item)
+  (cnvrs:defrule start (and item :end))
+  (cnvrs:defrule item :name))
 
-(cnvrs:define-parser *inline-lexer* (:kind :lexer)
+(cnvrs:defparser *inline-lexer* (:kind :lexer)
   (cnvrs:defrule :space (+ (one-of " ")) :skip t)
   (cnvrs:defrule :name (+ (range #\a #\z))))
 
-(cnvrs:define-parser *package-lexer* (:kind :lexer))
-(cnvrs:in-parser *package-lexer*)
-(cnvrs:defrule :number (+ (range #\0 #\9)))
-(cnvrs:defrule :space (+ (one-of " ")) :skip t)
+(cnvrs:defparser *package-lexer* (:kind :lexer)
+  (cnvrs:defrule :number (+ (range #\0 #\9)))
+  (cnvrs:defrule :space (+ (one-of " ")) :skip t))
 
-(cnvrs:define-parser *mode-package-lexer* (:kind :lexer))
-(cnvrs:in-parser *mode-package-lexer*)
-(cnvrs:defrule :open #\< :push-mode :tag :skip t)
-(cnvrs:with-mode :tag
-  (cnvrs:defrule :tag (+ (range #\a #\z)))
-  (cnvrs:defrule :close #\> :pop-mode t :skip t))
+(cnvrs:defparser *mode-package-lexer* (:kind :lexer)
+  (cnvrs:defrule :open #\< :push-mode :tag :skip t)
+  (cnvrs:with-mode :tag
+    (cnvrs:defrule :tag (+ (range #\a #\z)))
+    (cnvrs:defrule :close #\> :pop-mode t :skip t)))
 
-(cnvrs:define-parser *mode-inline-lexer* (:kind :lexer)
+(cnvrs:defparser *mode-inline-lexer* (:kind :lexer)
   (:open #\< :push-mode :tag :skip t)
   (cnvrs:with-mode :tag
     (:tag (+ (range #\a #\z)))
     (:close #\> :pop-mode t :skip t)))
 
-(cnvrs:define-parser *inline-combined* (:kind :combined :default-rule start)
+(cnvrs:defparser *inline-combined* (:kind :combined :default-rule start)
   (cnvrs:defrule start (and :name :equals :number))
   (cnvrs:defrule :name (+ (range #\a #\z)))
   (cnvrs:defrule :equals #\=)
   (cnvrs:defrule :number (+ (range #\0 #\9))))
 
-(cnvrs:define-parser *package-combined*
-    (:kind :combined :default-rule assignment))
-(cnvrs:in-parser *package-combined*)
-(cnvrs:defrule assignment (and :let :name :equals :number))
-(cnvrs:defrule :space (+ (one-of " ")) :skip t)
-(cnvrs:defrule :let "let")
-(cnvrs:defrule :name (+ (range #\a #\z)))
-(cnvrs:defrule :equals #\=)
-(cnvrs:defrule :number (+ (range #\0 #\9)))
+(cnvrs:defparser *package-combined*
+    (:kind :combined :default-rule assignment)
+  (cnvrs:defrule assignment (and :let :name :equals :number))
+  (cnvrs:defrule :space (+ (one-of " ")) :skip t)
+  (cnvrs:defrule :let "let")
+  (cnvrs:defrule :name (+ (range #\a #\z)))
+  (cnvrs:defrule :equals #\=)
+  (cnvrs:defrule :number (+ (range #\0 #\9))))
 
-(cnvrs:define-parser *bare-parser* (:kind :parser)
+(cnvrs:defparser *bare-parser* (:kind :parser)
   (start (and :a :b)))
 
-(cnvrs:define-parser *hash-parser* (:kind :parser :cache-backend :hash-table)
+(cnvrs:defparser *hash-parser* (:kind :parser :cache-backend :hash-table)
   (start (or :a :b)))
 
-(cnvrs:define-parser *recompute-parser*
+(cnvrs:defparser *recompute-parser*
     (:kind :parser :full-context-strategy :recompute)
   (start (and item #\b))
   (item (or #\a (and #\a #\b))))
 
-(cnvrs:define-parser *compiled-dfa-parser* (:kind :parser)
+(cnvrs:defparser *compiled-dfa-parser* (:kind :parser)
   (start (and item #\b))
   (item (or #\a (and #\a #\b))))
 
@@ -104,21 +108,21 @@
 (defmethod cnvrs:parse-rule-exit ((builder event-sink) rule start end)
   (push (list :exit rule start end) (event-sink-events builder)))
 
-(cnvrs:define-parser *alternate-parser* (:kind :parser
+(cnvrs:defparser *alternate-parser* (:kind :parser
                                         :tree-builder :alternate)
   (start (and item :end))
   (item :name))
 
-(cnvrs:define-parser *external-lexer-parser*
+(cnvrs:defparser *external-lexer-parser*
     (:kind :parser :lexer (cnvrs:compile-lexer '((:word (+ (range #\a #\z)))))
      :default-rule start)
   (cnvrs:defrule start :word))
 
-(cnvrs:define-parser *symbol-lexer-combined* (:kind :combined)
+(cnvrs:defparser *symbol-lexer-combined* (:kind :combined)
   (cnvrs:defrule start (token word))
   (cnvrs:defrule word (+ (range #\a #\z)) :lexer t))
 
-(cnvrs:define-parser *mode-combined* (:kind :combined)
+(cnvrs:defparser *mode-combined* (:kind :combined)
   (cnvrs:defrule start (and :word :string-text :word))
   (cnvrs:defrule :word (+ (range #\a #\z)))
   (cnvrs:defrule :space #\Space :skip t)
@@ -127,12 +131,44 @@
     (cnvrs:defrule :string-text (+ (range #\a #\z)))
     (cnvrs:defrule :close #\" :skip t :pop-mode t)))
 
-(cnvrs:define-parser *packaged-combined*
+(cnvrs:defparser *packaged-combined*
     (:kind :combined
      :parser-package (find-package '#:cnvrs/tests/parser)
      :lexer-package (find-package '#:cnvrs/tests/lexer))
   (cnvrs/tests/parser:start cnvrs/tests/lexer:predicate)
   (cnvrs/tests/lexer:predicate "x"))
+
+(cnvrs:defparser *expression-rules* (:rules-only t)
+  (cnvrs/tests/expression:expression cnvrs/tests/expression:atom)
+  (cnvrs/tests/expression:atom :id))
+
+(cnvrs:defparser *java-parser*
+  (cnvrs:use *expression-rules*)
+  (cnvrs/tests/java:class
+   (and :class cnvrs/tests/expression:expression :semi)))
+
+(cnvrs:defparser *java-override* (:default-rule cnvrs/tests/java:class)
+  (cnvrs:use *expression-rules*)
+  (cnvrs/tests/java:class
+   (and :class cnvrs/tests/expression:expression :semi))
+  (cnvrs/tests/expression:atom :number))
+
+(cnvrs:defparser *expression-wrapper* (:rules-only t)
+  (cnvrs:use *expression-rules*))
+
+(cnvrs:defparser *java-diamond* (:default-rule cnvrs/tests/java:class)
+  (cnvrs:use *expression-rules*)
+  (cnvrs:use *expression-wrapper*)
+  (cnvrs/tests/java:class
+   (and :class cnvrs/tests/expression:expression :semi)))
+
+(cnvrs:defparser *contextual-fragment* (:rules-only t)
+  (cnvrs/tests/expression:expression (or :id (and :id :semi))))
+
+(cnvrs:defparser *contextual-java*
+  (cnvrs:use *contextual-fragment*)
+  (cnvrs/tests/java:class
+   (and :class cnvrs/tests/expression:expression :semi)))
 
 (defvar *checks* 0)
 
@@ -150,6 +186,113 @@
 
 (defun run-tests ()
   (setf *checks* 0)
+  (check (null (cnvrs::parser-definition-compiled
+                cnvrs/tests/file::*expression-rules*))
+         "cross-file imported rules remain uncompiled")
+  (check (eq (cnvrs:node-rule
+              (cnvrs:parse cnvrs/tests/file::*java-class*
+                           '(:class :id :semi)))
+             'cnvrs/tests/file::class)
+         "a FASL composes parser rules from an earlier file")
+  (check (equalp (map 'vector #'cnvrs:lexeme-kind
+                      (cnvrs:lex cnvrs/tests/file::*word-lexer* "abc"))
+                 #(:word))
+         "a lexer FASL reconstructs its transition graph")
+  (check (and (null (cnvrs::parser-definition-compiled
+                     cnvrs/tests/file::*lexer-rules-only*))
+              (= 1 (length (cnvrs:lex cnvrs/tests/file::*lexer-rules-only*
+                                      "abc"))))
+         "rules-only lexer definitions retain in-image compilation")
+  (check (= 1 (length (cnvrs:lex cnvrs/tests/file::*quoted-lexer*
+                                 "\"abc\"")))
+         "a lexer FASL contains an ordered matcher")
+  (check (cnvrs:node-p (cnvrs:parse cnvrs/tests/file::*combined-file* "abc"))
+         "a combined parser and lexer load from a FASL")
+  (check (cnvrs:node-p (cnvrs:parse cnvrs/tests/file::*semantic-file* '(:id)))
+         "a semantic parser loads from a FASL")
+  (check (= 1 (length (cnvrs:lex cnvrs/tests/file::*semantic-lexer* "abc")))
+         "a semantic lexer loads from a FASL")
+  (let ((definition
+          (symbol-value
+           (eval '(cnvrs:defparser *image-parser*
+                    (start :id))))))
+    (check (and (functionp (cnvrs:parser-runner
+                            (cnvrs:ensure-compiled definition)))
+                (cnvrs:node-p (cnvrs:parse definition '(:id))))
+           "evaluating defparser directly creates a working in-image parser"))
+  (check (and (null (cnvrs::parser-definition-compiled *expression-rules*))
+              (cnvrs:parser-p (cnvrs:ensure-compiled *java-parser*)))
+         "rules-only definitions remain uncompiled when imported")
+  (check (eq (cnvrs:node-rule
+              (second (cnvrs:node-children
+                       (cnvrs:parse *java-parser* '(:class :id :semi)))))
+             'cnvrs/tests/expression:expression)
+         "composed parser calls a rule from another package")
+  (check (eq (cnvrs:parser-default-rule
+              (cnvrs:ensure-compiled *java-parser*))
+             'cnvrs/tests/java:class)
+         "a local rule becomes the default before imported rules")
+  (check (eq (cnvrs:node-rule
+              (cnvrs:parse *contextual-java* '(:class :id :semi)))
+             'cnvrs/tests/java:class)
+         "prediction in an imported rule sees its caller's context")
+  (check (and (eq (cnvrs:node-rule
+                   (cnvrs:parse *java-override* '(:class :number :semi)))
+                  'cnvrs/tests/java:class)
+              (signals cnvrs:parse-error
+                (cnvrs:parse *java-override* '(:class :id :semi))))
+         "a local rule replaces imported references to the same symbol")
+  (check (eq (cnvrs:node-rule
+              (cnvrs:parse *java-diamond* '(:class :id :semi)))
+             'cnvrs/tests/java:class)
+         "repeated imports of the same originating rule are harmless")
+  (check (signals cnvrs:grammar-error
+           (eval '(cnvrs:defrule cnvrs/tests/java:class :id)))
+         "a complete defparser cannot be extended with later rules")
+  (check (signals cnvrs:grammar-error
+           (eval '(cnvrs:defparser *invalid-use*
+                    (cnvrs:use (identity *expression-rules*))
+                    (start :id))))
+         "USE names a defparser definition rather than an expression")
+  (check (signals cnvrs:grammar-error
+           (eval '(cnvrs:defparser *invalid-lexer-use* (:kind :lexer)
+                    (cnvrs:use *expression-rules*)
+                    (:word "a"))))
+         "lexer definitions reject USE")
+  (check (signals cnvrs:grammar-error
+           (let* ((left (cnvrs::make-defined-parser
+                         '*import-left* :parser nil nil :hash-table
+                         :node :cached
+                         '((cnvrs/tests/expression:atom :left))))
+                  (right (cnvrs::make-defined-parser
+                          '*import-right* :parser nil nil :hash-table
+                          :node :cached
+                          '((cnvrs/tests/expression:atom :right)))))
+             (cnvrs::make-defined-parser
+              '*import-conflict* :parser nil nil :hash-table :node :cached nil
+              :imports (list left right))))
+         "conflicting imports without a local override are rejected")
+  (let* ((left (cnvrs::make-defined-parser
+                '*import-left* :parser nil nil :hash-table :node :cached
+                '((cnvrs/tests/expression:atom :left)) :rules-only t))
+         (right (cnvrs::make-defined-parser
+                 '*import-right* :parser nil nil :hash-table :node :cached
+                 '((cnvrs/tests/expression:atom :right)) :rules-only t))
+         (composed (cnvrs::make-defined-parser
+                    '*import-resolved* :parser nil nil :hash-table :node :cached
+                    '((cnvrs/tests/expression:atom :local))
+                    :imports (list left right))))
+    (check (eq (cnvrs:node-rule (cnvrs:parse composed '(:local)))
+               'cnvrs/tests/expression:atom)
+           "a local override resolves a conflict between imports"))
+  (check (signals cnvrs:grammar-error
+           (cnvrs::make-defined-parser
+            '*import-cycle* :parser nil nil :hash-table :node :cached nil
+            :imports (list (cnvrs::make-defined-parser
+                            '*import-cycle* :parser nil nil :hash-table
+                            :node :cached
+                            '((cnvrs/tests/expression:atom :id))))))
+         "import cycles are rejected")
   (check (and (not (eq 'cnvrs:predicate
                        'cnvrs/tests/parser:predicate))
               (not (eq 'cnvrs:predicate
@@ -566,7 +709,7 @@
            "cloning preserves the tree builder"))
   (check (alternate-node-p
           (cnvrs:parse *alternate-parser* '(:name :end)))
-         "define-parser forwards its tree builder")
+         "defparser forwards its tree builder")
   (let* ((grammar (cnvrs:compile-grammar
                    '((expr (or (and expr :bang) :n)))
                    :tree-builder :alternate))
@@ -683,7 +826,7 @@
            "cloning can select another cache backend"))
   (check (eq (cnvrs:parser-cache-backend
               (cnvrs:ensure-compiled *hash-parser*)) :hash-table)
-         "define-parser forwards the cache backend")
+         "defparser forwards the cache backend")
   (let ((grammar (cnvrs:compile-grammar
                   '((start (or :a (and :a :b))))
                   :cache-backend :test-cache)))
@@ -815,7 +958,7 @@
          "package-style combined grammar")
   (check (equal (cnvrs:node-children
                  (cnvrs:parse *bare-parser* '(:a :b))) '(:a :b))
-         "bare rule forms inside define-parser")
+         "bare rule forms inside defparser")
   (check (eq (cnvrs:lexeme-kind
                (first (cnvrs:node-children
                        (cnvrs:parse *external-lexer-parser* "hello"))))
@@ -872,20 +1015,9 @@
            (cnvrs:compile-lexer '((:default #\a)
                                   (:empty (? #\b) :mode :other))))
          "rules in nondefault modes must consume input")
-  (eval '(cnvrs:define-parser *mutable-parser* (:kind :parser)
-           (cnvrs:defrule start :a)))
   (check (eq (cnvrs:node-rule
-               (cnvrs:parse (symbol-value '*mutable-parser*) '(:a))) 'start)
-         "incremental definition compiles on use")
-  (eval '(cnvrs:in-parser *mutable-parser*))
-  (eval '(cnvrs:defrule extra :b))
-  (check (eq (cnvrs:node-rule
-               (cnvrs:parse (symbol-value '*mutable-parser*) '(:b)
-                            :rule 'extra)) 'extra)
-         "new rule invalidates an already compiled definition")
-  (check (eq (cnvrs:node-rule
-              (cnvrs:parse (symbol-value '*mutable-parser*) '(:b)
-                           :start 'extra)) 'extra)
+              (cnvrs:parse *inline-parser* '(:name) :start 'item))
+             'item)
          "legacy start keyword remains supported")
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and #\a (* #\b) #\c)))))
@@ -1069,7 +1201,7 @@
            "cloned parser exposes its selected full-context strategy")
     (check (eq (cnvrs:parser-full-context-strategy
                 (cnvrs:ensure-compiled *recompute-parser*)) :recompute)
-           "define-parser passes through the full-context strategy")
+           "defparser passes through the full-context strategy")
     (check (signals cnvrs:grammar-error
              (cnvrs:compile-grammar '((start :a))
                                     :full-context-strategy :unknown))

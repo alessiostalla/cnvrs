@@ -34,7 +34,7 @@
            #:compiled-lexer-set-modes
            #:lx-state-edges #:lx-state-accept
            #:lx-edge-kind #:lx-edge-target #:lx-edge-value
-           #:define-parser #:in-parser #:defrule #:with-mode
+           #:defparser #:use #:defrule #:with-mode
            #:parser-definition-p #:lexer-matcher
            #:grammar-error #:parse-error
            #:lexical-error #:lexical-error-position #:lexical-error-character

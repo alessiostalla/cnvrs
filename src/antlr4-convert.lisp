@@ -530,7 +530,8 @@
                                   :hash-table :node :cached forms
                                   :metadata metadata
                                   :parser-package parser-package
-                                  :lexer-package lexer-package))))
+                                  :lexer-package lexer-package
+                                  :rules-only t))))
 
 (defun parse (source &key lexer callbacks parser-package lexer-package)
   "Parse ANTLR4 SOURCE into a CNVRS grammar definition ready for ENSURE-COMPILED.

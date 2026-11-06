@@ -49,7 +49,7 @@
   parser-package lexer-package
   (full-context-strategy :cached)
   (tree-builder :node)
-  (rules nil) compiled)
+  (rules nil) (imports nil) (origins nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
 (declaim (ftype function resolve-full-context-strategy))
 (declaim (ftype function compile-parser-runner))
@@ -65,7 +65,7 @@
 (defun grammar-operator-p (symbol)
   (member symbol '(and or * + seq ? *? +? ?? range one-of not-one-of any
                    label alt-label token not-token predicate action right
-                   antlr-precedence defrule with-mode)))
+                   antlr-precedence defparser defrule with-mode use)))
 
 (defun check-lexer-kind-overlap (rule-names lexer)
   (when (compiled-lexer-p lexer)
@@ -500,7 +500,8 @@ NULLABLE maps rule names to whether they can match empty input."))
 (defun compile-grammar (definitions &key default-rule lexer
                                     (cache-backend :hash-table)
                                     (full-context-strategy :cached)
-                                    (tree-builder :node) metadata)
+                                    (tree-builder :node) metadata
+                                    (compile-runners t))
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), (TOKEN value),
@@ -606,7 +607,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                   (parser-semantic-rules grammar))
         (initialize-direct-lookahead grammar)
         (initialize-follow-lookahead grammar))
-      (unless (parser-semantic-rules grammar)
+      (when (and compile-runners (not (parser-semantic-rules grammar)))
         (setf (parser-runner grammar) (compile-parser-runner grammar nil)
               (parser-node-runner grammar) (compile-parser-runner grammar t)))
       grammar)))
@@ -1235,8 +1236,8 @@ overlapping decision keeps its contextual predictor."
               (push (transition-target edge) pending))))))
     (nreverse result)))
 
-(defun compile-parser-runner (grammar build-tree-p)
-  "Compile one named local function per rule for recognition or node building."
+(defun parser-runner-form (grammar build-tree-p)
+  "Generate one named local function per rule for recognition or node building."
   (let ((rules nil))
     (maphash (lambda (name start)
                (push (list name start
@@ -1331,9 +1332,7 @@ overlapping decision keeps its contextual predictor."
                                       collect `(,index
                                                 ,(edge-form edge function-name)))
                               (otherwise (return-from ,function-name nil)))))))))
-      (compile
-       nil
-       `(lambda (grammar input start require-eof)
+      `(lambda (grammar input start require-eof)
           #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
                                      (space 0) (compilation-speed 0)))
           (declare (type (or simple-vector filtered-token-input) input)
@@ -1367,7 +1366,10 @@ overlapping decision keeps its contextual predictor."
                 (and result
                      (or (not require-eof)
                          (= position (length tokens)))
-                     result)))))))))
+                     result))))))))
+
+(defun compile-parser-runner (grammar build-tree-p)
+  (compile nil (parser-runner-form grammar build-tree-p)))
 
 (defun possible-tokens (grammar configurations)
   (remove-duplicates
