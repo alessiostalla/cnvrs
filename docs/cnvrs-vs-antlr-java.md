@@ -20,7 +20,7 @@ structure](https://github.com/antlr/antlr4/blob/4.13.2/doc/grammars.md).
 
 | Area | CNVRS now | ANTLR 4.13.2/Java |
 | --- | --- | --- |
-| Primary grammar input | Lisp rule forms via `compile-grammar`, `compile-lexer`, or `define-parser`; optional `.g4` subset converter | `.g4` grammar files processed by the ANTLR tool |
+| Primary grammar input | Lisp rule forms via `compile-grammar`, `compile-lexer`, or complete `defparser` forms; optional `.g4` subset converter | `.g4` grammar files processed by the ANTLR tool |
 | Build artifact | In-memory graphs and compiled Lisp rule runners; no generated source file | Generated Java lexer/parser classes, plus runtime ATN and DFA machinery |
 | Parsing path | Compiled rule runner for ordinary strict parsing; general graph loop for recovery and custom builders | Generated recursive-descent rule methods; `ParserATNSimulator` predicts decisions. `ParserInterpreter` is also available to walk an ATN |
 | Prediction | Direct one- or two-token choices where possible, then cached SLL DFA and caller-context retry | Generated direct checks where possible; adaptive SLL DFA and full-context ATN retry on conflict |

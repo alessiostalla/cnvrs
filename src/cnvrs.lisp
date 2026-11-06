@@ -42,7 +42,7 @@
   parser-package lexer-package
   (full-context-strategy :cached)
   (tree-builder :node)
-  (rules nil) compiled)
+  (rules nil) (imports nil) compiled)
 (declaim (ftype function ensure-parser-compiled))
 (declaim (ftype function resolve-full-context-strategy))
 (declaim (ftype function compile-parser-runner))
@@ -57,7 +57,7 @@
 (defun grammar-operator-p (symbol)
   (member symbol '(and or * + seq ? *? +? ?? range one-of not-one-of any
                    label alt-label token not-token predicate action right
-                   antlr-precedence defrule with-mode)))
+                   antlr-precedence defparser defrule with-mode use)))
 
 (defun check-lexer-kind-overlap (rule-names lexer)
   (when (compiled-lexer-p lexer)

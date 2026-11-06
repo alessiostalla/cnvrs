@@ -36,10 +36,47 @@ Grammar operators are recognized by symbol identity. Use the exported `cnvrs:` o
 
 ## Defining grammars with macros
 
-`define-parser` declares a grammar in one form. The first form after its name is an optional plist with `:kind`, `:default-rule`, `:lexer`, `:parser-package`, and `:lexer-package`; the remaining forms are rules. Rules may be written as `(defrule name expression ...)` or simply `(name expression ...)`:
+`defparser` defines a complete parser, lexer, or combined grammar in one form.
+It compiles the definition in the current Lisp image when the form is evaluated.
+A `use` subform
+copies rules from another parser definition before compilation; the resulting
+parser has one graph and one prediction context. Parser rule names are exact
+Lisp symbols, so rules may live in different packages:
 
 ```lisp
-(cnvrs:define-parser *assignment* (:kind :combined)
+;; In expr.lisp, after defining the EXPR package:
+(cnvrs:defparser *expression-rules* (:rules-only t)
+  (expr:expression expr:atom)
+  (expr:atom :identifier))
+
+;; In java.lisp, loaded after expr.lisp:
+(cnvrs:defparser *java-parser* (:default-rule java:class)
+  (cnvrs:use *expression-rules*)
+  (java:class (and :class expr:expression :semi)))
+```
+
+`:rules-only t` leaves a complete definition available for import without
+compiling it at definition time. It can still be compiled explicitly with
+`ensure-compiled` or on first use with `parse`. Without this option, `defparser`
+compiles immediately. A local rule with the exact symbol of an imported rule
+replaces it throughout the composed grammar, including references from other
+imported rules. The first local rule is the default entry rule unless
+`:default-rule` selects another. Duplicate local rules, conflicting imports
+without a local override, and import cycles signal `grammar-error`. `defrule`
+and `with-mode` are only valid inside `defparser`. Reimporting the same
+originating rule is harmless. Composition copies the source definitions when
+the `defparser` form is evaluated; re-evaluate a dependent definition after
+changing an imported one. `use` composes parser rules only. Choose one lexer
+for the resulting parser with `:lexer`, or pass an existing token sequence to
+`parse`. Embedding this prepared parser in a FASL is separate future work.
+
+The first form after the name may be an option plist with `:kind`,
+`:default-rule`, `:lexer`, `:parser-package`, and `:lexer-package`; the remaining
+forms are rules or `use` clauses. Rules may be written as
+`(defrule name expression ...)` or simply `(name expression ...)`:
+
+```lisp
+(cnvrs:defparser *assignment* (:kind :combined)
   (cnvrs:defrule assignment (and :let :name :equals value))
   (cnvrs:defrule value :number)
   (cnvrs:defrule :space (+ (cnvrs:one-of " ")) :skip t)
@@ -52,13 +89,12 @@ Grammar operators are recognized by symbol identity. Use the exported `cnvrs:` o
 (cnvrs:parse *assignment* "42" :rule 'value) ; starts at any named parser rule
 ```
 
-The incremental style separates the declaration from its rules. `in-parser` selects the definition receiving subsequent top-level `defrule` forms, much like `in-package` selects a package:
+For a lexer-only definition, put all rules in the same form:
 
 ```lisp
-(cnvrs:define-parser *words* (:kind :lexer))
-(cnvrs:in-parser *words*)
-(cnvrs:defrule :space (+ (cnvrs:one-of " ")) :skip t)
-(cnvrs:defrule :word (+ (cnvrs:range #\a #\z)))
+(cnvrs:defparser *words* (:kind :lexer)
+  (cnvrs:defrule :space (+ (cnvrs:one-of " ")) :skip t)
+  (cnvrs:defrule :word (+ (cnvrs:range #\a #\z))))
 
 (cnvrs:lex *words* "one two")
 ```
@@ -69,17 +105,17 @@ The incremental style separates the declaration from its rules. `in-parser` sele
 | `:lexer` | All rules are lexer rules. `lex` accepts a source string and returns lexemes. |
 | `:combined` | Rule symbols in `:lexer-package` define lexer rules; other rule symbols define parser rules. Use `:lexer t` to select a lexer rule explicitly. `parse` lexes and parses source strings. |
 
-For macro definitions, `:parser-package` defaults to the package of the definition variable, and `:lexer-package` defaults to `KEYWORD` for existing grammars. Supply both to put parser rules and token kinds in separate application packages. A combined grammar requires distinct packages.
+For `defparser` definitions, `:parser-package` defaults to the package of the definition variable, and `:lexer-package` defaults to `KEYWORD`. Supply both to put parser rules and token kinds in separate application packages. A combined grammar requires distinct packages.
 
-The same symbol cannot name both a parser rule and a lexer token kind. CNVRS checks this when compiling a grammar with a compiled lexer, when adding rules to a combined grammar, and when a hand-written lexer returns tokens during parsing.
+The same symbol cannot name both a parser rule and a lexer token kind. CNVRS checks this when compiling a grammar with a compiled lexer or combined rules, and when a hand-written lexer returns tokens during parsing.
 
-`:default-rule` only changes the rule used when `parse` is called without `:rule`; otherwise the first parser rule is the default. Every `parse` call may select any parser rule with `:rule`, whether the grammar was built with `compile-grammar` or `define-parser`. Only the selected entry rule must consume the entire input by default, even if its definition does not mention EOF. Calls to that same rule from within other rules have no EOF requirement. Use `:require-eof nil` to accept a prefix and inspect `node-end` for the position reached. This EOF check happens at parse time and does not alter the rule. The older `parse :start` argument remains an alias for `:rule`.
+`:default-rule` changes the rule used when `parse` is called without `:rule`; otherwise the first local parser rule is the default, or the first imported rule when there are no local parser rules. Every `parse` call may select any parser rule with `:rule`, whether the grammar was built with `compile-grammar` or `defparser`. Only the selected entry rule must consume the entire input by default, even if its definition does not mention EOF. Calls to that same rule from within other rules have no EOF requirement. Use `:require-eof nil` to accept a prefix and inspect `node-end` for the position reached. This EOF check happens at parse time and does not alter the rule. The older `parse :start` argument remains an alias for `:rule`.
 
-Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. Definitions compile in the current Lisp image on first use, allowing forward references in the incremental style. Adding a rule invalidates the compiled definition. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
+Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ties between equal-length lexer matches. `defparser` compiles in the current Lisp image when evaluated unless `:rules-only t` is supplied. `parse` on a lexer-only grammar signals `grammar-error`; use `lex` instead.
 
 ### Semantic predicates and actions
 
-Both parser and lexer expressions accept `(cnvrs:predicate callback)` and `(cnvrs:action callback)` as zero-width elements, including inside sequences, alternatives, and repetitions. `callback` is a Common Lisp function or a non-keyword function name. In `compile-grammar` and `compile-lexer`, function objects can be placed directly in the supplied forms; in quoted `define-parser` and `defrule` forms, use a function name. A callback receives `(input position)`: parser input is the filtered token vector and position is a token offset; lexer input is the source string and position is a character offset. A predicate succeeds on a non-`nil` return value. Actions ignore their return values and run once, in source order, after the winning parse path or lexer rule has been selected. A failed or losing candidate does not run its actions.
+Both parser and lexer expressions accept `(cnvrs:predicate callback)` and `(cnvrs:action callback)` as zero-width elements, including inside sequences, alternatives, and repetitions. `callback` is a Common Lisp function or a non-keyword function name. In `compile-grammar` and `compile-lexer`, function objects can be placed directly in the supplied forms; in quoted `defparser` rule forms, use a function name. A callback receives `(input position)`: parser input is the filtered token vector and position is a token offset; lexer input is the source string and position is a character offset. A predicate succeeds on a non-`nil` return value. Actions ignore their return values and run once, in source order, after the winning parse path or lexer rule has been selected. A failed or losing candidate does not run its actions.
 
 ```lisp
 (defun word-allowed (source position)
@@ -159,10 +195,10 @@ The generated lexer takes the longest match at each source position. Equal-lengt
 
 ### Lexer modes
 
-Lexer rules belong to `:default` mode unless they specify `:mode`. Only rules in the current mode can match. A rule may use one of `:push-mode`, `:pop-mode t`, or `:set-mode` to change modes after it matches. Mode actions also run for `:skip t` rules. These options work in `compile-lexer` definitions and in lexer rules declared with `defrule`, including combined grammars. In the macro layer, `(with-mode mode rules...)` assigns one mode to a group of lexer rules. It works inside `define-parser` and after `in-parser`.
+Lexer rules belong to `:default` mode unless they specify `:mode`. Only rules in the current mode can match. A rule may use one of `:push-mode`, `:pop-mode t`, or `:set-mode` to change modes after it matches. Mode actions also run for `:skip t` rules. These options work in `compile-lexer` definitions and in lexer rules declared inside `defparser`, including combined grammars. `(with-mode mode rules...)` assigns one mode to a group of lexer rules inside `defparser`.
 
 ```lisp
-(cnvrs:define-parser *quoted-words* (:kind :lexer)
+(cnvrs:defparser *quoted-words* (:kind :lexer)
   (cnvrs:defrule :word (+ (cnvrs:range #\a #\z)))
   (cnvrs:defrule :space #\Space :skip t)
   (cnvrs:defrule :open #\" :push-mode :string :skip t)
@@ -177,7 +213,7 @@ Lexer rules belong to `:default` mode unless they specify `:mode`. Only rules in
 
 `push-mode` saves the current mode, and `pop-mode` restores it, so nested mode changes work. `set-mode` switches directly without using the stack. Every target mode must have a rule, and popping an empty mode stack signals `lexer-mode-error`, a subclass of `lexical-error` with a `lexer-mode-error-mode` reader.
 
-For an incremental definition, use `(in-parser *quoted-words*)` followed by a top-level `(cnvrs:with-mode :string (cnvrs:defrule ...) ...)`. Within `define-parser`, the block also accepts bare `(name expression ...)` rule forms. An explicit `:mode` on a rule inside the block must match the block's mode.
+Within `defparser`, a `with-mode` block also accepts bare `(name expression ...)` rule forms. An explicit `:mode` on a rule inside the block must match the block's mode.
 
 ### Channels
 
@@ -258,7 +294,7 @@ The ANTLR4 language grammar from [grammars-v4](https://github.com/antlr/grammars
 ;; => a START node
 ```
 
-`cnvrs/antlr4:parse` requires distinct `:parser-package` and `:lexer-package` package designators. It interns parser rule names in the former and lexer rule names, token kinds, and lexer mode names in the latter. Imported symbols remain the user's package choice; it does not force token kinds into `KEYWORD`. If both packages make the same symbol available under a parser rule and token name, import signals a grammar error. The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; compilation happens on first use. `cnvrs/antlr4:parse-tree` returns the ANTLR syntax tree and accepts `:rule` to select a grammar entry rule. `cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with `define-parser` and `defrule` macros. The lexer adaptor handles action blocks, brackets, and context-dependent identifier token types.
+`cnvrs/antlr4:parse` requires distinct `:parser-package` and `:lexer-package` package designators. It interns parser rule names in the former and lexer rule names, token kinds, and lexer mode names in the latter. Imported symbols remain the user's package choice; it does not force token kinds into `KEYWORD`. If both packages make the same symbol available under a parser rule and token name, import signals a grammar error. The returned definition also works directly with `cnvrs:parse` and `cnvrs:lex`; compilation happens on first use. `cnvrs/antlr4:parse-tree` returns the ANTLR syntax tree and accepts `:rule` to select a grammar entry rule. `cnvrs/antlr4:*parser*` and `cnvrs/antlr4:*lexer*` are defined with complete `defparser` forms. The lexer adaptor handles action blocks, brackets, and context-dependent identifier token types.
 
 Conversion supports parser and lexer rules, alternatives, groups, `?`, `*`, `+`, nongreedy lexer suffixes `??`, `*?`, `+?`, literals, character ranges and sets, negated block sets (`~(A|B)` in parser rules and `~('a'|'b'..'d')` in lexer rules), fragments, lexer modes, `skip`, `channel(...)`, `pushMode(...)`, `popMode`, and `mode(...)`. Parser element labels (`name=atom`, `names+=atom`, and labeled groups) become labeled element nodes; alternative labels (`#Name`) appear on the matching rule node. A parser grammar can use an external CNVRS lexer through `:lexer`, or parse a token sequence without one. A combined grammar creates lexer rules for string literals. `EOF` at the end of an alternative maps to CNVRS's whole-input check. Parser negated token sets compile to `(cnvrs:not-token (:a :b))` and consume one token whose kind is outside the set.
 
@@ -289,14 +325,14 @@ Compilation rewrites direct left recursion into precedence levels before buildin
 
 ### Compiled objects and caches
 
-`compile-grammar` returns a `parser` structure; `compile-lexer` returns a `compiled-lexer` structure. `define-parser` returns a definition that compiles on first use. Call `ensure-compiled` on a definition to compile it before parsing or lexing. It returns the same compiled object on later calls until a new `defrule` invalidates the definition.
+`compile-grammar` returns a `parser` structure; `compile-lexer` returns a `compiled-lexer` structure. `defparser` returns a complete definition compiled in the image unless `:rules-only t` is supplied. Call `ensure-compiled` on a rules-only definition to compile it before parsing or lexing. It returns the same compiled object on later calls. Definitions returned by the `.g4` converter also compile on first use.
 
 The exported `parser-states`, `parser-starts`, `parser-stops`, and `parser-lexer` accessors expose a parser's transition graph. `compiled-lexer-states`, `compiled-lexer-mode-starts`, and `compiled-lexer-kinds` expose a lexer's automaton. State and edge accessors are exported for inspection. Treat these graphs as immutable.
 
 Parser compilation also stores compiled rule functions in `parser-runner` (recognition without a tree) and `parser-node-runner` (the default node builder). Each runner has named local functions for the rules and takes the parser, token vector, start rule, and `require-eof` flag. `parse` selects one of them for valid input when recovery is off; custom builders and recovery use the general parser loop. The lexer already uses a compiled DFA matcher with a named local `match-one` function.
 
 `compile-cached-dfa` is an optional second compilation step for any compiled
-parser or `define-parser` definition. Parse representative inputs first, then
+parser or `defparser` definition. Parse representative inputs first, then
 call `(compile-cached-dfa parser :max-states 64)`. It compiles the currently
 observed SLL and full-context DFA states into parser-owned token dispatch
 functions and returns two values: the number of DFA roots and the total number
@@ -308,7 +344,7 @@ compiled snapshots; `clone-compiled` starts with independent, empty caches and
 no snapshots. A custom cache backend can support this operation by implementing
 `cache-entries` in addition to the usual cache methods.
 
-For a parser created with `define-parser`, the opt-in workflow is:
+For a parser created with `defparser`, the opt-in workflow is:
 
 ```lisp
 (cnvrs:parse *my-parser* training-input)
@@ -337,7 +373,7 @@ Custom backends specialize `make-cache` on a backend name and implement `cache-g
 
 ### Parse tree builders
 
-The default `:node` builder returns `cnvrs:node` structures. Supply `:tree-builder` to `compile-grammar` or `define-parser` to choose another builder for a parser, or to `parse` to override it for one call. A clone retains its parser's builder. Use `:tree-builder :none` to recognize input without constructing a tree; the first return value of `parse` is then `NIL`, while the second still contains any recovery records.
+The default `:node` builder returns `cnvrs:node` structures. Supply `:tree-builder` to `compile-grammar` or `defparser` to choose another builder for a parser, or to `parse` to override it for one call. A clone retains its parser's builder. Use `:tree-builder :none` to recognize input without constructing a tree; the first return value of `parse` is then `NIL`, while the second still contains any recovery records.
 
 A custom builder implements two generic functions. `make-parse-node` receives the builder, rule name, ordered children, start token offset, and end token offset. Children are tokens, inserted-token markers from recovery, or nodes already produced by that builder. `parse-node-components` receives the builder and a value and returns five values: rule, children, start, end, and a true value if the value is one of its nodes. Return a false fifth value for tokens. The parser uses these methods when normalizing direct left recursion, so custom nodes retain the original rule names and tree shape.
 
