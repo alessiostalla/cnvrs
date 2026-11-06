@@ -28,6 +28,7 @@
   direct-lookahead)
 (defstruct direct-choice table default-alternative)
 (defstruct two-token-choice table)
+(defstruct indexed-choice raw direct two default-alternative)
 (defstruct (rule-context
             (:constructor make-rule-context (return-state parent)))
   (return-state 0 :type fixnum)
@@ -42,7 +43,7 @@
   (cache-backend :hash-table)
   (full-context-strategy :cached) full-context-start
   decisions sll-decisions direct-decisions contexts
-  (context-count 0) context-shift runner node-runner
+  (context-count 0) context-shift token-keys token-index runner node-runner
   compiled-sll compiled-full)
 (defstruct parser-definition name kind default-rule lexer cache-backend metadata
   parser-package lexer-package
@@ -52,6 +53,7 @@
 (declaim (ftype function ensure-parser-compiled))
 (declaim (ftype function resolve-full-context-strategy))
 (declaim (ftype function compile-parser-runner))
+(declaim (ftype function initialize-token-index))
 
 (defun grammar-fail (control &rest arguments)
   (error 'grammar-error :message (apply #'format nil control arguments)))
@@ -599,6 +601,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
                                 :key #'transition-kind)))
       (setf (parser-context-shift grammar)
             (integer-length (1- (length (parser-states grammar)))))
+      (initialize-token-index grammar)
       (unless (or (parser-has-negated-tokens grammar)
                   (parser-semantic-rules grammar))
         (initialize-direct-lookahead grammar)
@@ -1080,6 +1083,52 @@ overlapping decision keeps its contextual predictor."
         (two-token-lookahead grammar state-id stack)
         :unavailable)))
 
+(defun initialize-token-index (grammar)
+  (let ((keys nil))
+    (loop for state across (parser-states grammar) do
+      (dolist (edge (state-edges state))
+        (when (eq (transition-kind edge) :token)
+          (pushnew (transition-value edge) keys :test #'equal))))
+    (pushnew +end-of-input+ keys :test #'equal)
+    (setf keys (nreverse keys))
+    (setf (parser-token-keys grammar) (coerce keys 'simple-vector)
+          (parser-token-index grammar)
+          (compile nil
+                   (if (every #'symbolp keys)
+                       `(lambda (key)
+                          (case key
+                            ,@(loop for token in keys for index from 0
+                                    collect `((,token) ,index))))
+                       `(lambda (key)
+                          (cond
+                            ,@(loop for token in keys for index from 0
+                                    collect `((equal key ',token) ,index)))))))))
+
+(defun index-choice-table (grammar table)
+  (let* ((keys (parser-token-keys grammar))
+         (result (make-array (length keys) :initial-element nil)))
+    (loop for key across keys for index from 0 do
+      (setf (aref result index) (gethash key table)))
+    result))
+
+(defun index-contextual-choice (grammar choice)
+  (cond
+    ((hash-table-p choice)
+     (make-indexed-choice :raw choice
+                          :direct (index-choice-table grammar choice)))
+    ((direct-choice-p choice)
+     (make-indexed-choice
+      :raw choice
+      :direct (index-choice-table grammar (direct-choice-table choice))
+      :default-alternative (direct-choice-default-alternative choice)))
+    ((two-token-choice-p choice)
+     (let ((outer (index-choice-table grammar (two-token-choice-table choice))))
+       (loop for entry across outer for index from 0
+             when (hash-table-p entry) do
+               (setf (aref outer index) (index-choice-table grammar entry)))
+       (make-indexed-choice :raw choice :two outer)))
+    (t (make-indexed-choice :raw choice))))
+
 (defun context-key (grammar state-id parent-id)
   (declare (type fixnum state-id parent-id))
   (logior (ash parent-id (parser-context-shift grammar)) state-id))
@@ -1106,14 +1155,17 @@ overlapping decision keeps its contextual predictor."
                                (context-id grammar
                                            (rule-context-parent context))))))))
 
-(defun contextual-direct-lookahead (grammar state-id stack context)
+(defun contextual-direct-lookahead (grammar state-id stack context
+                                    &optional indexed-p)
   (flet ((compute ()
-           (contextual-choice grammar state-id stack)))
+           (index-contextual-choice
+            grammar (contextual-choice grammar state-id stack))))
     (declare (dynamic-extent #'compute))
-    (cache-get-or-compute
-     (parser-direct-decisions grammar)
-     (context-key grammar state-id (context-id grammar context))
-     #'compute)))
+    (let ((entry (cache-get-or-compute
+                  (parser-direct-decisions grammar)
+                  (context-key grammar state-id (context-id grammar context))
+                  #'compute)))
+      (if indexed-p entry (indexed-choice-raw entry)))))
 
 (defun compiled-choice-index (grammar state-id stack context input position)
   (declare (type (or simple-vector filtered-token-input) input)
@@ -1125,26 +1177,46 @@ overlapping decision keeps its contextual predictor."
                   (aref (parser-states grammar) state-id)))
          (table (if (member choice '(:contextual :contextual-two))
                     (contextual-direct-lookahead
-                     grammar state-id stack context)
+                     grammar state-id stack context t)
                     choice))
          (direct-table (if (direct-choice-p table)
                            (direct-choice-table table) table))
          (current (when (< position (input-size input))
                     (token-key (input-token input position))))
-         (direct (and current (hash-table-p direct-table)
-                      (gethash current direct-table)))
+         (token-index (and current (indexed-choice-p table)
+                           (funcall (parser-token-index grammar) current)))
+         (direct (if (indexed-choice-p table)
+                     (and token-index (indexed-choice-direct table)
+                          (aref (indexed-choice-direct table) token-index))
+                     (and current (hash-table-p direct-table)
+                          (gethash current direct-table))))
          (two-token (and current (two-token-choice-p table)
                          (gethash current (two-token-choice-table table))))
+         (indexed-two (and token-index (indexed-choice-p table)
+                           (indexed-choice-two table)
+                           (aref (indexed-choice-two table) token-index)))
          (two-token-result
-           (if (hash-table-p two-token)
-               (let ((next (input-next-position input position)))
-                 (gethash (if (< next (input-size input))
-                              (token-key (input-token input next))
-                              +end-of-input+)
-                          two-token))
-               two-token)))
+           (cond
+             ((and indexed-two (vectorp indexed-two))
+              (let* ((next (input-next-position input position))
+                     (index (funcall (parser-token-index grammar)
+                                     (if (< next (input-size input))
+                                         (token-key (input-token input next))
+                                         +end-of-input+))))
+                (and index (aref indexed-two index))))
+             (indexed-two indexed-two)
+             ((hash-table-p two-token)
+              (let ((next (input-next-position input position)))
+                (gethash (if (< next (input-size input))
+                             (token-key (input-token input next))
+                             +end-of-input+)
+                         two-token)))
+             (t two-token))))
     (cond (direct (1- (the fixnum direct)))
           (two-token-result (1- (the fixnum two-token-result)))
+          ((indexed-choice-p table)
+           (or (indexed-choice-default-alternative table)
+               (predict grammar state-id stack input position)))
           ((direct-choice-p table)
            (direct-choice-default-alternative table))
           (t (predict grammar state-id stack input position)))))
