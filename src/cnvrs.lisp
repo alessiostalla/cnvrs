@@ -28,6 +28,11 @@
   direct-lookahead)
 (defstruct direct-choice table default-alternative)
 (defstruct two-token-choice table)
+(defstruct (rule-context
+            (:constructor make-rule-context (return-state parent)))
+  (return-state 0 :type fixnum)
+  parent
+  canonical-id)
 (defstruct configuration (state 0 :type fixnum) (stack nil :type list)
   (alternative 0 :type fixnum))
 (defstruct dfa-state configurations alternatives accepted edges)
@@ -1089,17 +1094,30 @@ overlapping decision keeps its contextual predictor."
      (parser-contexts grammar) (context-key grammar return-state parent-id)
      #'compute)))
 
+(defun context-id (grammar context)
+  "Intern a rule-context chain only when a decision needs its numeric ID."
+  (etypecase context
+    (fixnum context)
+    (null 0)
+    (rule-context
+     (or (rule-context-canonical-id context)
+         (setf (rule-context-canonical-id context)
+               (intern-context grammar (rule-context-return-state context)
+                               (context-id grammar
+                                           (rule-context-parent context))))))))
+
 (defun contextual-direct-lookahead (grammar state-id stack context)
   (flet ((compute ()
            (contextual-choice grammar state-id stack)))
     (declare (dynamic-extent #'compute))
     (cache-get-or-compute
-     (parser-direct-decisions grammar) (context-key grammar state-id context)
+     (parser-direct-decisions grammar)
+     (context-key grammar state-id (context-id grammar context))
      #'compute)))
 
 (defun compiled-choice-index (grammar state-id stack context input position)
   (declare (type (or simple-vector filtered-token-input) input)
-           (type fixnum state-id context position))
+           (type fixnum state-id position))
   (when (parser-has-negated-tokens grammar)
     (return-from compiled-choice-index
       (predict grammar state-id stack input position)))
@@ -1187,14 +1205,14 @@ overlapping decision keeps its contextual predictor."
                         `(let ((child
                                  (,(rule-function (transition-value edge))
                                   (cons ,target stack)
-                                  (intern-context grammar ,target context))))
+                                  (make-rule-context ,target context))))
                            (unless child (return-from ,function-name nil))
                            (push child children)
                            (setf state-id ,target))
                         `(progn
                            (unless (,(rule-function (transition-value edge))
                                     (cons ,target stack)
-                                    (intern-context grammar ,target context))
+                                    (make-rule-context ,target context))
                              (return-from ,function-name nil))
                            (setf state-id ,target)))))))
              (choice-form (id state)
@@ -1273,7 +1291,7 @@ overlapping decision keeps its contextual predictor."
               (let ((result
                       (case start
                         ,@(loop for (name first-state function-name) in rules
-                                collect `(,name (,function-name nil 0))))))
+                                collect `(,name (,function-name nil nil))))))
                 (and result
                      (or (not require-eof)
                          (= position (length tokens)))

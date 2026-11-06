@@ -331,6 +331,19 @@
                   (signals cnvrs:parse-error
                     (cnvrs:parse interpreted '(:a :wrong) :tree-builder builder)))
              "invalid input retains generic parser errors")))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (and item :b)) (item :a)))))
+    (cnvrs:parse grammar '(:a :b) :tree-builder :none)
+    (check (zerop (cnvrs:cache-count (cnvrs::parser-contexts grammar)))
+           "deterministic compiled rule calls do not intern contexts"))
+  (let ((grammar (cnvrs:compile-grammar
+                  '((start (and outer :a))
+                    (outer inner)
+                    (inner (? :a))))))
+    (dolist (tokens '((:a) (:a :a)))
+      (cnvrs:parse grammar tokens :tree-builder :none))
+    (check (= (cnvrs:cache-count (cnvrs::parser-contexts grammar)) 2)
+           "nested contextual decisions intern their parent chain"))
   (check (and (eq (cnvrs:parser-cache-backend
                    (cnvrs:compile-grammar '((start :a)))) :hash-table)
               (eq (cnvrs:compiled-lexer-cache-backend
