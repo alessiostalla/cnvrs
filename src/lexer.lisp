@@ -3,9 +3,6 @@
 #+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
                            (space 0) (compilation-speed 0)))
 
-(defstruct compiled-lexer states mode-starts kinds skips channels ordered-rules
-  push-modes pop-modes set-modes metadata cache-backend cache function matcher)
-
 (define-condition lexical-error (error)
   ((position :initarg :position :reader lexical-error-position)
    (character :initarg :character :reader lexical-error-character))
@@ -391,6 +388,7 @@
   (declare (ignore definitions))
   (let ((callback (lx-expr-callback expression)))
     (lambda (source at next)
+      (declare (ignore source))
       (let ((end (funcall next at)))
         (when (and end (not *lx-suppress-actions*))
           (push (cons callback at) *lx-action-events*))

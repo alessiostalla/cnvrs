@@ -1,5 +1,9 @@
 (in-package #:cnvrs)
 
+;; PARSE checks compiled lexers before the lexer implementation is loaded.
+(defstruct compiled-lexer states mode-starts kinds skips channels ordered-rules
+  push-modes pop-modes set-modes metadata cache-backend cache function matcher)
+
 (defparameter +end-of-input+ (gensym "END-OF-INPUT-"))
 
 (defparameter +deferred-lexeme-text+ (gensym "DEFERRED-LEXEME-TEXT-"))

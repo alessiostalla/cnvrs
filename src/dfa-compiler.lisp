@@ -51,12 +51,14 @@
                                           ',exit)
                                      ,(first alternatives))
                                  t))))
-                      (let ((key (token-key (aref tokens position))))
-                        (cond
-                          ,@(loop for (key target-id) in edges
-                                  collect `((equal key ',key)
-                                            (setf state-id ,target-id)))
-                          (t (return (values nil nil)))))
+                      ,(if edges
+                           `(let ((key (token-key (aref tokens position))))
+                              (cond
+                                ,@(loop for (key target-id) in edges
+                                        collect `((equal key ',key)
+                                                  (setf state-id ,target-id)))
+                                (t (return (values nil nil)))))
+                           '(return (values nil nil)))
                       (incf position))))))
       (values
        (compile nil
