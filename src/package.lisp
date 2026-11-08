@@ -1,11 +1,17 @@
 (defpackage #:cnvrs
   (:use #:cl)
   (:shadow #:parse-error)
-  (:export #:seq #:? #:*? #:+? #:?? #:range #:one-of #:not-one-of #:any #:eof
+  (:export #:seq #:? #:*? #:+? #:?? #:range #:unicode-property #:one-of #:not-one-of #:any #:eof
            #:label #:alt-label #:token #:not-token #:predicate #:action #:right
            #:antlr-precedence
            #:and #:or #:* #:+
            #:compile-grammar #:compile-lexer #:parse #:lex
+           #:make-lexer-state #:lexer-next-token #:*lexer-state*
+           #:lexer-state-source #:lexer-state-start-line #:lexer-state-start-column
+           #:lexer-simulator #:lexer-state-position #:lexer-state-line #:lexer-state-column #:lexer-state-start
+           #:lexer-state-mode #:lexer-state-mode-stack #:lexer-state-type #:lexer-state-channel #:lexer-state-text
+           #:lexeme-line #:lexeme-column #:skip-character
+           #:lexical-error-failed-position #:lexical-error-line #:lexical-error-column
            #:input-token-at #:input-token-count
            #:ensure-compiled #:clone-compiled #:clear-cache
            #:make-parse-node #:parse-node-components

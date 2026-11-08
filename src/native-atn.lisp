@@ -60,9 +60,25 @@
                                                           (nreverse suffixes))))))))))
      left-rules)))
 
-(defun build-java-atn (grammar definitions left-rules)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+(defclass parser-range-expr (parser-expr)
+  ((value :initarg :value :reader parser-expr-value)))
+(defclass parser-lexer-set-expr (parser-set-expr) ())
+(defclass parser-lexer-action-expr (parser-expr)
+  ((value :initarg :value :reader parser-expr-value)))
+(defclass parser-lexer-commands-expr (parser-unary-expr)
+  ((commands :initarg :commands :reader parser-expr-commands)))
+(defclass parser-lexer-optional-expr (parser-optional-expr)
+  ((lazy :initarg :lazy :reader parser-expr-lazy)))
+(defclass parser-lexer-star-expr (parser-star-expr)
+  ((lazy :initarg :lazy :reader parser-expr-lazy)))
+(defclass parser-lexer-plus-expr (parser-plus-expr)
+  ((lazy :initarg :lazy :reader parser-expr-lazy))))
+
+(defun build-java-atn (grammar definitions left-rules &key lexer-modes rule-modes)
   "Construct and compact the same parser graph as Java's ParserATNFactory."
-  (let ((rule-index 0) (decisions 0) (event-id 0))
+  (declare (optimize (speed 1) (compilation-speed 3)))
+  (let ((rule-index -1) (decisions 0) (event-id 0) (mode-starts (make-hash-table :test 'eq)))
     (labels
         ((state (id) (aref (parser-states grammar) id))
          (new (&optional (kind :basic))
@@ -117,7 +133,7 @@
                                          (gethash (transition-value e) (parser-starts grammar))
                                          (transition-target e))))))))
                (visit start))))
-         (block-handle (parts &optional quantifier)
+         (block-handle (parts &optional quantifier lazy)
            ;; GrammarTransformPipeline.reduceBlocksToSets precedes construction.
            (let* ((parts (if (and (> (length parts) 1)
                                   (every (lambda (e) (typep e 'parser-token-expr)) parts))
@@ -135,26 +151,34 @@
                (dolist (h alts) (eps a (car h)) (eps (cdr h) b) (trim-tail (car h)))
                (case quantifier
                  (:optional
+                  (setf (state-non-greedy-p (state a)) lazy)
                   (setf (state-exit-alternative (state a)) (length alts))
-                  (eps a b) (cons a b))
+                  (eps a b)
+                  (when lazy (setf (state-edges (state a)) (reverse (state-edges (state a)))))
+                  (cons a b))
                  (:star
                   (let ((entry (new :star-loop-entry)) (end (new :loop-end))
                         (back (new :star-loop-back)))
                     (decision entry)
+                    (setf (state-non-greedy-p (state entry)) lazy)
                     (setf (state-loop-back (state entry)) back
                           (state-loop-back (state end)) back
                           (state-exit-alternative (state entry)) 1
                           (state-repetition-p (state entry)) t)
                     (eps entry a) (eps entry end) (eps b back) (eps back entry)
+                    (when lazy (setf (state-edges (state entry)) (reverse (state-edges (state entry)))))
                     (cons entry end)))
                  (:plus
                   (let ((back (new :plus-loop-back)) (end (new :loop-end)))
                     (decision back)
+                    (setf (state-non-greedy-p (state back)) lazy)
                     (setf (state-loop-back (state a)) back
                           (state-loop-back (state end)) back
                           (state-exit-alternative (state back)) 1
                           (state-repetition-p (state back)) t)
-                    (eps b back) (eps back a) (eps back end) (cons a end)))
+                    (eps b back) (eps back a) (eps back end)
+                    (when lazy (setf (state-edges (state back)) (reverse (state-edges (state back)))))
+                    (cons a end)))
                  (otherwise (cons a b))))))
          (body-alts (expr)
            (if (typep expr 'parser-choice-expr) (parser-expr-parts expr) (list expr)))
@@ -166,7 +190,15 @@
               (let ((h (atom-handle :call (parser-expr-name e))))
                 (setf (state-call-precedence (state (car h))) (parser-expr-precedence e)) h))
              (parser-token-expr (atom-handle :token (parser-expr-value e)))
+             (parser-range-expr (atom-handle :range (parser-expr-value e)))
              (parser-set-expr (atom-handle :token-set (parser-expr-value e)))
+             (parser-lexer-action-expr (atom-handle :action (parser-expr-value e)))
+             (parser-lexer-commands-expr
+              ;; Java lexerAltCommands connects with an epsilon rather than
+              ;; elemList splicing; the difference survives state compaction.
+              (let ((body (build (parser-expr-body e)))
+                    (commands (join (mapcar #'build (parser-expr-commands e)))))
+                (eps (cdr body) (car commands)) (cons (car body) (cdr commands))))
              (parser-not-token-expr (atom-handle :not-token (parser-expr-excluded e)))
              (parser-wildcard-expr (atom-handle :wildcard))
              (parser-noop-expr (atom-handle :action))
@@ -187,10 +219,19 @@
              (parser-sequence-expr
               (if (parser-expr-parts e) (join (mapcar #'build (parser-expr-parts e)))
                   (atom-handle :epsilon)))
+             (parser-lexer-optional-expr
+              (block-handle (body-alts (parser-expr-body e)) :optional (parser-expr-lazy e)))
+             (parser-lexer-star-expr
+              (block-handle (body-alts (parser-expr-body e)) :star (parser-expr-lazy e)))
+             (parser-lexer-plus-expr
+              (block-handle (body-alts (parser-expr-body e)) :plus (parser-expr-lazy e)))
              (parser-optional-expr (block-handle (body-alts (parser-expr-body e)) :optional))
              (parser-star-expr (block-handle (body-alts (parser-expr-body e)) :star))
              (parser-plus-expr (block-handle (body-alts (parser-expr-body e)) :plus))
              (t (grammar-fail "No ATN construction for ~S" e)))))
+      (dolist (mode lexer-modes)
+        (let ((start (new :token-start)))
+          (decision start) (setf (gethash mode mode-starts) start)))
       (loop for (name expression) in definitions for index from 0 do
         (setf rule-index index)
         (let ((start (new :rule-start)) (stop (new :rule-stop)))
@@ -205,7 +246,14 @@
           (eps (cdr h) (gethash name (parser-stops grammar)))))
       ;; Java allocates one EOF target, including when no start-rule EOF edge
       ;; survives serialization. Runtime stop transitions are rebuilt below.
-      (new)
+      (if lexer-modes
+          (progn
+            (loop for (name expression) in definitions
+                  for mode in rule-modes do
+              (when (gethash mode mode-starts)
+                (eps (gethash mode mode-starts) (gethash name (parser-starts grammar)))))
+            (optimize-lexer-atn-sets grammar))
+          (new))
       (let* ((old (parser-states grammar)) (mapping (make-array (length old)))
              (fresh (make-array 0 :adjustable t :fill-pointer 0)))
         (loop for s across old for id from 0 when s do
@@ -218,6 +266,7 @@
           (when (state-loop-back s) (setf (state-loop-back s) (aref mapping (state-loop-back s)))))
         (dolist (table (list (parser-starts grammar) (parser-stops grammar)))
           (maphash (lambda (name id) (setf (gethash name table) (aref mapping id))) table))
+        (maphash (lambda (mode id) (setf (gethash mode mode-starts) (aref mapping id))) mode-starts)
         (setf (parser-states grammar) fresh)
         ;; ATNDeserializer.markPrecedenceDecisions.
         (loop for s across fresh when (and (eq (state-kind s) :star-loop-entry)
@@ -226,8 +275,8 @@
                  (end (aref fresh (transition-target last))))
             (when (and (eq (state-kind end) :loop-end)
                        (state-stop-rule (aref fresh (transition-target (first (state-edges end))))))
-              (setf (state-precedence-decision-p s) t)))))))
-  grammar)
+              (setf (state-precedence-decision-p s) t))))))
+    (values grammar mode-starts)))
 
 (defun apply-atn-events (events builder rule children start end label labels)
   "Apply tree annotations without adding transitions or helper rules to the ATN."

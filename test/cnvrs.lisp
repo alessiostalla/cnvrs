@@ -648,10 +648,10 @@
       (let ((start (cnvrs:cache-get-or-compute
                     (cnvrs:compiled-lexer-cache lexer) :default
                     (lambda () :missing))))
-        (check (cnvrs::lx-dfa-state-p start)
+        (check (cnvrs/antlr-runtime::lexer-dfa-state-p start)
                "lexer caches its initial DFA state by mode")
-        (check (cnvrs::lx-dfa-state-p
-                (aref (cnvrs::lx-dfa-state-edges start)
+        (check (cnvrs/antlr-runtime::lexer-dfa-state-p
+                (aref (cnvrs/antlr-runtime::lexer-dfa-state-edges start)
                       (char-code #\a)))
                "ASCII lexer transitions use direct DFA edges"))
       (let ((copy (cnvrs:clone-compiled grammar)))
@@ -1768,10 +1768,8 @@ options {")))
              "prequel metadata survives lexer compilation"))
     (let ((grammar (antlr-parse
                     "lexer grammar Lazy; STAR : '<' .*? '>'; PLUS : '[' .+? ']'; OPTIONAL : 'a' 'x'?? 'x'; OTHER : .;")))
-      (check (every (lambda (entry) (functionp (third entry)))
-                    (cnvrs::compiled-lexer-ordered-rules
-                     (cnvrs:ensure-compiled grammar)))
-             "nongreedy lexer rules use compiled matcher functions")
+      (check (typep (cnvrs:lexer-simulator grammar) 'cnvrs/antlr-runtime:lexer-atn-simulator)
+             "nongreedy lexer rules use the Java lexer ATN simulator")
       (check (equal (map 'list #'cnvrs:lexeme-text
                          (cnvrs:lex grammar "<1>2>"))
                     '("<1>" "2" ">"))

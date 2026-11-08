@@ -1,6 +1,6 @@
-# ANTLR Java 4.13.2 parser prediction runtime
+# ANTLR Java 4.13.2 ATN runtimes
 
-This is a Common Lisp port of the parser prediction runtime from the fixed
+This is a Common Lisp port of the parser prediction and lexer simulation runtimes from the fixed
 [ANTLR 4.13.2 tag](https://github.com/antlr/antlr4/tree/4.13.2/runtime/Java/src/org/antlr/v4/runtime).
 It replaces the former predictor; it is not another heuristic layered on it.
 Upstream's BSD-3-Clause notice is retained in [LICENSE-ANTLR.txt](LICENSE-ANTLR.txt).
@@ -17,6 +17,9 @@ Upstream's BSD-3-Clause notice is retained in [LICENSE-ANTLR.txt](LICENSE-ANTLR.
 | `ParserATNSimulator` | [parser-atn-simulator.lisp](parser-atn-simulator.lisp): `adaptive-predict`, `exec-atn`, `compute-start-state`, `compute-reach-set`, stop-state/epsilon closure, SLL conflict handling, `exec-atn-with-full-context`, precedence filtering and loop-entry elimination |
 | `DFA`, `DFAState` | Decision DFA interning, accept/conflict/predicate states, cached token edges, precedence-specific start states |
 | Tool: `ParserATNFactory`, `TailEpsilonRemover`, `ATNOptimizer.optimizeStates` | [native-atn.lisp](../native-atn.lisp): typed rule/block/loop construction, element splicing, exact rule-target visitor traversal, tail-epsilon removal and state compaction |
+| `LexerATNSimulator`, `LexerATNConfig`, `OrderedATNConfigSet`, `LexerActionExecutor` | [lexer-atn-simulator.lisp](lexer-atn-simulator.lisp): ordered closure, return contexts, nongreedy priority, speculative predicates, maximal-match rewind, indexed actions and ASCII DFA caching |
+| Tool: `LexerATNFactory`, `RangeBorderCharactersData`, `ATNOptimizer.optimizeSets` | [lexer-atn.lisp](../lexer-atn.lisp) and shared factory: mode starts, scalar/Unicode sets, case folding, lexer commands, lazy blocks/loops and sequential-alt set merging |
+| `Lexer.nextToken` | [lexer-runtime.lisp](../lexer-runtime.lisp): MORE/SKIP, mode stack, token overrides, EOF, conditions/restarts and Java-style optional recovery |
 | Tool: `LeftRecursiveRuleAnalyzer`, `LeftRecursiveRuleTransformer`, `LeftRecursiveRules.stg` | `java-left-recursion`: primary block, initial empty action, precedence-predicate loop, operand precedence and associativity; no helper rules |
 
 The merge cache is allocated lazily during one prediction and discarded on every
@@ -67,7 +70,7 @@ cannot be replaced casually with a merely similar result.
 
 No eager multi-token tables, global caller-stack IDs, persistent full-context
 DFA caches, predicate-result caches, or native DFA trace snapshots are used.
-Lexer simulation and recovery remain outside the port. Parser actions now run
+Parser recovery remains outside the port. Parser actions run
 on the selected execution path, never during prediction; predicates are collected
 in SLL and evaluated on full-context closure as in Java.
 
@@ -99,3 +102,41 @@ rule/decision indices, follows, precedence predicates and loop/block links.
 These tests establish agreement for their corpus, not a proof of universal
 ANTLR equivalence. Keep the reference decomposition and extend Java differential
 coverage when correcting a mismatch. [Fixture provenance and regeneration](../../test/fixtures/antlr-runtime/README.md).
+
+## Lexer boundaries and fidelity
+
+Lexer configurations retain complete prediction contexts, action executors and
+nongreedy flags. Unlike parser `ATNConfigSet`, `OrderedATNConfigSet` does not merge
+different return contexts. Lexer contexts are not interned in the parser's shared
+context cache. DFA states preserve ordered configuration identity; the first
+rule-stop configuration determines the accepted type/actions. DFAs have one
+entry per ATN decision, with mode starts occupying the first entries, as in Java.
+Only ASCII transition edges are cached. Predicate-dependent starts/edges are
+suppressed; target states can still be interned. Predicates are evaluated during
+closure with speculative cursor restoration. Actions execute after acceptance,
+with custom offsets fixed before consuming the next character.
+
+Lisp token types and mode/channel names remain symbols, with package identity;
+rule indices, state numbers and action indices are ordinary integers. The lexer
+uses immutable strings and invocation-local cursors rather than Java CharStream
+mark/seek. Native offsets count Lisp characters (Unicode code points), corresponding
+to Java's CodePointCharStream; lexeme ends are exclusive. Conditions and
+SKIP-CHARACTER expose recovery; `:recover t` selects Java's consume-and-continue
+behavior. Streaming emits EOF; bulk lexing omits it for compatibility.
+
+The offline lexer suite checks mixed recursive/nongreedy rules, fragments,
+predicates before and after consumption, indexed/end actions, modes, MORE,
+SKIP, TYPE, channels, EOF rules, malformed inputs, Unicode properties, case
+options and supplementary characters. Native runtime and FASL lexers are
+checked against the same Java fixture. It also checks cloning, cache clearing,
+reentrant predicates, token overrides, recovery restarts and shared-DFA interning.
+The entire Java 8 lexer has an exact 1,117-state ATN match; its 505-token source
+stream and mode DFA state/edge counts agree with Java.
+
+UnicodeData properties and aliases come from the pinned 4.13.2 jar. Simple case
+mappings come from JDK 24, since Java's tool uses its host JDK's Character tables.
+Both are frozen in `antlr-unicode-data.sexp`; a different JDK can produce different
+case mappings. Lisp grammar FASLs freeze expanded sets and require no Java tool.
+The importer still requires explicit Lisp mappings for embedded Java callbacks,
+uses symbolic command arguments, and does not load imported grammars or execute
+prequel Java code. These frontend boundaries are separate from ATN simulation.

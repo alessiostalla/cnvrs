@@ -1,9 +1,9 @@
 ;;; Port of ATNConfig, ATNConfigSet and PredictionMode, ANTLR 4.13.2.
 (in-package #:cnvrs/antlr-runtime)
 
-(defstruct atn (states #()) (rule-stops #()) (decisions #()) (max-token-type 0))
+(defstruct atn (states #()) (rule-stops #()) (decisions #()) (max-token-type 0) (mode-starts #()) (rule-starts #()) (rule-token-types #()) (lexer-actions #()))
 (defstruct atn-state (number 0) (kind :basic) (rule 0) (transitions nil)
-  precedence-rule-p precedence-decision-p loop-back end-state)
+  precedence-rule-p precedence-decision-p loop-back end-state non-greedy-p)
 (defstruct atn-transition (kind :epsilon) (target 0) follow label
   (outermost-precedence-return -1) context-dependent-p (precedence 0))
 (defstruct atn-config (state 0) (alt 1) (context (empty-prediction-context))

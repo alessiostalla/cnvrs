@@ -1,0 +1,281 @@
+;;; Native lexer frontend for the ANTLR Java 4.13.2 ATN factory.
+(in-package #:cnvrs)
+;; These are grammar construction functions, not the character simulation loop.
+(declaim (optimize (speed 1) (compilation-speed 3) (safety 2)))
+
+(defun normalize-character-intervals (ranges)
+  (let ((result nil))
+    (dolist (range (sort (copy-tree ranges) #'< :key #'first))
+      (if (and result (<= (first range) (1+ (second (first result)))))
+          (setf (second (first result)) (max (second range) (second (first result))))
+          (push range result)))
+    (nreverse result)))
+(defun complement-character-intervals (ranges)
+  (let ((next 0) (result nil))
+    (dolist (range (normalize-character-intervals ranges))
+      (when (< next (first range)) (push (list next (1- (first range))) result))
+      (setf next (1+ (second range))))
+    (when (<= next #x10ffff) (push (list next #x10ffff) result))
+    (nreverse result)))
+(defun character-items-intervals (items)
+  (map 'list (lambda (item) (if (characterp item) (list (char-code item) (char-code item))
+                               (list (char-code (car item)) (char-code (cdr item))))) items))
+(defun lexer-graph-edge-set (edge)
+  (case (transition-kind edge)
+    (:token (list (list (transition-value edge) (transition-value edge))))
+    (:range (list (transition-value edge)))
+    (:token-set (transition-value edge))))
+(defun set-lexer-graph-label (edge ranges &optional force-set)
+  (let ((ranges (normalize-character-intervals ranges)))
+    (cond ((and (not force-set) (= (length ranges) 1))
+           (let ((range (first ranges)))
+             (if (= (first range) (second range))
+                 (setf (transition-kind edge) :token (transition-value edge) (first range))
+                 (setf (transition-kind edge) :range (transition-value edge) range))))
+          (t (setf (transition-kind edge) :token-set (transition-value edge) ranges)))))
+(defun optimize-lexer-atn-sets (grammar)
+  "ATNOptimizer.optimizeSets, preserving sequential-alt priority and decisions."
+  (let ((states (parser-states grammar)))
+    (loop for state across states when (and state (state-decision state)) do
+      (let ((edges (state-edges state)) (result nil))
+        (labels ((eligible (edge)
+                   (let* ((branch (aref states (transition-target edge)))
+                          (out (and branch (state-edges branch))) (match (first out)))
+                     (and (eq (transition-kind edge) :epsilon) (= (length out) 1)
+                          (lexer-graph-edge-set match)
+                          (eq (state-kind (aref states (transition-target match))) :block-end)
+                          match))))
+          (loop while edges for edge = (pop edges) for match = (eligible edge) do
+            (when match
+              (let ((sets (lexer-graph-edge-set match)) (merged nil))
+                (loop while (and edges (eligible (first edges))) do
+                  (let* ((removed (pop edges)) (other (eligible removed)))
+                    (setf merged t sets (append sets (lexer-graph-edge-set other))
+                          (aref states (transition-target removed)) nil)))
+                (when merged (set-lexer-graph-label match sets))))
+            (push edge result)))
+        (setf (state-edges state) (nreverse result))))))
+
+(defvar *antlr-character-cases*)
+(defvar *lexer-case-insensitive* nil)
+(defun lexer-case-intervals (ranges)
+  (if (not *lexer-case-insensitive*) ranges
+      (normalize-character-intervals
+       (loop for (from to) in ranges
+             for f = (gethash from *antlr-character-cases* (list from from))
+             for e = (gethash to *antlr-character-cases* (list to to))
+             for single = (or (and (= (first f) (second f)) (= (first e) (second e)))
+                              (not (eql (= from (first f)) (= to (first e))))
+                              (/= (- (first e) (first f)) (- (second e) (second f))))
+             append (if single (list (list from to))
+                        (list (list (first f) (first e)) (list (second f) (second e))))))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+(defclass lx-case-expr (lx-unary-expr)
+  ((enabled :initarg :enabled :reader lx-expr-enabled)))
+(defclass lx-set-expr (lx-expr)
+  ((ranges :initarg :ranges :reader lx-expr-ranges)
+   (scalars :initarg :scalars :initform :all :reader lx-expr-scalars)
+   (inverted :initarg :inverted :initform nil :reader lx-expr-inverted)))
+(defclass lx-eof-expr (lx-expr) ())
+(defclass lx-commands-expr (lx-unary-expr)
+  ((commands :initarg :commands :reader lx-expr-commands))))
+
+(defmethod lx-nullable ((expression lx-eof-expr) definitions)
+  (declare (ignore definitions)) *lx-eof-nullable*)
+
+(defun lexer-factory-set (part)
+  (typecase part
+    (parser-token-expr (list (list (parser-expr-value part) (parser-expr-value part))))
+    (parser-range-expr (list (parser-expr-value part)))
+    (parser-set-expr (parser-expr-value part))
+    (parser-sequence-expr
+     (let ((parts (parser-expr-parts part)))
+       (when (= (length parts) 1) (lexer-factory-set (first parts)))))))
+
+(defun lexer-expression-to-atn (expression rule actions predicates custom-index predicate-index &optional top-level-p)
+  "Return factory expressions, keeping callbacks outside the immutable ATN."
+  (labels ((new (class &rest args) (apply #'make-instance class :source (lx-expr-source expression) args))
+           (recur (e) (lexer-expression-to-atn e rule actions predicates custom-index predicate-index))
+           (set-expr (ranges &optional force-set inverted)
+             (let* ((folded (lexer-case-intervals ranges))
+                    (force-set (or force-set (not (equal ranges folded))))
+                    (ranges (normalize-character-intervals folded)))
+               (cond (inverted (new 'parser-not-token-expr :excluded ranges))
+                     ((and (not force-set) (= (length ranges) 1))
+                      (let ((range (first ranges)))
+                        (if (= (first range) (second range)) (new 'parser-token-expr :value (first range))
+                            (new 'parser-range-expr :value range))))
+                     (t (new 'parser-lexer-set-expr :value ranges)))))
+           (action-expr (action)
+             (let ((index (position action (car actions) :test #'equal)))
+               (unless index (setf index (length (car actions))
+                                   (car actions) (append (car actions) (list action))))
+               (new 'parser-lexer-action-expr :value index))))
+    (typecase expression
+      (lx-reference-expr (new 'parser-reference-expr :name (lx-expr-name expression)))
+      (lx-literal-expr
+       (let ((text (lx-expr-text expression)))
+         (if (zerop (length text)) (new 'parser-sequence-expr :parts nil)
+             (new 'parser-sequence-expr :parts
+                  (map 'list (lambda (c) (let ((code (char-code c))) (set-expr (list (list code code))))) text)))))
+      (lx-range-expr (set-expr (list (list (char-code (lx-expr-lower expression))
+                                           (char-code (lx-expr-upper expression))))))
+      (lx-one-of-expr (set-expr (character-items-intervals (lx-expr-items expression)) t))
+      (lx-not-one-of-expr (set-expr (character-items-intervals (lx-expr-items expression)) t t))
+      (lx-set-expr
+       (let* ((scalars (lx-expr-scalars expression))
+              (ranges (if (eq scalars :all) (lexer-case-intervals (lx-expr-ranges expression))
+                          (append (lx-expr-ranges expression) (lexer-case-intervals scalars))))
+              (*lexer-case-insensitive* nil))
+         (set-expr ranges t (lx-expr-inverted expression))))
+      (lx-case-expr
+       (let ((*lexer-case-insensitive* (lx-expr-enabled expression)))
+         (lexer-expression-to-atn (lx-expr-body expression) rule actions predicates custom-index predicate-index top-level-p)))
+      (lx-eof-expr (new 'parser-token-expr :value -1))
+      (lx-any-expr (new 'parser-wildcard-expr))
+      (lx-predicate-expr
+       (let ((index (car predicate-index)))
+         (incf (car predicate-index))
+         (setf (gethash (list rule index) predicates) (lx-expr-callback expression))
+         (new 'parser-predicate-expr :callback (list rule index nil))))
+      (lx-action-expr
+       (let ((index (car custom-index)))
+         (incf (car custom-index))
+         (setf (gethash (list :action rule index) predicates) (lx-expr-callback expression))
+         (action-expr (list :custom rule index))))
+      (lx-commands-expr
+       (let ((body (lexer-expression-to-atn (lx-expr-body expression) rule actions predicates custom-index predicate-index top-level-p)))
+         (new 'parser-lexer-commands-expr :body body
+              :commands (mapcar #'action-expr (lx-expr-commands expression)))))
+      (lx-choice-expr
+       (let* ((parts (mapcar #'recur (lx-expr-parts expression)))
+              (sets (mapcar #'lexer-factory-set parts)))
+         (if (and (not top-level-p) (> (length parts) 1) (every #'identity sets))
+             (let ((*lexer-case-insensitive* nil)) (set-expr (apply #'append sets)))
+             (new 'parser-choice-expr :parts parts))))
+      (lx-sequence-expr (new 'parser-sequence-expr :parts (mapcar #'recur (lx-expr-parts expression))))
+      (lx-unary-expr
+       (new (typecase expression (lx-optional-expr 'parser-lexer-optional-expr)
+                                (lx-star-expr 'parser-lexer-star-expr) (t 'parser-lexer-plus-expr))
+            :body (recur (lx-expr-body expression))
+            :lazy (not (null (typep expression '(or lx-lazy-optional-expr lx-lazy-star-expr lx-lazy-plus-expr))))))
+      (t (grammar-fail "No lexer ATN construction for ~S" expression)))))
+
+(defun lexer-runtime-atn (lexer)
+  (let* ((states (compiled-lexer-states lexer))
+         (typed (make-array (length states))) (decisions nil)
+         (starts (make-array (length (compiled-lexer-kinds lexer))))
+         (stops (make-array (length starts))))
+    (loop for s across states for id from 0 do
+      (when (state-decision s) (push (cons (state-decision s) id) decisions))
+      (case (state-kind s) (:rule-start (setf (aref starts (state-rule-index s)) id))
+                           (:rule-stop (setf (aref stops (state-rule-index s)) id)))
+      (setf (aref typed id)
+            (cnvrs/antlr-runtime::make-atn-state
+             :number id :kind (state-kind s) :rule (state-rule-index s)
+             :non-greedy-p (state-non-greedy-p s) :end-state (state-end-state s) :loop-back (state-loop-back s)
+             :transitions
+             (loop for e in (state-edges s) for k = (transition-kind e)
+                   collect (cnvrs/antlr-runtime::make-atn-transition
+                            :kind (case k (:token :atom) (:token-set :set) (:not-token :not-set) (:call :rule) (t k))
+                            :target (if (eq k :call) (gethash (transition-value e) (compiled-lexer-rule-starts lexer))
+                                        (transition-target e))
+                            :follow (when (eq k :call) (transition-target e))
+                            :label (unless (eq k :call) (transition-value e)))))))
+    ;; ATNDeserializer adds these links for lexer and parser ATNs alike.
+    (loop for s across typed do
+      (dolist (e (cnvrs/antlr-runtime::atn-state-transitions s))
+        (when (eq (cnvrs/antlr-runtime::atn-transition-kind e) :rule)
+          (let* ((rule (cnvrs/antlr-runtime::atn-state-rule
+                        (aref typed (cnvrs/antlr-runtime::atn-transition-target e))))
+                 (stop (aref typed (aref stops rule)))
+                 (follow (cnvrs/antlr-runtime::atn-transition-follow e)))
+            (unless (find follow (cnvrs/antlr-runtime::atn-state-transitions stop)
+                          :key #'cnvrs/antlr-runtime::atn-transition-target)
+              (setf (cnvrs/antlr-runtime::atn-state-transitions stop)
+                    (append (cnvrs/antlr-runtime::atn-state-transitions stop)
+                            (list (cnvrs/antlr-runtime::make-atn-transition :target follow)))))))))
+    (cnvrs/antlr-runtime::make-atn
+     :states typed :rule-starts starts :rule-stops stops
+     :decisions (map 'vector #'cdr (sort decisions #'< :key #'car))
+     :mode-starts (map 'vector (lambda (mode) (gethash mode (compiled-lexer-mode-starts lexer)))
+                       (compiled-lexer-modes lexer))
+     :rule-token-types (compiled-lexer-kinds lexer) :lexer-actions (compiled-lexer-actions lexer))))
+
+(defun lexer-command-options (expression)
+  "Static command inspection; runtime behavior always comes from ATN actions."
+  (typecase expression
+    (lx-commands-expr (append (lexer-command-options (lx-expr-body expression))
+                              (lx-expr-commands expression)))
+    (lx-case-expr (lexer-command-options (lx-expr-body expression)))))
+
+(defun compile-lexer (definitions &key (cache-backend :hash-table) metadata)
+  "Compile Lisp lexer rules to the ANTLR Java 4.13.2 lexer ATN."
+  (unless (and (listp definitions) definitions) (grammar-fail "Expected nonempty lexer rules"))
+  (let ((patterns (make-hash-table :test 'eq)) (modes nil) (rule-modes nil)
+        (kinds nil) (rule-commands nil) (translated nil) (actions (list nil)) (callbacks (make-hash-table :test 'equal))
+        (custom-index (list 0)) (predicate-index (list 0)))
+    (loop for (name source . options) in definitions for rule from 0 do
+      (unless (and name (symbolp name) (evenp (length options))) (grammar-fail "Invalid lexer rule ~S" name))
+      (when (grammar-operator-p name) (grammar-fail "Lexer token kind ~S is a grammar operator" name))
+      (when (gethash name patterns) (grammar-fail "Duplicate lexer rule ~S" name))
+      (let ((seen nil) (commands nil) (mode (if (getf options :fragment) :cnvrs-fragment (getf options :mode :default))))
+        (loop for (key value) on options by #'cddr do
+          (unless (and (member key '(:skip :channel :mode :push-mode :pop-mode :set-mode :more :type :case-insensitive :fragment))
+                       (not (member key seen))) (grammar-fail "Invalid lexer option ~S" key))
+          (push key seen)
+          (case key
+            ((:fragment :case-insensitive)
+             (unless (member value '(nil t)) (grammar-fail "~S must be boolean" key)))
+            ((:skip :more :pop-mode)
+             (unless (member value '(nil t)) (grammar-fail "~S must be boolean" key))
+             (when (and value (not (and (eq mode :cnvrs-fragment) (eq key :skip)))) (push (list (case key (:pop-mode :pop-mode) (t key))) commands)))
+            (:channel
+             (unless (and value (symbolp value)) (grammar-fail "Channel must be a symbol"))
+             (unless (eq value :default) (push (list :channel value) commands)))
+            ((:push-mode :set-mode :type)
+             (unless (and value (symbolp value)) (grammar-fail "~S needs a symbol" key))
+             (push (list (if (eq key :set-mode) :mode key) value) commands))))
+        (when (> (count-if (lambda (key) (plist-key-p options key)) '(:push-mode :pop-mode :set-mode)) 1)
+          (grammar-fail "A native lexer rule has at most one mode option"))
+        (unless (symbolp mode) (grammar-fail "Lexer mode must be a symbol"))
+        (unless (eq mode :cnvrs-fragment) (pushnew mode modes))
+        (push mode rule-modes) (push name kinds)
+        (let* ((source (if (plist-key-p options :case-insensitive)
+                                (list 'lexer-case source (getf options :case-insensitive)) source))
+               (body (lx-expression-from-form source))
+               (expression (if commands
+                               (make-instance 'lx-commands-expr :source source
+                                              :body (if (typep body 'lx-commands-expr) (lx-expr-body body) body)
+                                              :commands (append (when (typep body 'lx-commands-expr) (lx-expr-commands body))
+                                                                (nreverse commands))) body)))
+          (setf (gethash name patterns) expression)
+          (push (lexer-command-options expression) rule-commands)
+          (push (list name (lexer-expression-to-atn expression rule actions callbacks custom-index predicate-index t)) translated))))
+    (setf modes (nreverse modes) kinds (nreverse kinds) rule-modes (nreverse rule-modes) rule-commands (nreverse rule-commands))
+    (unless (member :default modes) (grammar-fail "A lexer needs a default mode"))
+    ;; Mode zero is Java's DEFAULT_MODE regardless of native declaration order.
+    (setf modes (cons :default (remove :default modes)))
+    (maphash (lambda (name expression)
+               (lx-validate expression patterns (list name))
+               (when (lx-nullable expression patterns) (grammar-fail "Lexer rules must consume input: ~S" name))) patterns)
+    (lx-check-progress patterns)
+    (dolist (action (car actions))
+      (when (member (first action) '(:mode :push-mode))
+        (unless (member (second action) modes) (grammar-fail "Undefined lexer mode ~S" (second action)))))
+    (let* ((grammar (make-parser :states (make-array 0 :adjustable t :fill-pointer 0)
+                                 :starts (make-hash-table :test 'eq) :stops (make-hash-table :test 'eq)))
+           (*atn-state-constructor* #'make-lx-state))
+      (multiple-value-bind (grammar mode-starts)
+          (build-java-atn grammar (nreverse translated) nil :lexer-modes modes :rule-modes rule-modes)
+        (initialize-compiled-lexer
+         (make-compiled-lexer :states (parser-states grammar) :mode-starts mode-starts
+                              :rule-starts (parser-starts grammar) :modes (coerce modes 'vector)
+                              :actions (coerce (car actions) 'vector) :predicates callbacks
+                              :skips (map 'vector (lambda (commands) (not (null (assoc :skip commands)))) rule-commands)
+                              :channels (map 'vector (lambda (commands) (or (second (assoc :channel commands)) :default)) rule-commands)
+                              :push-modes (map 'vector (lambda (commands) (second (assoc :push-mode commands))) rule-commands)
+                              :pop-modes (map 'vector (lambda (commands) (not (null (assoc :pop-mode commands)))) rule-commands)
+                              :set-modes (map 'vector (lambda (commands) (second (assoc :mode commands))) rule-commands)
+                              :kinds (coerce kinds 'vector) :metadata metadata :cache-backend cache-backend
+                              :cache (make-cache cache-backend)))))))

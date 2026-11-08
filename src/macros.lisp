@@ -63,7 +63,7 @@
            (expression (second body))
            (options (checked-options (cddr body)
                                      '(:lexer :skip :channel :mode
-                                       :push-mode :pop-mode :set-mode)
+                                       :push-mode :pop-mode :set-mode :more :type :case-insensitive :fragment)
                                      (format nil "rule ~S" name)))
            (lexer-option (getf options :lexer :unspecified))
            (lexer-p (case kind
@@ -83,8 +83,19 @@
         (grammar-fail "Parser rule ~S is not allowed in a lexer grammar" name))
       (when (and (not lexer-p)
                  (some (lambda (key) (plist-key-p options key))
-                       '(:skip :channel :mode :push-mode :pop-mode :set-mode)))
+                       '(:skip :channel :mode :push-mode :pop-mode :set-mode :more :type :case-insensitive :fragment)))
         (grammar-fail "Lexer options on parser rule ~S" name))
+      (when (plist-key-p options :fragment)
+        (unless (member (getf options :fragment) '(nil t)) (grammar-fail ":FRAGMENT must be boolean"))
+        (when (getf options :fragment)
+          (when (plist-key-p options :mode) (grammar-fail "A fragment cannot declare a mode"))
+          (setf (getf options :mode) :cnvrs-fragment)))
+      (when (plist-key-p options :case-insensitive)
+        (setf expression (list 'lexer-case expression (getf options :case-insensitive))))
+      (let ((commands nil))
+        (when (getf options :more) (push '(:more) commands))
+        (when (getf options :type) (push (list :type (getf options :type)) commands))
+        (when commands (setf expression (list 'lexer-commands expression (nreverse commands)))))
       (list name expression lexer-p
             (getf options :skip nil)
             (getf options :channel :default)
@@ -319,9 +330,6 @@
            (lexer-constructor
              (when prepared-lexer
                `(thawed-lexer ',(frozen-lexer prepared-lexer)
-                              ,(ordered-lexer-form
-                                lexer-rules
-                                (compiled-lexer-ordered-rules prepared-lexer))
                               ,cache-form ,metadata-form)))
            (parser-constructor
              (when prepared-parser
@@ -366,7 +374,7 @@
                           lexer-constructor parser-constructor))))
          definition)))))
 
-(defun lex (parser source)
+(defun lex (parser source &key recover)
   "Run the lexer of a lexer or combined grammar on SOURCE."
   (let* ((compiled (if (parser-definition-p parser)
                        (ensure-parser-compiled parser)
@@ -376,7 +384,7 @@
                     compiled)))
     (unless lexer (grammar-fail "No lexer is attached to ~S" parser))
     (if (compiled-lexer-p lexer)
-        (funcall (compiled-lexer-function lexer) source)
+        (funcall (compiled-lexer-function lexer) source :recover recover)
         (funcall (coerce lexer 'function) source))))
 
 (defun lexer-matcher (parser)
@@ -417,7 +425,7 @@ end position, and rule index."
              (parser-compiled-full compiled) nil)
        (when (compiled-lexer-p (parser-lexer compiled))
          (clear-cache (parser-lexer compiled))))
-      (compiled-lexer (cache-clear (compiled-lexer-cache compiled))))
+      (compiled-lexer (clear-lexer-cache compiled)))
     compiled))
 
 (defun clone-compiled (parser &key cache-backend

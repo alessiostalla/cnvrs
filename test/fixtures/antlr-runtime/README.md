@@ -78,3 +78,41 @@ java -cp ".:$ANTLR_JAR" TopologyOracle CoreParser > core-topology.sexp
 java -cp ".:$ANTLR_JAR" TopologyOracle TopologyParser > topology.sexp
 java -cp ".:$ANTLR_JAR" TopologyOracle Java8Parser > java8-topology.sexp
 ```
+
+## Lexer construction and simulation
+
+`LexerParity.g4` exercises rule priority, maximal match, recursive references,
+nongreedy loops, predicates at entry and after consumption, indexed/end actions,
+suppressed fragment actions, modes, MORE, TYPE, SKIP, channels, EOF and recovery.
+`LexerCaseParity.g4` exercises grammar/rule case options, scalar/range expansion,
+Unicode properties, negation and supplementary characters. `LexerOracle.java`
+records complete ATNs, actions, mode/rule mappings, token text/offsets/line/column/
+channel (including EOF), failure positions, callback cursors and cumulative DFA
+state/ASCII-edge counts. Symbol spelling is normalized to Lisp's uppercase
+convention; token text remains exact.
+
+`test/file-lexer-atn.lisp` is the native equivalent of LexerParity.g4. Both its
+FASL-restored lexer and a runtime compilation of its Lisp rules are checked
+against the Java fixture. The entire Java8Lexer ATN and its token stream for
+Bench.java are checked too. All tests run offline without Java.
+
+In a scratch directory with the checked-in grammars, generators and input file:
+
+```sh
+java -jar "$ANTLR_JAR" LexerParity.g4 LexerCaseParity.g4 Java8Lexer.g4
+javac -cp "$ANTLR_JAR" LexerParity.java LexerCaseParity.java Java8Lexer.java LexerOracle.java UnicodeOracle.java
+java -cp ".:$ANTLR_JAR" LexerOracle > lexer-parity.sexp
+java -cp ".:$ANTLR_JAR" LexerOracle LexerCaseParity lexer-case-input.txt > lexer-case-parity.sexp
+java -cp ".:$ANTLR_JAR" LexerOracle Java8Lexer /path/to/cnvrs/bench/antlr4-grammar/Bench.java > java8-lexer.sexp
+java -cp ".:$ANTLR_JAR" UnicodeOracle > antlr-unicode-data.sexp
+```
+
+The fragment-action warning is intentional. LexerOracle writes UTF-8 explicitly;
+use UTF-8 input/output when copying the fixtures. UnicodeOracle extracts 1,185
+properties and 2,558 aliases from the fixed jar's UnicodeData class and records
+2,933 nonidentity simple case mappings from JDK **24**. Use that JDK to reproduce
+`src/antlr-unicode-data.sexp`; later JDKs can change Character case mappings.
+These immutable generated tables are loaded as data, with reader evaluation
+disabled. Expanded grammar sets are frozen into grammar FASLs. The upstream BSD
+license applies to the tables and port; source hashes are listed in
+[src/antlr-runtime/UPSTREAM-SHA256.txt](../../../src/antlr-runtime/UPSTREAM-SHA256.txt).

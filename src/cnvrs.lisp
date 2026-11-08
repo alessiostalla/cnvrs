@@ -26,7 +26,7 @@
 (defstruct (state (:include graph-state))
   stop-rule exit-alternative repetition-p
   direct-lookahead
-  (kind :basic) rule-index end-state loop-back decision precedence-rule-p
+  (kind :basic) rule-index end-state loop-back decision non-greedy-p precedence-rule-p
   precedence-decision-p (call-precedence 0) events)
 (defvar *antlr-input-cache* nil)
 (defvar *antlr-precedence* 0)
@@ -70,7 +70,7 @@
         thereis (eq (first tail) key)))
 
 (defun grammar-operator-p (symbol)
-  (member symbol '(and or * + seq ? *? +? ?? range one-of not-one-of any
+  (member symbol '(and or * + seq ? *? +? ?? range unicode-property one-of not-one-of any
                    label alt-label token not-token eof predicate action right
                    antlr-precedence defparser defrule with-mode use)))
 
@@ -352,9 +352,10 @@ NULLABLE maps rule names to whether they can match empty input."))
 (defun visible-rule (grammar rule)
   (or (second (gethash rule (parser-rewrites grammar))) rule))
 
+(defvar *atn-state-constructor* 'make-state)
 (defun new-state (grammar &optional stop-rule)
   (graph-new-state (parser-states grammar)
-                   (lambda (id) (make-state :id id :stop-rule stop-rule))))
+                   (lambda (id) (funcall *atn-state-constructor* :id id :stop-rule stop-rule))))
 
 (defun add-edge (grammar from kind target &optional value)
   (graph-add-edge (parser-states grammar) from kind target value :append-p t))
