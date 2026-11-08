@@ -8,6 +8,10 @@ implementation. `PROFILE_SKIP_TWO_TOKEN` is retained as the diagnostic flag
 for disabling multi-token specialization at any depth. To reproduce the original
 measurements exactly, run the harness from `587ef77`.
 
+The current predictor also interns return-stack IDs within each closure.
+Persistent DFA configurations retain their original stack lists. See the
+[closure-local comparison and integration checks](interning.md) for details.
+
 This runs the imported Java 8 grammar on Java source. Grammar conversion,
 compilation, and lexing finish before the measured parser phase. Recognition
 uses `:tree-builder :none`; the diagnostic cold timings below build trees.
@@ -146,3 +150,9 @@ for the production parser. Start a fresh process for each experiment.
 
 Use native SBCL for CPU sampling. SBCL 2.0.2 under Rosetta crashed in its
 signal/register-state handling during the initial sampling attempt.
+
+## Stack interning lifetime comparison
+
+The [closure-local versus prediction-local comparison](interning.md) measures
+Java 8 timing, allocation, transient arena size, and retained parser memory.
+It includes benchmark-only hooks, raw results, and reproduction commands.

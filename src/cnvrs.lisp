@@ -635,12 +635,36 @@ function of (parser state-id return-stack) that returns a start DFA state."
     (throw 'eager-lookahead-limit nil))
   (configuration-key configuration))
 
+(defun make-closure-key-function ()
+  "Return a key function whose exact stack IDs live for one closure only."
+  (let ((by-stack (make-hash-table :test 'eq))
+        (by-pair (make-hash-table :test 'equal))
+        (next-id 0))
+    ;; Lists remain in configurations and persistent DFA states. Only the
+    ;; temporary seen-table keys use IDs. Canonicalize shallow pairs so deep
+    ;; stacks do not require deep EQUAL comparisons in that table.
+    (labels ((stack-id (stack)
+               (if (null stack) 0
+                   (or (gethash stack by-stack)
+                       (setf (gethash stack by-stack)
+                             (let ((pair (cons (car stack) (stack-id (cdr stack)))))
+                               (or (gethash pair by-pair)
+                                   (setf (gethash pair by-pair) (incf next-id))))))))
+             (key (configuration)
+               (declare (type configuration configuration))
+               (when (and *eager-lookahead-work-left*
+                          (minusp (decf *eager-lookahead-work-left*)))
+                 (throw 'eager-lookahead-limit nil))
+               (list (configuration-state configuration)
+                     (stack-id (configuration-stack configuration))
+                     (configuration-alternative configuration))))
+      #'key)))
+
 (defun closure (grammar initial)
   (declare (type parser grammar) (type list initial))
   (nreverse
    (graph-closure
-    initial (if *eager-lookahead-work-left*
-                #'eager-configuration-key #'configuration-key)
+    initial (make-closure-key-function)
     (lambda (configuration pending result)
       (let* ((state (aref (parser-states grammar)
                           (configuration-state configuration)))
