@@ -1,12 +1,11 @@
 (defpackage #:cnvrs
   (:use #:cl)
   (:shadow #:parse-error)
-  (:export #:seq #:? #:*? #:+? #:?? #:range #:one-of #:not-one-of #:any
+  (:export #:seq #:? #:*? #:+? #:?? #:range #:one-of #:not-one-of #:any #:eof
            #:label #:alt-label #:token #:not-token #:predicate #:action #:right
            #:antlr-precedence
            #:and #:or #:* #:+
-           #:*eager-lookahead-limit* #:*eager-lookahead-configuration-limit*
-           #:compile-grammar #:compile-lexer #:compile-cached-dfa #:parse #:lex
+           #:compile-grammar #:compile-lexer #:parse #:lex
            #:input-token-at #:input-token-count
            #:ensure-compiled #:clone-compiled #:clear-cache
            #:make-parse-node #:parse-node-components
@@ -15,12 +14,11 @@
            #:make-cache #:cache-get-or-compute #:cache-clear #:cache-count
            #:cache-entries
            #:parser-cache-backend #:parser-full-context-strategy
-           #:make-full-context-start
            #:compiled-lexer-cache-backend
            #:compiled-lexer-cache
            #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
-           #:parser-metadata #:parser-definition-metadata
+           #:parser-metadata #:parser-prediction-simulator #:parser-definition-metadata
            #:parser-definition-parser-package #:parser-definition-lexer-package
            #:parser-tree-builder #:parser-runner #:parser-node-runner
            #:parser-decisions #:parser-sll-decisions #:parser-direct-decisions

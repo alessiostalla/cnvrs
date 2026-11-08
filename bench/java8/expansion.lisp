@@ -1,0 +1,151 @@
+;; Loaded by profile.lisp in expansion mode; SBCL diagnostic hooks only.
+(defvar *expansion-phase* :other)
+(defvar *expansion-step* 0)
+(defvar *expansion-rows* nil)
+(defvar *expansion-total* 0)
+(defvar *expansion-calls* nil)
+(defvar *termination-active* nil)
+
+(defun single-viable-alternative (configurations)
+  ;; Diagnostic adaptation of ANTLR PredictionMode.getSingleViableAlt.
+  (let ((key (cnvrs::make-closure-key-function))
+        (mins (make-hash-table :test 'equal))
+        (cnvrs::*eager-lookahead-work-left* nil))
+    (dolist (configuration configurations)
+      (let* ((identity (funcall key configuration))
+             (pair (list (first identity) (second identity)))
+             (alt (third identity)))
+        (setf (gethash pair mins) (min alt (gethash pair mins alt)))))
+    (let ((answer nil))
+      (maphash (lambda (pair alt)
+                 (declare (ignore pair))
+                 (when (and answer (/= answer alt))
+                   (return-from single-viable-alternative nil))
+                 (setf answer alt)) mins)
+      answer)))
+
+(defun install-termination-experiment ()
+  (let ((old (symbol-function 'cnvrs::predict-full-context)))
+    (setf (symbol-function 'cnvrs::predict-full-context)
+          (lambda (grammar id stack tokens position)
+            (let ((*termination-active* t))
+              (catch 'full-choice (funcall old grammar id stack tokens position))))))
+  (let ((old (symbol-function 'cnvrs::advance-dfa)))
+    (setf (symbol-function 'cnvrs::advance-dfa)
+          (lambda (grammar dfa token)
+            (let* ((next (funcall old grammar dfa token))
+                   (answer (and *termination-active*
+                                (rest (cnvrs::dfa-state-alternatives next))
+                                (single-viable-alternative
+                                 (cnvrs::dfa-state-configurations next)))))
+              (when answer
+                (format t "EARLY-FULL ~S~%"
+                        (list :decision *decision-state* :position *decision-position*
+                              :step *expansion-step* :answer answer
+                              :alternatives (cnvrs::dfa-state-alternatives next)))
+                (throw 'full-choice answer))
+              next)))))
+
+(defun run-expansion-profile ()
+  ;; Instrument actual keys once, preserving both eager budgets and interning.
+  (maphash (lambda (name start)
+             (dolist (id (cnvrs::compiled-rule-states *java8-parser* start))
+               (setf (gethash id *owners*) name)))
+           (cnvrs:parser-starts *java8-parser*))
+  (let ((old (symbol-function 'cnvrs::compiled-choice-index)))
+    (setf (symbol-function 'cnvrs::compiled-choice-index)
+          (lambda (grammar id stack context input position)
+            (let ((*decision-state* id) (*decision-position* position))
+              (push (list id position (length stack)) *expansion-calls*)
+              (funcall old grammar id stack context input position)))))
+  (dolist (entry '((cnvrs::predict :sll) (cnvrs::predict-full-context :full)))
+    (let ((old (symbol-function (first entry))) (phase (second entry)))
+      (setf (symbol-function (first entry))
+            (lambda (grammar id stack tokens position)
+              (let ((*expansion-phase* phase) (*expansion-step* 0))
+                (funcall old grammar id stack tokens position))))))
+  (dolist (entry '((cnvrs::contextual-choice :contextual)
+                   (cnvrs::bounded-lookahead :bounded)))
+    (let ((old (symbol-function (first entry))) (phase (second entry)))
+      (setf (symbol-function (first entry))
+            (lambda (grammar id stack)
+              (let ((*expansion-phase* phase) (*expansion-step* 0))
+                (funcall old grammar id stack))))))
+  (let ((old (symbol-function 'cnvrs::advance-dfa)))
+    (setf (symbol-function 'cnvrs::advance-dfa)
+          (lambda (grammar dfa token)
+            (incf *expansion-step*)
+            (let ((*lookahead-token* (cnvrs::token-key token)))
+              (funcall old grammar dfa token)))))
+  (let ((old (symbol-function 'cnvrs::graph-closure)))
+    (setf (symbol-function 'cnvrs::graph-closure)
+          (lambda (seeds key visit &key (test 'equal))
+            (block parser-closure
+              ;; The lexer shares GRAPH-CLOSURE but uses integer states.
+              (when (and seeds (not (cnvrs::configuration-p (first seeds))))
+                (return-from parser-closure
+                  (funcall old seeds key visit :test test)))
+            (let ((visits 0) (keys 0) (depth 0) (result nil) (completed nil)
+                  (pairs (make-hash-table :test 'equal))
+                  (began (get-internal-real-time))
+                  (bytes (sb-ext:get-bytes-consed)))
+              (unwind-protect
+                   (setf result
+                         (funcall old seeds
+                                  (lambda (item)
+                                    (when (>= *expansion-total* *visit-budget*)
+                                      (throw 'budget :visit-budget))
+                                    (incf keys) (incf *expansion-total*)
+                                    (funcall key item))
+                                  (lambda (item pending result)
+                                    (incf visits)
+                                    (setf depth (max depth (length (cnvrs::configuration-stack item)))
+                                          (gethash (cons (cnvrs::configuration-state item)
+                                                         (cnvrs::configuration-alternative item)) pairs) t)
+                                    (funcall visit item pending result))
+                                  :test test)
+                         completed t)
+                (push (list :decision *decision-state* :position *decision-position*
+                            :owner (gethash *decision-state* *owners*)
+                            :phase *expansion-phase* :step *expansion-step*
+                            :token *lookahead-token* :keys keys :visits visits
+                            :state-alts (hash-table-count pairs) :depth depth
+                            :completed completed :results (length result)
+                            :bytes (- (sb-ext:get-bytes-consed) bytes)
+                            :ms (* 1000.0 (/ (- (get-internal-real-time) began)
+                                             internal-time-units-per-second)))
+                      *expansion-rows*))
+              result)))))
+  (when (uiop:getenv "PROFILE_RECOMPUTE_FULL")
+    (setf (cnvrs::parser-full-context-start *java8-parser*) #'cnvrs::make-full-context-start))
+  (when (uiop:getenv "PROFILE_SINGLE_VIABLE_ALT")
+    (install-termination-experiment))
+  (sb-ext:gc :full t)
+  (let ((begin (get-internal-real-time)) (bytes (sb-ext:get-bytes-consed)))
+    (format t "~&EXPANSION-RESULT ~S~%"
+            (handler-case
+                (catch 'budget
+                  (sb-ext:with-timeout (parse-integer (or (uiop:getenv "PROFILE_SECONDS") "10"))
+                    (cnvrs:parse *java8-parser* *tokens* :lexer nil :rule *entry* :tree-builder :none)
+                    :success))
+              (sb-ext:timeout () :timeout)))
+    (format t "EXPANSION-TOTAL MS ~F KEYS ~D CALLS ~D BYTES ~D~%"
+            (* 1000.0 (/ (- (get-internal-real-time) begin) internal-time-units-per-second))
+            *expansion-total* (length *expansion-calls*) (- (sb-ext:get-bytes-consed) bytes)))
+  (let ((phases (make-hash-table)))
+    (dolist (row *expansion-rows*)
+      (incf (gethash (getf row :phase) phases 0) (getf row :keys)))
+    (maphash (lambda (phase count) (format t "PHASE ~S KEYS ~D~%" phase count)) phases))
+  (dolist (row (subseq (sort (copy-list *expansion-rows*) #'> :key (lambda (r) (getf r :visits)))
+                      0 (min 20 (length *expansion-rows*))))
+    (format t "CLOSURE ~S~%" row))
+  (format t "RECENT-DECISIONS ~S~%"
+          (loop for (id position depth) in (subseq *expansion-calls* 0 (min 10 (length *expansion-calls*)))
+                collect (list :state id :position position :stack-depth depth
+                              :text (when (< position (length *tokens*))
+                                      (cnvrs:lexeme-text (aref *tokens* position))))))
+  (sb-ext:gc :full t)
+  (format t "RETAINED-HEAP ~D FULL-STARTS ~D SLL-STARTS ~D~%"
+          (sb-kernel:dynamic-usage)
+          (cnvrs:cache-count (cnvrs::parser-decisions *java8-parser*))
+          (cnvrs:cache-count (cnvrs::parser-sll-decisions *java8-parser*))))

@@ -1,14 +1,32 @@
+# Current parser baseline
+
+The [Java runtime comparison](java-comparison.md) measures the generated ANTLR
+Java parser against CNVRS on the same 505-token input, with lexing excluded.
+
+The [current native-topology baseline](topology.md) records full-file parsing
+with a Java-shaped native ATN. The [initial runtime-port baseline](port-baseline.md)
+used the previous native frontend.
+The active [profile.lisp](profile.lisp) benchmarks the ANTLR Java 4.13.2 prediction
+port. Default input is the repository's 505-token Bench.java. Set `PROFILE_MODE`
+to `timing` (default), `count`, or `sample`; `PROFILE_TRIALS`,
+`PROFILE_WARM_ITERATIONS`, and `PROFILE_SECONDS` control the run. `JAVA8_SOURCE_FILE`
+or `JAVA8_SOURCE` selects another input. Grammar compilation, lexing and ATN
+lowering are outside timed parsing. See [the reference-port map](../../src/antlr-runtime/README.md).
+
+The reports below describe the superseded predictor. Their interning and
+expansion hooks require the pre-port runtime (`b68a54f`); they are historical
+measurements, not options in the new predictor.
+
 # Java 8 parser profiling
 
 Measured on 2026-11-07 against CNVRS `587ef77`, with native ARM64 SBCL 2.4.0.
-These findings describe the original eager two-token implementation. The current
-`chore/performance` implementation bounds arbitrary-depth specialization by
-prefix-edge and configuration-work budgets; the harness now profiles that
-implementation. `PROFILE_SKIP_TWO_TOKEN` is retained as the diagnostic flag
-for disabling multi-token specialization at any depth. To reproduce the original
-measurements exactly, run the harness from `587ef77`.
+These findings describe the original eager two-token implementation. Revision
+`5241b83` later bounded arbitrary-depth specialization by prefix-edge and
+configuration-work budgets. The historical `PROFILE_SKIP_TWO_TOKEN` flag disabled
+that specialization; it is not part of the Java reference predictor. To reproduce
+the original measurements exactly, run the harness from `587ef77`.
 
-The current predictor also interns return-stack IDs within each closure.
+The pre-port predictor also interned return-stack IDs within each closure.
 Persistent DFA configurations retain their original stack lists. See the
 [closure-local comparison and integration checks](interning.md) for details.
 
@@ -156,3 +174,9 @@ signal/register-state handling during the initial sampling attempt.
 The [closure-local versus prediction-local comparison](interning.md) measures
 Java 8 timing, allocation, transient arena size, and retained parser memory.
 It includes benchmark-only hooks, raw results, and reproduction commands.
+
+## Remaining prediction expansion
+
+The [post-interning investigation](expansion.md) isolates full-context path
+expansion and includes a 63-character anonymous-class reproducer, controlled
+cache/specialization experiments, and an ANTLR-style termination diagnostic.

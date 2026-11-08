@@ -262,24 +262,24 @@
   (check (signals cnvrs:grammar-error
            (let* ((left (cnvrs::make-defined-parser
                          '*import-left* :parser nil nil :hash-table
-                         :node :cached
+                         :node :recompute
                          '((cnvrs/tests/expression:atom :left))))
                   (right (cnvrs::make-defined-parser
                           '*import-right* :parser nil nil :hash-table
-                          :node :cached
+                          :node :recompute
                           '((cnvrs/tests/expression:atom :right)))))
              (cnvrs::make-defined-parser
-              '*import-conflict* :parser nil nil :hash-table :node :cached nil
+              '*import-conflict* :parser nil nil :hash-table :node :recompute nil
               :imports (list left right))))
          "conflicting imports without a local override are rejected")
   (let* ((left (cnvrs::make-defined-parser
-                '*import-left* :parser nil nil :hash-table :node :cached
+                '*import-left* :parser nil nil :hash-table :node :recompute
                 '((cnvrs/tests/expression:atom :left)) :rules-only t))
          (right (cnvrs::make-defined-parser
-                 '*import-right* :parser nil nil :hash-table :node :cached
+                 '*import-right* :parser nil nil :hash-table :node :recompute
                  '((cnvrs/tests/expression:atom :right)) :rules-only t))
          (composed (cnvrs::make-defined-parser
-                    '*import-resolved* :parser nil nil :hash-table :node :cached
+                    '*import-resolved* :parser nil nil :hash-table :node :recompute
                     '((cnvrs/tests/expression:atom :local))
                     :imports (list left right))))
     (check (eq (cnvrs:node-rule (cnvrs:parse composed '(:local)))
@@ -287,10 +287,10 @@
            "a local override resolves a conflict between imports"))
   (check (signals cnvrs:grammar-error
            (cnvrs::make-defined-parser
-            '*import-cycle* :parser nil nil :hash-table :node :cached nil
+            '*import-cycle* :parser nil nil :hash-table :node :recompute nil
             :imports (list (cnvrs::make-defined-parser
                             '*import-cycle* :parser nil nil :hash-table
-                            :node :cached
+                            :node :recompute
                             '((cnvrs/tests/expression:atom :id))))))
          "import cycles are rejected")
   (check (and (not (eq 'cnvrs:predicate
@@ -522,288 +522,30 @@
     (cnvrs:parse grammar '(:a :b) :tree-builder :none)
     (check (zerop (cnvrs:cache-count (cnvrs::parser-contexts grammar)))
            "deterministic compiled rule calls do not intern contexts"))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (and outer :a))
-                    (outer inner)
-                    (inner (? :a))))))
-    (dolist (tokens '((:a) (:a :a)))
-      (cnvrs:parse grammar tokens :tree-builder :none))
-    (check (= (cnvrs:cache-count (cnvrs::parser-contexts grammar)) 2)
-           "nested contextual decisions intern their parent chain"))
-  (check (and (eq (cnvrs:parser-cache-backend
-                   (cnvrs:compile-grammar '((start :a)))) :hash-table)
-              (eq (cnvrs:compiled-lexer-cache-backend
-                   (cnvrs:compile-lexer '((:a "a")))) :hash-table))
-         "compiled parsers and lexers default to unlocked hash caches")
-  (let ((grammar (cnvrs:compile-grammar '((start (or :a :b))))))
-    (check (and (equal (cnvrs:node-children
-                        (cnvrs:parse grammar '(:b)))
-                       '(:b))
-                (zerop (cnvrs:cache-count
-                        (cnvrs:parser-sll-decisions grammar))))
-           "disjoint alternatives use direct lookahead without a DFA"))
-  (let* ((symbols (cnvrs:compile-grammar '((start (or :a :b)))))
-         (mixed (cnvrs:compile-grammar '((start (or :a "beta"))))))
-    (check (eq (hash-table-test
-                (cnvrs:state-direct-lookahead
-                 (aref (cnvrs:parser-states symbols)
-                       (gethash 'start (cnvrs:parser-starts symbols)))))
-               'eq)
-           "symbol lookahead keys use identity comparison")
-    (check (and (eq (hash-table-test
-                     (cnvrs:state-direct-lookahead
-                      (aref (cnvrs:parser-states mixed)
-                            (gethash 'start (cnvrs:parser-starts mixed)))))
-                    'equal)
-                (eq (cnvrs:node-rule
-                     (cnvrs:parse mixed (list (copy-seq "beta"))))
-                    'start))
-           "mixed lookahead keys retain structural string comparison"))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (or (token t) (token otherwise) :a))))))
-    (dolist (token (list t 'otherwise :a))
-      (check (equal (cnvrs:node-children
-                     (cnvrs:parse grammar (list token)))
-                    (list token))
-             "generated direct choice handles reserved CASE symbols")))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (and opt :b)) (opt (? :a)))
-                  :cache-backend :hash-table)))
-    (dolist (tokens '((:a :b) (:b)))
-      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
-             "compiled optional honors caller follow tokens"))
-    (check (and (zerop (cnvrs:cache-count
-                       (cnvrs:parser-direct-decisions grammar)))
-                (zerop (cnvrs:cache-count
-                        (cnvrs:parser-sll-decisions grammar)))
-                (zerop (cnvrs:cache-count
-                        (cnvrs:parser-decisions grammar))))
-           "compiled optional choice bypasses parser DFA caches")
-    (check (zerop (cnvrs:cache-count
-                   (cnvrs:parser-direct-decisions
-                    (cnvrs:clone-compiled grammar))))
-           "parser clones have independent direct-lookahead caches")
-    (cnvrs:clear-cache grammar)
-    (check (zerop (cnvrs:cache-count
-                   (cnvrs:parser-direct-decisions grammar)))
-           "clear-cache clears contextual direct lookahead"))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (or (and :a :b) (and :a :c)))))))
-    (check (eq (cnvrs:state-direct-lookahead
-                (aref (cnvrs:parser-states grammar)
-                      (gethash 'start (cnvrs:parser-starts grammar))))
-               :contextual-lookahead)
-           "overlapping first tokens prepare bounded contextual lookahead")
-    (dolist (tokens '((:a :b) (:a :c)))
-      (check (equal (cnvrs:node-children (cnvrs:parse grammar tokens))
-                    tokens)
-             "two-token lookahead chooses the matching alternative"))
-    (check (zerop (cnvrs:cache-count
-                   (cnvrs:parser-sll-decisions grammar)))
-           "resolved two-token choices bypass the parser DFA predictor"))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (or (and "a" "b") (and "a" "c")))))))
-    (check (equal (cnvrs:node-children
-                   (cnvrs:parse grammar
-                                (list (copy-seq "a") (copy-seq "c"))))
-                  '("a" "c"))
-           "two-token lookahead compares string keys structurally"))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (or (and :a :b :c)
-                               (and :a :b :d)))))))
-    (check (and (eq (cnvrs:node-rule
-                     (cnvrs:parse grammar '(:a :b :d))) 'start)
-                (zerop (cnvrs:cache-count
-                        (cnvrs:parser-sll-decisions grammar))))
-           "three-token prefixes specialize without a fixed lookahead depth"))
-  (let* ((grammar (cnvrs:compile-grammar
-                   '((start (or (and :a :b :c) (and :a :b :d))))))
-         (start (gethash 'start (cnvrs:parser-starts grammar))))
-    (let ((cnvrs:*eager-lookahead-limit* 4))
-      (check (cnvrs::lookahead-choice-p (cnvrs::contextual-choice grammar start nil))
-             "four prefix edges permit three-token specialization"))
-    (let ((cnvrs:*eager-lookahead-limit* 3)
-          (copy (cnvrs:clone-compiled grammar)))
-      (check (eq (cnvrs::contextual-choice copy start nil) :unavailable)
-             "prefix limit counts the cumulative trie, not just its leaves")
-      (check (and (equal (cnvrs:node-children (cnvrs:parse copy '(:a :b :d)))
-                         '(:a :b :d))
-                  (plusp (cnvrs:cache-count (cnvrs:parser-sll-decisions copy))))
-             "prefix budget exhaustion falls back to adaptive prediction"))
-    (let ((cnvrs:*eager-lookahead-configuration-limit* 0)
-          (copy (cnvrs:clone-compiled grammar)))
-      (check (eq (cnvrs::contextual-choice copy start nil) :unavailable)
-             "configuration budget aborts speculative closure work")
-      (check (equal (cnvrs:node-children (cnvrs:parse copy '(:a :b :c)))
-                    '(:a :b :c))
-             "configuration budget does not constrain ordinary prediction"))
-    (let ((cnvrs:*eager-lookahead-limit* 0)
-          (copy (cnvrs:clone-compiled grammar)))
-      (cnvrs:parse copy '(:a :b :d))
-      (check (plusp (cnvrs:cache-count (cnvrs:parser-sll-decisions copy)))
-             "zero prefix budget disables multi-token specialization")))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (or (and (token nil) :b :c)
-                               (and (token nil) :b :d)))))))
-    (check (and (equal (cnvrs:node-children (cnvrs:parse grammar '(nil :b :d)))
-                       '(nil :b :d))
-                (zerop (cnvrs:cache-count (cnvrs:parser-sll-decisions grammar))))
-           "indexed n-token lookahead accepts NIL token keys"))
-  (let* ((cnvrs:*eager-lookahead-limit* 4)
-         (grammar (cnvrs:compile-grammar
-                   '((start (or (and prefix :b) (and prefix :c)))
-                     (prefix (* :a)))))
-         (start (gethash 'start (cnvrs:parser-starts grammar))))
-    (check (eq (cnvrs::contextual-choice grammar start nil) :unavailable)
-           "repeated common prefixes exhaust budget without a depth cap")
-    (check (equal (cnvrs:node-children
-                   (first (cnvrs:node-children (cnvrs:parse grammar '(:a :a :c)))))
-                  '(:a :a))
-           "cyclic speculative prefixes retain ordinary parser behavior"))
-  (let* ((grammar (cnvrs:compile-grammar
-                   '((start (or (alt-label left (and :a :b :c :d :e))
-                                (alt-label right-branch (and :a :b :c :d :f)))))))
-         (generic (cnvrs:clone-compiled grammar))
-         (hidden (cnvrs:make-lexeme :kind :space :channel :trivia))
-         (tokens (vector :a hidden :b hidden :c hidden :d hidden :f)))
-    (setf (cnvrs:parser-runner generic) nil
-          (cnvrs:parser-node-runner generic) nil)
-    (check (and (eq (cnvrs:node-label (cnvrs:parse grammar tokens)) 'right-branch)
-                (equalp (cnvrs:parse grammar tokens) (cnvrs:parse generic tokens))
-                (zerop (cnvrs:cache-count (cnvrs:parser-sll-decisions grammar))))
-           "five-token specialization matches raw and indexed paths across hidden channels")
-    (dolist (input '((:a :b :c :d) (:a :b :c :d :wrong)))
-      (check (and (signals cnvrs:parse-error (cnvrs:parse grammar input))
-                  (signals cnvrs:parse-error (cnvrs:parse generic input)))
-             "trie EOF and missing edges retain general parser errors")))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (and :s item))
-                    (item (or (alt-label first (and :a :b :c))
-                              (alt-label second (and :a :b :d))))))))
-    (multiple-value-bind (tree repairs)
-        (handler-bind ((cnvrs:mismatched-token
-                         (lambda (condition)
-                           (declare (ignore condition))
-                           (invoke-restart 'cnvrs:insert-tokens '(:s :a :b :d)))))
-          (cnvrs:parse grammar '()))
-      (check (and (= (length repairs) 1)
-                  (eq (cnvrs:node-label (second (cnvrs:node-children tree))) 'second))
-             "n-token specialization sees queued recovery insertions")))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (and (* :a) :b))))))
-    (check (hash-table-p
-            (cnvrs:state-direct-lookahead
-             (find-if #'cnvrs:state-exit-alternative
-                      (cnvrs:parser-states grammar))))
-           "disjoint repetition uses compiled FOLLOW lookahead")
-    (dolist (tokens '((:b) (:a :a :b)))
-      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
-             "compiled repetition uses its unique exit"))
-    (check (eq (cnvrs:node-rule
-                (cnvrs:parse grammar '(:b :extra) :require-eof nil))
-               'start)
-           "compiled repetition preserves prefix parsing")
-    (check (zerop (cnvrs:cache-count
-                   (cnvrs:parser-sll-decisions grammar)))
-           "nullable exit avoids a full-context fallback"))
-  (let* ((grammar (cnvrs:compile-grammar
-                   '((start (and loop :a)) (loop (* :a)))))
-         (loop-state (find-if #'cnvrs:state-exit-alternative
-                              (cnvrs:parser-states grammar))))
-    (check (not (hash-table-p (cnvrs:state-direct-lookahead loop-state)))
-           "overlapping loop FIRST and caller FOLLOW retains prediction")
-    (check (eq (cnvrs:node-rule
-                (cnvrs:parse grammar '(:a) :tree-builder :node))
-               'start)
-           "overlapping caller context parses at end of input"))
-  (let* ((grammar (cnvrs:compile-grammar
-                   '((start (and (? :a) :b)))))
-         (choice (find-if (lambda (state)
-                            (and (cnvrs:state-exit-alternative state)
-                                 (not (cnvrs::state-repetition-p state))))
-                          (cnvrs:parser-states grammar))))
-    (check (hash-table-p (cnvrs:state-direct-lookahead choice))
-           "disjoint optional compiles FIRST/FOLLOW dispatch")
-    (dolist (tokens '((:b) (:a :b)))
-      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'start)
-             "compiled optional parses both entry and exit"))
-    (check (eq (cnvrs:node-rule
-                (cnvrs:parse grammar '(:b :extra) :require-eof nil))
-               'start)
-           "compiled optional preserves prefix parsing")
-    (check (zerop (cnvrs:cache-count
-                   (cnvrs:parser-sll-decisions grammar)))
-           "disjoint optional bypasses contextual prediction"))
-  (let* ((grammar (cnvrs:compile-grammar
-                   '((left (and opt :b))
-                     (right-branch (and opt :c))
-                     (opt (? :a)))))
-         (choice (find-if (lambda (state)
-                            (and (cnvrs:state-exit-alternative state)
-                                 (not (cnvrs::state-repetition-p state))))
-                          (cnvrs:parser-states grammar))))
-    (check (hash-table-p (cnvrs:state-direct-lookahead choice))
-           "optional FOLLOW includes every caller and EOF")
-    (dolist (case '((left (:b)) (left (:a :b))
-                    (right-branch (:c)) (right-branch (:a :c))
-                    (opt ()) (opt (:a))))
-      (check (eq (cnvrs:node-rule
-                  (cnvrs:parse grammar (second case) :rule (first case)))
-                 (first case))
-             "compiled optional works from both callers and direct entry")))
-  (let* ((grammar (cnvrs:compile-grammar
-                   '((left (and opt :a))
-                     (opt (? :a)))))
-         (choice (find-if (lambda (state)
-                            (and (cnvrs:state-exit-alternative state)
-                                 (not (cnvrs::state-repetition-p state))))
-                          (cnvrs:parser-states grammar))))
-    (check (not (hash-table-p (cnvrs:state-direct-lookahead choice)))
-           "overlapping optional FIRST/FOLLOW retains prediction")
-    (dolist (tokens '((:a) (:a :a)))
-      (check (eq (cnvrs:node-rule (cnvrs:parse grammar tokens)) 'left)
-             "overlapping optional distinguishes entry from exit")))
-  (let* ((grammar (cnvrs:compile-grammar
-                   '((start (or (and opt :b) (and opt :c)))
-                     (opt (? :a)))
-                   :cache-backend :hash-table))
-         (choice (find-if #'cnvrs:state-exit-alternative
-                          (cnvrs:parser-states grammar)))
-         (returns (loop for state across (cnvrs:parser-states grammar)
-                        append (loop for edge in (cnvrs:state-edges state)
-                                     when (and (eq (cnvrs:transition-kind edge)
-                                                   :call)
-                                               (eq (cnvrs:transition-value edge)
-                                                   'opt))
-                                       collect (cnvrs:transition-target edge)))))
-    (check (= (length returns) 2) "two callers reach the optional rule")
-    (let ((first-table (cnvrs::contextual-direct-lookahead
-                        grammar (cnvrs:state-id choice)
-                        (list (first returns))
-                        (cnvrs::intern-context grammar (first returns) 0)))
-          (second-table (cnvrs::contextual-direct-lookahead
-                         grammar (cnvrs:state-id choice)
-                         (list (second returns))
-                         (cnvrs::intern-context grammar (second returns) 0))))
-      (check (and (hash-table-p first-table)
-                  (hash-table-p second-table)
-                  (not (eq first-table second-table))
-                  (= (cnvrs:cache-count
-                      (cnvrs:parser-direct-decisions grammar)) 2))
-             "different canonical contexts have different direct choices")
-      (check (eql (cnvrs::intern-context grammar (first returns) 0)
-                  (cnvrs::intern-context grammar (first returns) 0))
-             "canonical contexts retain identity across calls")
-      (check (zerop (cnvrs:cache-count
-                     (cnvrs::parser-contexts
-                      (cnvrs:clone-compiled grammar))))
-             "parser clones start with an empty context cache")
+  ;; Reference-runtime integration. Context-specific eager tables and full-LL
+  ;; DFA snapshots are deliberately absent from the Java baseline.
+  (dolist (case '((((start (and outer :a)) (outer inner) (inner (? :a)))
+                   ((:a) (:a :a)))
+                  (((start (or (and :a :b :c) (and :a :b :d))))
+                   ((:a :b :c) (:a :b :d)))
+                  (((start (or (and (token nil) :b :c)
+                               (and (token nil) :b :d))))
+                   ((nil :b :c) (nil :b :d)))
+                  (((start (and (+ :a) :a))) ((:a :a) (:a :a :a)))
+                  (((start (and (? :a) :b))) ((:b) (:a :b)))))
+    (let* ((grammar (cnvrs:compile-grammar (first case)))
+           (generic (cnvrs:clone-compiled grammar)))
+      (setf (cnvrs:parser-runner generic) nil (cnvrs:parser-node-runner generic) nil)
+      (dolist (input (second case))
+        (check (equalp (cnvrs:parse grammar input) (cnvrs:parse generic input))
+               "Java predictor agrees across compiled and generic Lisp execution"))
+      (check (null (cnvrs::parser-atn-runtime (cnvrs:clone-compiled grammar)))
+             "parser clones start with no shared mutable Java runtime")
       (cnvrs:clear-cache grammar)
-      (check (and (zerop (cnvrs:cache-count
-                          (cnvrs::parser-contexts grammar)))
-                  (zerop (cnvrs:cache-count
-                          (cnvrs:parser-direct-decisions grammar))))
-             "clear-cache clears context identity and direct choices")))
+      (check (every (lambda (dfa) (zerop (hash-table-count (cnvrs/antlr-runtime:dfa-states dfa))))
+                    (cnvrs/antlr-runtime:simulator-decision-dfas
+                     (first (cnvrs::parser-atn-runtime grammar))))
+             "clear-cache discards the Java decision DFAs")))
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and item :end)) (item :name))
                    :tree-builder :alternate))
@@ -1201,128 +943,15 @@
     (check (equal (cnvrs:node-children
                    (first (cnvrs:node-children tree))) '(#\a #\b))
            "caller context chooses longer alternative")
-    (check (plusp (cnvrs:cache-count
-                   (cnvrs:parser-decisions grammar)))
-           "full-context prediction uses the selected cache backend")
+    (check (zerop (cnvrs:cache-count (cnvrs:parser-decisions grammar)))
+           "full-context prediction does not cache caller-specific DFAs")
     (check (equal (cnvrs:node-children
                    (first (cnvrs:node-children
                            (cnvrs:parse grammar "ab")))) '(#\a))
            "cached decision adapts to another input")
     (check (signals cnvrs:parse-error (cnvrs:parse grammar "aab"))
            "full context and end of input"))
-  (dolist (backend '(:hash-table :fset (:locked :hash-table)))
-    (let* ((grammar (cnvrs:clone-compiled *compiled-dfa-parser*
-                                          :cache-backend backend))
-           (ordinary (cnvrs:clone-compiled grammar)))
-      (cnvrs:parse grammar "abb")
-      (multiple-value-bind (roots states)
-          (cnvrs:compile-cached-dfa grammar :max-states 2)
-        (check (and (plusp roots) (>= states roots)
-                    (plusp (hash-table-count
-                            (cnvrs::parser-compiled-full grammar))))
-               "DFA compiler accepts a defined parser and cached context"))
-      (dolist (input '("ab" "abb"))
-        (check (equalp (cnvrs:parse grammar input)
-                       (cnvrs:parse ordinary input))
-               "compiled DFA agrees on trained and unseen transitions"))
-      (cnvrs:compile-cached-dfa grammar :max-states 8)
-      (let* ((hidden (cnvrs:make-lexeme :kind :space :channel :trivia))
-             (with-channels (vector hidden #\a hidden #\b hidden #\b hidden)))
-        (check (equalp (cnvrs:parse grammar with-channels)
-                       (cnvrs:parse ordinary "abb"))
-               "compiled DFA skips filtered channels"))
-      (let* ((root (cdr (first (cnvrs:cache-entries
-                                (cnvrs:parser-decisions grammar)))))
-             (program (gethash root (cnvrs::parser-compiled-full grammar))))
-        (multiple-value-bind (alternative compiled-p)
-            (funcall program #(#\a #\b #\b) 0)
-          (check (and compiled-p (eql alternative 1))
-                 "compiled full-context program resolves a trained path")))
-      (check (and (signals cnvrs:parse-error (cnvrs:parse grammar "aab"))
-                  (signals cnvrs:parse-error (cnvrs:parse ordinary "aab")))
-             "compiled DFA preserves failed predictions")
-      (check (null (cnvrs::parser-compiled-full
-                    (cnvrs:clone-compiled grammar)))
-             "clone starts without compiled DFA snapshots")
-      (cnvrs:clear-cache grammar)
-      (check (and (null (cnvrs::parser-compiled-sll grammar))
-                  (null (cnvrs::parser-compiled-full grammar)))
-             "clear-cache discards compiled DFA snapshots")))
-  (check (signals cnvrs:grammar-error
-           (cnvrs:compile-cached-dfa *compiled-dfa-parser* :max-states 0))
-         "DFA compiler rejects a nonpositive state limit")
-  (let ((cnvrs:*eager-lookahead-limit* 0)
-        (grammar (cnvrs:compile-grammar
-                  '((start (or (and :a :b :c)
-                               (and :a :b :d)))))))
-    (cnvrs:parse grammar '(:a :b :c))
-    (cnvrs:compile-cached-dfa grammar)
-    (let* ((root (cdr (first (cnvrs:cache-entries
-                              (cnvrs:parser-sll-decisions grammar)))))
-           (program (gethash root (cnvrs::parser-compiled-sll grammar))))
-      (multiple-value-bind (alternative compiled-p)
-          (funcall program #(:a :b :c) 0)
-        (check (and compiled-p (eql alternative 0))
-               "compiled SLL program resolves its trained path")))
-    (check (and (plusp (hash-table-count
-                        (cnvrs::parser-compiled-sll grammar)))
-                (equal (cnvrs:node-children
-                        (cnvrs:parse grammar '(:a :b :c)))
-                       '(:a :b :c))
-                (equal (cnvrs:node-children
-                        (cnvrs:parse grammar '(:a :b :d)))
-                       '(:a :b :d)))
-           "compiled SLL DFA handles learned and unseen alternatives")
-    (cnvrs:compile-cached-dfa grammar)
-    (let* ((root (cdr (first (cnvrs:cache-entries
-                              (cnvrs:parser-sll-decisions grammar)))))
-           (program (gethash root (cnvrs::parser-compiled-sll grammar))))
-      (multiple-value-bind (alternative compiled-p)
-          (funcall program #(:a :b :d) 0)
-        (check (and compiled-p (eql alternative 1))
-               "recompilation includes newly learned DFA edges"))))
-  (let* ((cached (cnvrs:compile-grammar
-                  '((start (and item #\b))
-                    (item (or #\a (and #\a #\b))))
-                  :cache-backend :hash-table))
-         (recomputed (cnvrs:clone-compiled
-                      cached :full-context-strategy :recompute))
-         (custom-calls 0)
-         (custom (cnvrs:clone-compiled
-                  cached
-                  :full-context-strategy
-                  (lambda (parser state-id stack)
-                    (incf custom-calls)
-                    (cnvrs::make-full-context-start parser state-id stack)))))
-    (dolist (input '("ab" "abb"))
-      (let ((expected (cnvrs:node-children
-                       (first (cnvrs:node-children
-                               (cnvrs:parse cached input)))))
-            (actual (cnvrs:node-children
-                     (first (cnvrs:node-children
-                             (cnvrs:parse recomputed input)))))
-            (custom-result (cnvrs:node-children
-                            (first (cnvrs:node-children
-                                    (cnvrs:parse custom input))))))
-        (check (equal actual expected)
-               "recomputed full context agrees with cached prediction")
-        (check (equal custom-result expected)
-               "custom full-context start function agrees with built-ins")))
-    (check (and (plusp (cnvrs:cache-count
-                        (cnvrs:parser-decisions cached)))
-                (zerop (cnvrs:cache-count
-                        (cnvrs:parser-decisions recomputed)))
-                (plusp custom-calls))
-           "full-context strategies use their own cache policies")
-    (check (eq (cnvrs:parser-full-context-strategy recomputed) :recompute)
-           "cloned parser exposes its selected full-context strategy")
-    (check (eq (cnvrs:parser-full-context-strategy
-                (cnvrs:ensure-compiled *recompute-parser*)) :recompute)
-           "defparser passes through the full-context strategy")
-    (check (signals cnvrs:grammar-error
-             (cnvrs:compile-grammar '((start :a))
-                                    :full-context-strategy :unknown))
-           "unknown full-context strategies fail during compilation"))
+  ;; Java persists SLL DFAs, not full-context traces or caller-stack results.
   (let* ((grammar (cnvrs:compile-grammar
                    '((start (and #\l (* element) #\r))
                      (element (or #\x start)))))

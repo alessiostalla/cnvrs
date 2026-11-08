@@ -1,6 +1,6 @@
 # CNVRS
 
-CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is a clean-room Common Lisp implementation of adaptive LL(*) parsing, inspired by the algorithm described by Parr et al. It compiles Lisp grammar forms into an in-memory parser. It does not read grammar text or generate parser source.
+CNVRS compiles Common Lisp grammar forms into native parser functions and loadable FASLs. Its parser prediction runtime is a port of ANTLR Java 4.13.2. Lisp forms remain the primary grammar language; the optional `.g4` importer lowers ANTLR grammars into the same compiler.
 
 See [CNVRS and ANTLR 4/Java: current differences](docs/cnvrs-vs-antlr-java.md) for feature, algorithm, and benchmark comparisons.
 
@@ -124,7 +124,7 @@ Lexer rules accept `:skip t` and `:channel name`. Rule order still determines ti
 
 ### Semantic predicates and actions
 
-Both parser and lexer expressions accept `(cnvrs:predicate callback)` and `(cnvrs:action callback)` as zero-width elements, including inside sequences, alternatives, and repetitions. `callback` is a Common Lisp function or a non-keyword function name. In `compile-grammar` and `compile-lexer`, function objects can be placed directly in the supplied forms; in quoted `defparser` rule forms, use a function name. A callback receives `(input position)`. For parser callbacks, `input` is a view of the selected token channels and `position` is a zero-based visible-token offset; use `(cnvrs:input-token-at input position)` to read the current token and `(cnvrs:input-token-count input)` for the visible length. These accessors also accept an unfiltered token vector. Unlike ANTLR's relative `LT(k)`, `input-token-at` uses an absolute visible-token index; lookahead `k` is at `(+ position (1- k))` when that index is below `input-token-count`. Parser callbacks should not use `aref` or `length` on `input`. Lexer callbacks still receive the source string and a character offset. A predicate succeeds on a non-`nil` return value. Actions ignore their return values and run once, in source order, after the winning parse path or lexer rule has been selected. A failed or losing candidate does not run its actions.
+Both parser and lexer expressions accept `(cnvrs:predicate callback)` and `(cnvrs:action callback)` as zero-width elements, including inside sequences, alternatives, and repetitions. `callback` is a Common Lisp function or a non-keyword function name. In `compile-grammar` and `compile-lexer`, function objects can be placed directly in the supplied forms; in quoted `defparser` rule forms, use a function name. A callback receives `(input position)`. For parser callbacks, `input` is a view of the selected token channels and `position` is a zero-based visible-token offset; use `(cnvrs:input-token-at input position)` to read the current token and `(cnvrs:input-token-count input)` for the visible length. These accessors also accept an unfiltered token vector. Unlike ANTLR's relative `LT(k)`, `input-token-at` uses an absolute visible-token index; lookahead `k` is at `(+ position (1- k))` when that index is below `input-token-count`. Parser callbacks should not use `aref` or `length` on `input`. Lexer callbacks still receive the source string and a character offset. A predicate succeeds on a non-`nil` return value. Predicates may be evaluated repeatedly during prediction and rule execution. Parser actions ignore their return values and execute when the selected rule path reaches them; prediction never executes actions. A later parse error does not undo an action. Lexer actions execute only after a winning lexer rule has been selected.
 
 ```lisp
 (defun word-allowed (source position)
@@ -140,9 +140,7 @@ Both parser and lexer expressions accept `(cnvrs:predicate callback)` and `(cnvr
                (cnvrs:action word-seen)))))
 ```
 
-Predicates are reevaluated for each parse or lex call; grammars containing them use an ordered semantic matcher instead of cached DFA prediction. The parser semantic matcher supports `:node`, `:none`, and custom node builders, but error recovery is unavailable for semantic grammars. Semantic callbacks can affect application state, so callers should keep predicates free of side effects. Action callbacks should also avoid changing input used by the active match.
-
-This callback API is not fully equivalent to ANTLR's generated Java parser. CNVRS currently tests predicates while exploring complete candidate paths and runs parser actions after a complete path wins. ANTLR uses predicates on the left edge of an alternative during local prediction, ignores later predicates during that prediction, and executes parser actions at their position after committing to an alternative. Consequently, CNVRS can accept an alternate path after a later predicate fails where ANTLR reports a failed predicate; a parser action cannot establish state for a later predicate in the same CNVRS parse. Lexer actions have ANTLR's deferred timing, including suppression of actions in referenced lexer rules, and lexer predicates run before selected-rule actions. The callback receives input and position, but not ANTLR's mutable lexer token state or parser rule context. See [ANTLR's predicate rules](https://github.com/antlr/antlr4/blob/dev/doc/predicates.md), [parser rule elements](https://github.com/antlr/antlr4/blob/dev/doc/parser-rules.md), and [lexer rule elements](https://github.com/antlr/antlr4/blob/dev/doc/lexer-rules.md).
+Parser predicates participate in Java-style adaptive prediction and are checked again on the selected execution path. Parser actions execute at their position on that path. Predicates should be free of side effects; actions may establish state for subsequent predicates. Callback grammars support `:node`, `:none`, and custom tree builders; native recovery is unavailable for them. Callbacks receive `(input position)`, rather than Java's mutable parser context. Lexer actions retain deferred timing, including suppression in referenced lexer rules.
 
 ### Direct left recursion
 
@@ -162,7 +160,7 @@ Here multiplication binds more tightly than addition, and exponentiation binds m
 
 `parse` accepts a sequence of tokens: a string is a sequence of characters, while a list or vector can contain arbitrary token values. It consumes the whole input and returns `node` structs. Each node has a rule name, ordered children, start/end token offsets, and an optional `node-label` (NIL when absent). Children are literal tokens or nodes for referenced rules. A labeled element produces a `:label` node containing its matched tokens or rule nodes; repetition produces one such node per match. An alternative label appears on the enclosing rule node. Invalid grammars signal `cnvrs:grammar-error`.
 
-Use `(cnvrs:not-token (:a :b))` in a parser rule to consume one token whose kind is neither `:a` nor `:b`. It never matches end of input. With `lexeme` input, the comparison uses `lexeme-kind`.
+Use `(cnvrs:eof)` for an explicit end-of-input assertion, including when `:require-eof nil` permits a prefix parse. `(cnvrs:any)` consumes any one token. Use `(cnvrs:not-token (:a :b))` in a parser rule to consume one token whose kind is neither `:a` nor `:b`. It never matches end of input. With `lexeme` input, the comparison uses `lexeme-kind`.
 
 ## Lexing
 
@@ -350,24 +348,13 @@ The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4
 
 ## Implementation
 
-Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. Each parser rule is compiled separately for recognition and node building, with rule calls dispatched through an immutable function table and cursor state allocated per parse. Decisions with disjoint first tokens use a direct one-token table; caller-dependent tables are cached by return stack. Remaining decisions explore graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
+Lisp grammar forms compile to a rule-call graph and independently compiled recognition and tree-building functions. A frontend adapter lowers the graph and token kinds to the typed ATN and positive token types used by `cnvrs/antlr-runtime`. Runtime compilation, `compile-file`/FASL loading, grammar composition, and optional `.g4` import all use this frontend.
 
-Contextual specialization builds a token-prefix trie with arbitrary lookahead
-depth. `cnvrs:*eager-lookahead-limit*` bounds the total prefix edges explored
-per contextual decision (default 64), counting shared prefixes once and charging
-each frontier before expanding it. This also bounds long unary prefixes and
-cycles. Setting it to zero disables multi-token specialization. A separate
-`cnvrs:*eager-lookahead-configuration-limit*` (default 4096) bounds configuration
-keys examined during speculative contextual analysis, because even one token
-transition can expand a large closure. Exceeding either budget discards the
-specialization and caches an adaptive-prediction fallback for that context.
-Neither budget limits ordinary adaptive prediction or the accepted language.
-These variables are dynamically bindable; clear a parser's caches when changing
-limits for an existing parser. Static one-token and FOLLOW tables still apply.
+The prediction core follows ANTLR Java **4.13.2**, including graph-structured prediction contexts, configuration-set merging, SLL conflict detection, full-context retry and ambiguity termination, predicates, precedence filtering, and DFA/context-cache lifetimes. The old eager lookahead tries, caller-specific prediction caches, ordered semantic backtracking matcher, and cached-DFA trace compiler have been removed. Lexer simulation and error recovery are outside this port's scope and retain their Lisp implementations.
 
-The parser and lexer graphs use a common state base and transition type, with shared state creation, edge insertion, and closure traversal. Their matching policies remain distinct: the lexer finds the longest character match in its current mode, while the parser predicts token alternatives using rule-return context.
+The native frontend follows Java 4.13.2's `ParserATNFactory`, left-recursion transformation, tail-epsilon removal and state compaction. Both Lisp forms and optional `.g4` import produce the same parser ATN topology: typed rule/block/loop states, ordered transitions, rule follows, precedence links, state numbers and decision numbers. Labels are tree-building annotations; they introduce no helper rules. Native low-to-high operator order maps to the equivalent Java rule's high-to-low order. Arbitrary Lisp token values are mapped to runtime token IDs.
 
-Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. Ambiguous alternatives use their written order.
+The offline tests compare complete graphs for native runtime and file compilation, `.g4` import, and the Java 8 parser (2,843 states). They also test the prediction core independently against Java-generated ATNs. See the [reference-port map and fidelity checks](src/antlr-runtime/README.md) for representation boundaries and fixture provenance.
 
 ### Compiled objects and caches
 
@@ -377,32 +364,17 @@ The exported `parser-states`, `parser-starts`, `parser-stops`, and `parser-lexer
 
 Parser compilation also stores compiled rule functions in `parser-runner` (recognition without a tree) and `parser-node-runner` (the default node builder). Each runner has named local functions for the rules and takes the parser, token vector, start rule, and `require-eof` flag. `parse` selects one of them for valid input when recovery is off; custom builders and recovery use the general parser loop. The lexer already uses a compiled DFA matcher with a named local `match-one` function.
 
-`compile-cached-dfa` is an optional second compilation step for any compiled
-parser or `defparser` definition. Parse representative inputs first, then
-call `(compile-cached-dfa parser :max-states 64)`. It compiles the currently
-observed SLL and full-context DFA states into parser-owned token dispatch
-functions and returns two values: the number of DFA roots and the total number
-of states compiled. Each root is capped at `:max-states` (default 64); unseen
-contexts and transitions use normal adaptive prediction. Call it again after
-training on more inputs to refresh the snapshots. It does not change the
-grammar graph or the parser's public parse behavior. `clear-cache` removes the
-compiled snapshots; `clone-compiled` starts with independent, empty caches and
-no snapshots. A custom cache backend can support this operation by implementing
-`cache-entries` in addition to the usual cache methods.
+`parser-prediction-simulator` returns a parser's reference simulator for inspection. Its decision DFAs are available through `cnvrs/antlr-runtime:simulator-decision-dfas`. The simulator supports `:ll` (the default), `:sll`, and `:ll-exact-ambig-detection` modes through `simulator-mode`.
 
-For a parser created with `defparser`, the opt-in workflow is:
+SLL DFA states and their canonical prediction contexts persist between parses. Full-context reach sets are recomputed, and the merge cache belongs to one prediction. There are no caller-stack keys or full-context DFAs in the persistent cache. `parser-sll-decisions` remains an inspection view of the decision DFAs used by a parser; the old `parser-decisions` and `parser-direct-decisions` views remain empty.
 
-```lisp
-(cnvrs:parse *my-parser* training-input)
-(cnvrs:compile-cached-dfa *my-parser* :max-states 32)
-(cnvrs:parse *my-parser* next-input)
-```
+`clear-cache` clears a parser's DFAs, shared prediction contexts, inspection views, and attached lexer cache. `clone-compiled` shares the immutable grammar graph and starts with independent, empty runtime caches. FASLs contain grammar data and native rule functions, never trained prediction caches.
 
-Both compilers accept `:cache-backend`. The storage backends are `:fset`, using persistent [FSET maps](https://fset.common-lisp.dev/Site/FSet-Tutorial.html), and `:hash-table`. The FSET backend uses a custom key comparison function for common cache key types and falls back to FSET's general comparison for other types. Both backends are bare, unsynchronized strategies. Wrap either with `(:locked backend)` when a compiled parser or lexer will be shared across threads. The default is the unlocked `:hash-table` backend. The lexer caches DFA states and transitions; the parser caches SLL decisions, full-context decisions, caller-dependent direct lookahead tables, and canonical return-context IDs. The decision caches are exposed through `parser-sll-decisions`, `parser-decisions`, and `parser-direct-decisions`; `clear-cache` clears all of them, including context IDs.
+Recompile dependent grammar FASLs and start a fresh Lisp image when migrating from the old predictor.
 
-Parsers also accept `:full-context-strategy`. The default `:cached` retains a start DFA for each decision and caller return stack. `:recompute` builds a fresh start DFA whenever SLL prediction needs caller context, without storing those full-context DFAs. This changes the cache policy, not the predicted result. Pass a function of `(parser state-id return-stack)` for a custom strategy; it must return a start DFA state, which can be built with `make-full-context-start`. `parser-full-context-strategy` exposes the choice, and `clone-compiled` accepts the same keyword to compare strategies with independent caches.
+The old `*eager-lookahead-limit*`, `*eager-lookahead-configuration-limit*`, `compile-cached-dfa`, and `make-full-context-start` APIs are gone. `:full-context-strategy` accepts only `:recompute`; `:cached` and custom hooks signal a grammar error. This makes the new baseline's behavior explicit rather than silently retaining a non-Java path.
 
-`clone-compiled` accepts either kind of compiled object or a definition. A clone shares its immutable graph and starts with independent, empty caches. A parser clone also clones an attached compiled lexer. Pass `:cache-backend` to choose a different backend for the clone. `clear-cache` is the single public clearing operation: on a parser it clears all three parser caches and its attached compiled lexer's cache; on a lexer it clears its DFA state and transition cache. Select a locked backend before sharing an object across threads.
+`:cache-backend` still controls lexer caches and the parser's compatibility inspection view (`:hash-table`, `:fset`, or `(:locked backend)`). The reference predictor owns its Java-style hashed DFA and context caches with synchronized updates. When sharing the entire compiled grammar, select a locked backend for the lexer and inspection view as before.
 
 Custom backends specialize `make-cache` on a backend name and implement `cache-get-or-compute`, `cache-clear`, and `cache-count` for the returned cache object. `cache-get-or-compute` must return the stored value or compute, store, and return one value for an absent key. The generic `(:locked backend)` wrapper also works with custom backends.
 
@@ -440,7 +412,7 @@ A custom builder implements two generic functions. `make-parse-node` receives th
              '(:name))
 ```
 
-For an event-only strategy, specialize `parse-build-tree-p` to return `NIL` and implement any of `parse-rule-enter`, `parse-token-consumed`, and `parse-rule-exit`. No node or child list is built, and `make-parse-node` and `parse-node-components` are not called. The events include token offsets; inserted recovery tokens are reported through `parse-token-consumed`. Events follow the compiled rule traversal, so direct left recursion can produce additional enter and exit events for its rewritten levels.
+For an event-only strategy, specialize `parse-build-tree-p` to return `NIL` and implement any of `parse-rule-enter`, `parse-token-consumed`, and `parse-rule-exit`. No node or child list is built, and `make-parse-node` and `parse-node-components` are not called. The events include token offsets; inserted recovery tokens are reported through `parse-token-consumed`. Events follow rule traversal. Precedence loops build nested expression nodes without synthetic rule-enter or rule-exit events.
 
 ## Tests
 
@@ -449,3 +421,5 @@ XDG_CACHE_HOME=/tmp/cnvrs-asdf-cache sbcl --non-interactive --eval '(require :as
   --eval '(asdf:load-asd (truename "cnvrs.asd"))' \
   --eval '(asdf:test-system :cnvrs)'
 ```
+
+The normal suite also replays Java-generated ATNs and prediction traces in pure Lisp; running it does not require Java or the ANTLR tool. The [fixture README](test/fixtures/antlr-runtime/README.md) documents optional regeneration with the pinned Java tool.

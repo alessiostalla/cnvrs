@@ -1,3 +1,5 @@
+> Historical pre-port investigation. The active predictor is now the ANTLR Java reference port; these diagnostic hooks are not a runtime backend.
+
 # Closure-local versus prediction-local stack interning
 
 Measured 2026-11-08 on native ARM64 SBCL 2.4.0, with a 2 GiB heap, against

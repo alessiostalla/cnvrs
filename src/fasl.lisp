@@ -21,15 +21,22 @@
                        (loop for edge in (graph-state-edges state)
                              collect (list (transition-kind edge)
                                            (transition-target edge)
-                                           (transition-value edge))))
+                                           (if (and parser-p (eq (transition-value edge) +end-of-input+))
+                                               '%frozen-end-of-input%
+                                               (if (and parser-p (eq (transition-kind edge) :token-set))
+                                                   (subst '%frozen-end-of-input% +end-of-input+ (transition-value edge))
+                                                   (transition-value edge))))))
                  (if parser-p
                      (list (state-stop-rule state)
                            (state-exit-alternative state)
                            (state-repetition-p state)
                            (if (hash-table-p (state-direct-lookahead state))
-                               (list :table (frozen-table
-                                             (state-direct-lookahead state)))
-                               (state-direct-lookahead state)))
+                               (list :table (frozen-table (state-direct-lookahead state)))
+                               (state-direct-lookahead state))
+                           (list (state-kind state) (state-rule-index state)
+                                 (state-end-state state) (state-loop-back state) (state-decision state)
+                                 (state-precedence-rule-p state) (state-precedence-decision-p state)
+                                 (state-call-precedence state) (state-events state)))
                      (list (lx-state-accept state))))))
 
 (defun thawed-states (data parser-p)
@@ -48,10 +55,20 @@
                                               (thawed-table (second choice))
                                               choice)))
                             (make-lx-state :id id :accept (first payload)))))
+             (when parser-p
+               (destructuring-bind (kind rule end back decision lr pd precedence events) (fifth payload)
+                 (setf (state-kind state) kind (state-rule-index state) rule
+                       (state-end-state state) end (state-loop-back state) back
+                       (state-decision state) decision (state-precedence-rule-p state) lr
+                       (state-precedence-decision-p state) pd (state-call-precedence state) precedence
+                       (state-events state) events)))
              (setf (graph-state-edges state)
                    (loop for (kind target value) in edges
                          collect (make-transition :kind kind :target target
-                                                  :value value)))
+                                                  :value (if (and parser-p (eq value '%frozen-end-of-input%))
+                                                             +end-of-input+
+                                                             (if (and parser-p (eq kind :token-set))
+                                                                 (subst +end-of-input+ '%frozen-end-of-input% value) value)))))
              state)))
    'vector))
 

@@ -198,10 +198,7 @@
             (parts (mapcar #'parser-expression (child-nodes node 'element))))
        (when (and options (not allow-associativity))
          (conversion-error node "element options are not supported"))
-       (when (and parts (eq (car (last parts)) :eof))
-         (setf parts (butlast parts)))
-       (when (member :eof parts)
-         (conversion-error node "EOF is only supported at the end of an alternative"))
+       (setf parts (subst '(cnvrs:eof) :eof parts))
        (let ((expression (sequence-form parts)))
          (if (eq associativity :right)
              (list 'right expression)
@@ -240,6 +237,10 @@
          (terminal-def (parser-expression child))
          (rule-ref (parser-expression child))
          (not-set (parser-expression child))
+         (wildcard
+          (when (first-node child 'element-options)
+            (conversion-error child "wildcard options are not supported"))
+          '(cnvrs:any))
          (otherwise (conversion-error node "unsupported parser atom")))))
     (not-set
      (let* ((set (first (child-nodes node)))
@@ -583,7 +584,7 @@
                          parser-rules)))
       (cnvrs::make-defined-parser name kind
                                   (caar parser-rules) (or vocabulary lexer)
-                                  :hash-table :node :cached forms
+                                  :hash-table :node :recompute forms
                                   :metadata metadata
                                   :parser-package parser-package
                                   :lexer-package lexer-package

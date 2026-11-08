@@ -185,7 +185,7 @@
     (grammar-fail "A lexer grammar defines its own lexer rules"))
   (when (and (eq kind :combined) lexer)
     (grammar-fail "A combined grammar defines its lexer rules in the same form"))
-  (when (and (eq kind :lexer) (not (eq full-context-strategy :cached)))
+  (when (and (eq kind :lexer) (not (eq full-context-strategy :recompute)))
     (grammar-fail "A lexer grammar has no full-context prediction"))
   (let* ((parser-package (grammar-package
                           (or parser-package (symbol-package name)) "parser"))
@@ -403,6 +403,12 @@ end position, and rule index."
   (let ((compiled (ensure-compiled parser)))
     (typecase compiled
       (parser
+       (when (parser-atn-runtime compiled)
+         (let ((sim (first (parser-atn-runtime compiled))))
+           (cnvrs/antlr-runtime:clear-dfa sim)
+           (bordeaux-threads:with-lock-held
+               ((cnvrs/antlr-runtime::simulator-context-cache-lock sim))
+             (clrhash (cnvrs/antlr-runtime:simulator-context-cache sim)))))
        (cache-clear (parser-sll-decisions compiled))
        (cache-clear (parser-decisions compiled))
        (cache-clear (parser-direct-decisions compiled))
@@ -425,7 +431,9 @@ The transition graph and lexer automaton are immutable and shared."
               (backend (or cache-backend (parser-cache-backend compiled)))
               (strategy (if strategy-supplied-p full-context-strategy
                             (parser-full-context-strategy compiled))))
-         (setf (parser-cache-backend copy) backend
+         (setf (parser-atn-runtime-lock copy) (bordeaux-threads:make-lock "ANTLR frontend runtime")
+               (parser-atn-runtime copy) nil
+               (parser-cache-backend copy) backend
                (parser-full-context-strategy copy) strategy
                (parser-full-context-start copy)
                (resolve-full-context-strategy strategy)
@@ -498,7 +506,7 @@ definition without compiling it at definition time."
            (definition
              (make-defined-parser
               name kind (getf options :default-rule) nil :hash-table
-              :node :cached rules :imports sources :rules-only t
+              :node :recompute rules :imports sources :rules-only t
               :parser-package (when (plist-key-p options :parser-package)
                                 (eval (getf options :parser-package)))
               :lexer-package (when (plist-key-p options :lexer-package)
@@ -508,14 +516,14 @@ definition without compiling it at definition time."
               definition (getf options :lexer)
               (getf options :cache-backend :hash-table)
               (getf options :tree-builder :node)
-              (getf options :full-context-strategy :cached)
+              (getf options :full-context-strategy :recompute)
               (getf options :metadata) rules-only)))
       `(progn
          (eval-when (:compile-toplevel)
            (setf (symbol-value ',name)
                  (make-defined-parser
                   ',name ',kind ',(getf options :default-rule)
-                  nil :hash-table :node :cached ',rules
+                  nil :hash-table :node :recompute ',rules
                   :imports (list ,@imports) :rules-only t
                   :parser-package (find-package
                                    ',(package-name
