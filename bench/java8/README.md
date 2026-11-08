@@ -1,6 +1,13 @@
 # Java 8 parser profiling
 
 Measured on 2026-11-07 against CNVRS `587ef77`, with native ARM64 SBCL 2.4.0.
+These findings describe the original eager two-token implementation. The current
+`chore/performance` implementation bounds arbitrary-depth specialization by
+prefix-edge and configuration-work budgets; the harness now profiles that
+implementation. `PROFILE_SKIP_TWO_TOKEN` is retained as the diagnostic flag
+for disabling multi-token specialization at any depth. To reproduce the original
+measurements exactly, run the harness from `587ef77`.
+
 This runs the imported Java 8 grammar on Java source. Grammar conversion,
 compilation, and lexing finish before the measured parser phase. Recognition
 uses `:tree-builder :none`; the diagnostic cold timings below build trees.
@@ -73,6 +80,34 @@ or bounded, and use canonical context identities for closure keys. Sharing
 or merging prediction contexts may also be necessary to control the number
 of configurations. Reprofile larger programs after each change; these small
 examples do not establish general Java 8 performance or compatibility.
+
+## Bounded n-token follow-up
+
+The bounded-lookahead changes on `chore/performance` replace the fixed two-token table
+with arbitrary-depth specialization bounded by 64 total token-prefix edges
+and 4096 configuration-key visits per contextual decision. Overflow caches
+an adaptive-prediction fallback. A zero edge budget disables multi-token
+specialization. The configuration budget also covers contextual one-token
+analysis, so a large initial closure cannot evade the limit.
+
+On the same native SBCL 2.4.0 setup, the return-literal method completed in
+186 ms cold and 0.0195 ms per warm recognition call. The method-call example
+still exceeded a three-second limit: ordinary prediction's stack-key problem
+remains outside these changes.
+
+There is a warm-path cost. Three interleaved pairs of fresh processes ran the
+existing ANTLR grammar-language benchmark on `ANTLRv4Lexer.g4`,
+`ANTLRv4Parser.g4`, and `JSON.g4`, with 20 warmups and seven batches of 200
+parses per file, without trees. The median sum of per-file medians rose from
+0.806 ms on `75ebe87` to 0.854 ms with bounded n-token lookup (about 6%).
+Process sums ranged from 0.793–0.819 ms before and 0.853–0.860 ms after.
+These are grammar files parsed as data, distinct from the Java source tests.
+
+Validation: 454 suite checks passed, plus 5460 differential cases comparing
+bounded specialization, disabled specialization, and the generic parser,
+including trees and error diagnostics. The new suite coverage includes exact
+budget boundaries, repeated prefixes, three- and five-token lookahead,
+filtered channels, recovery insertions, and NIL token keys.
 
 ## Reproduce
 

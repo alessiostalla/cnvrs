@@ -1,6 +1,6 @@
 # CNVRS and ANTLR 4/Java: current differences
 
-Updated 2026-11-06. This compares the current CNVRS working tree with the
+Updated 2026-11-07. This compares the current CNVRS working tree with the
 ANTLR 4.13.2 Java tool and runtime used by this repository's benchmark. Java is the
 reference target here because the ANTLR tool is written in Java and the
 measurements use its Java runtime; this is not a ranking of ANTLR targets.
@@ -23,7 +23,7 @@ structure](https://github.com/antlr/antlr4/blob/4.13.2/doc/grammars.md).
 | Primary grammar input | Lisp rule forms via `compile-grammar`, `compile-lexer`, or complete `defparser` forms; optional `.g4` subset converter | `.g4` grammar files processed by the ANTLR tool |
 | Build artifact | In-memory graphs and compiled Lisp rule runners; no generated source file | Generated Java lexer/parser classes, plus runtime ATN and DFA machinery |
 | Parsing path | Compiled rule runner for ordinary strict parsing; general graph loop for recovery and custom builders | Generated recursive-descent rule methods; `ParserATNSimulator` predicts decisions. `ParserInterpreter` is also available to walk an ATN |
-| Prediction | Direct one- or two-token choices where possible, then cached SLL DFA and caller-context retry | Generated direct checks where possible; adaptive SLL DFA and full-context ATN retry on conflict |
+| Prediction | Direct one-token choices and bounded n-token specialization, then cached SLL DFA and caller-context retry | Generated direct checks where possible; adaptive SLL DFA and full-context ATN retry on conflict |
 | Lexer | Character graph and DFA for ordinary rules; separate ordered matcher for recursive, nongreedy, or semantic rules | `LexerATNSimulator` with ATN/DFA simulation, lexer actions and predicates, including recursive rule calls |
 | Trees | Generic `node` with rule, children, token offsets, optional label; custom builders and event hooks | Generated rule/alternative context classes, token nodes, listeners and visitors |
 | Errors | Strict conditions by default; opt-in automatic recovery or caller-selected Common Lisp restarts | `DefaultErrorStrategy` recovers by default; listeners and replaceable error strategies |
@@ -42,9 +42,11 @@ The CNVRS paths are implemented in
 
 CNVRS builds parser states with token, negated-token, rule-call, and epsilon
 edges. Each rule is compiled independently for recognition and node building;
-rule calls use an immutable function table and a per-parse cursor state. It chooses disjoint alternatives with compiled direct lookahead where
-possible. Other decisions use an SLL DFA, then retry prediction with the
-active return stack when caller context matters. Its default `:cached`
+rule calls use an immutable function table and a per-parse cursor state. It
+chooses disjoint alternatives with compiled direct lookahead where possible. Contextual decisions can build arbitrary-depth token-prefix tries,
+limited to 64 prefix edges and 4096 configuration-key visits by default.
+Exhausting either budget caches a fallback for that context. Other decisions
+use an SLL DFA, then retry prediction with the active return stack when caller context matters. Its default `:cached`
 strategy retains a full-context DFA start for each decision and return stack;
 `:recompute` is available. An optional `compile-cached-dfa` step turns observed
 DFA paths into Lisp dispatch functions, with misses returning to adaptive

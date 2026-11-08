@@ -27,8 +27,15 @@
   stop-rule exit-alternative repetition-p
   direct-lookahead)
 (defstruct direct-choice table default-alternative)
-(defstruct two-token-choice table)
-(defstruct indexed-choice raw direct two default-alternative)
+(defstruct lookahead-choice table)
+(defparameter *eager-lookahead-limit* 64
+  "Maximum token-prefix edges explored for one contextual specialization.
+Zero disables multi-token specialization. Clear parser caches after changing.")
+(defparameter *eager-lookahead-configuration-limit* 4096
+  "Maximum configuration keys examined during one speculative contextual choice.
+This bounds work before the token-prefix limit can be checked.")
+(defvar *eager-lookahead-work-left* nil)
+(defstruct indexed-choice raw direct lookahead default-alternative)
 (defstruct (rule-context
             (:constructor make-rule-context (return-state parent)))
   (return-state 0 :type fixnum)
@@ -623,11 +630,17 @@ function of (parser state-id return-stack) that returns a start DFA state."
         (configuration-stack configuration)
         (configuration-alternative configuration)))
 
+(defun eager-configuration-key (configuration)
+  (when (minusp (decf *eager-lookahead-work-left*))
+    (throw 'eager-lookahead-limit nil))
+  (configuration-key configuration))
+
 (defun closure (grammar initial)
   (declare (type parser grammar) (type list initial))
   (nreverse
    (graph-closure
-    initial #'configuration-key
+    initial (if *eager-lookahead-work-left*
+                #'eager-configuration-key #'configuration-key)
     (lambda (configuration pending result)
       (let* ((state (aref (parser-states grammar)
                           (configuration-state configuration)))
@@ -946,7 +959,7 @@ function of (parser state-id return-stack) that returns a start DFA state."
             (setf (state-direct-lookahead state)
                   (or table
                       (and nullable (not overlap) :contextual)
-                      (and overlap :contextual-two))))))
+                      (and overlap :contextual-lookahead))))))
 
 (defun initialize-follow-lookahead (grammar)
   "Compile nullable decisions whose alternatives have disjoint FIRST/FOLLOW sets.
@@ -1021,7 +1034,7 @@ overlapping decision keeps its contextual predictor."
             for owner = (aref owners id)
             when (and owner (state-exit-alternative state)
                       (member (state-direct-lookahead state)
-                              '(:contextual :contextual-two))) do
+                              '(:contextual :contextual-lookahead))) do
               (let ((table (make-hash-table :test 'equal))
                     (overlap nil))
                 (loop for edge in (state-edges state)
@@ -1049,45 +1062,46 @@ overlapping decision keeps its contextual predictor."
                         collect (transition-value edge)))
    :test #'equal))
 
-(defun two-token-lookahead (grammar state-id stack)
-  "Cache choices proved unique after at most two tokens in this context."
-  (let* ((start (funcall (parser-full-context-start grammar)
-                         grammar state-id stack))
-         (first-keys (dfa-token-keys grammar start))
-         (table (make-hash-table :test (if (every #'symbolp first-keys)
-                                          'eq 'equal))))
-    (dolist (first first-keys)
-      (let* ((one (advance-dfa grammar start first))
-             (alternatives (dfa-state-alternatives one)))
-        (if (and alternatives (null (rest alternatives)))
-            (setf (gethash first table) (1+ (first alternatives)))
-            (let* ((second-keys (dfa-token-keys grammar one))
-                   (second-table
-                     (make-hash-table :test (if (every #'symbolp second-keys)
-                                                'eq 'equal))))
-              (dolist (second second-keys)
-                (let ((two (advance-dfa grammar one second)))
-                  (when (and (dfa-state-alternatives two)
-                             (null (rest (dfa-state-alternatives two))))
-                    (setf (gethash second second-table)
-                          (1+ (first (dfa-state-alternatives two)))))))
-              (when (plusp (hash-table-count second-table))
-                (setf (gethash first table) second-table))))))
-    (when (plusp (hash-table-count table))
-      (make-two-token-choice :table table))))
+(defun bounded-lookahead (grammar state-id stack)
+  "Specialize arbitrary-depth prefixes within the cumulative edge budget."
+  (when (plusp *eager-lookahead-limit*)
+    (let ((remaining *eager-lookahead-limit*))
+      (labels ((build (dfa)
+                 (let* ((keys (dfa-token-keys grammar dfa))
+                        (table (make-hash-table
+                                :test (if (every #'symbolp keys) 'eq 'equal))))
+                   ;; Charge the whole frontier before expanding any of it.
+                   ;; Unary prefixes consume budget too, so cycles and long
+                   ;; common prefixes cannot lead to unbounded eager work.
+                   (when (> (length keys) remaining)
+                     (throw 'eager-lookahead-limit nil))
+                   (decf remaining (length keys))
+                   (dolist (key keys)
+                     (let* ((next (advance-dfa grammar dfa key))
+                            (alternatives (dfa-state-alternatives next))
+                            (entry (if (and alternatives (null (rest alternatives)))
+                                       (1+ (first alternatives))
+                                       (and alternatives (build next)))))
+                       (when entry (setf (gethash key table) entry))))
+                   (when (plusp (hash-table-count table)) table))))
+        (let ((table (build (funcall (parser-full-context-start grammar)
+                                     grammar state-id stack))))
+          (when table (make-lookahead-choice :table table)))))))
 
 (defun contextual-choice (grammar state-id stack)
-  (multiple-value-bind (table nullable overlap
-                        default-alternative partial-table)
-      (direct-lookahead-table grammar
-                              (aref (parser-states grammar) state-id) stack)
-    (declare (ignore nullable overlap))
-    (or table
-        (and default-alternative
-             (make-direct-choice :table partial-table
-                                 :default-alternative default-alternative))
-        (two-token-lookahead grammar state-id stack)
-        :unavailable)))
+  (or (let ((*eager-lookahead-work-left* *eager-lookahead-configuration-limit*))
+        (catch 'eager-lookahead-limit
+          (multiple-value-bind (table nullable overlap
+                                default-alternative partial-table)
+              (direct-lookahead-table grammar
+                                      (aref (parser-states grammar) state-id) stack)
+            (declare (ignore nullable overlap))
+            (or table
+                (and default-alternative
+                     (make-direct-choice :table partial-table
+                                         :default-alternative default-alternative))
+                (bounded-lookahead grammar state-id stack)))))
+      :unavailable))
 
 (defun initialize-token-index (grammar)
   (let ((keys nil))
@@ -1127,12 +1141,15 @@ overlapping decision keeps its contextual predictor."
       :raw choice
       :direct (index-choice-table grammar (direct-choice-table choice))
       :default-alternative (direct-choice-default-alternative choice)))
-    ((two-token-choice-p choice)
-     (let ((outer (index-choice-table grammar (two-token-choice-table choice))))
-       (loop for entry across outer for index from 0
-             when (hash-table-p entry) do
-               (setf (aref outer index) (index-choice-table grammar entry)))
-       (make-indexed-choice :raw choice :two outer)))
+    ((lookahead-choice-p choice)
+     (labels ((index-tree (table)
+                (let ((row (index-choice-table grammar table)))
+                  (loop for entry across row for index from 0
+                        when (hash-table-p entry) do
+                          (setf (svref row index) (index-tree entry)))
+                  row)))
+       (make-indexed-choice :raw choice
+                            :lookahead (index-tree (lookahead-choice-table choice)))))
     (t (make-indexed-choice :raw choice))))
 
 (defun context-key (grammar state-id parent-id)
@@ -1173,6 +1190,26 @@ overlapping decision keeps its contextual predictor."
                   #'compute)))
       (if indexed-p entry (indexed-choice-raw entry)))))
 
+(declaim (inline lookahead-alternative))
+(defun lookahead-alternative (table input position
+                             &optional grammar (first-index nil first-index-p))
+  "Return a one-based proven alternative, or NIL without consuming input.
+GRAMMAR selects indexed vector rows; FIRST-INDEX reuses the caller's lookup."
+  (when first-index-p
+    (unless first-index (return-from lookahead-alternative nil))
+    (setf table (svref table first-index))
+    (when (integerp table) (return-from lookahead-alternative table))
+    (setf position (input-next-position input position)))
+  (loop while (and table (< position (input-size input))) do
+    (let ((key (token-key (input-token input position))))
+      (setf table
+            (if grammar
+                (let ((index (funcall (parser-token-index grammar) key)))
+                  (and index (svref table index)))
+                (gethash key table))))
+    (when (integerp table) (return-from lookahead-alternative table))
+    (setf position (input-next-position input position))))
+
 (defun compiled-choice-index (grammar state-id stack context input position)
   (declare (type (or simple-vector filtered-token-input) input)
            (type fixnum state-id position))
@@ -1181,50 +1218,32 @@ overlapping decision keeps its contextual predictor."
       (predict grammar state-id stack input position)))
   (let* ((choice (state-direct-lookahead
                   (aref (parser-states grammar) state-id)))
-         (table (if (member choice '(:contextual :contextual-two))
+         (table (if (member choice '(:contextual :contextual-lookahead))
                     (contextual-direct-lookahead
                      grammar state-id stack context t)
                     choice))
-         (direct-table (if (direct-choice-p table)
-                           (direct-choice-table table) table))
          (current (when (< position (input-size input))
                     (token-key (input-token input position))))
-         (token-index (and current (indexed-choice-p table)
+         (token-index (and (indexed-choice-p table)
+                           (< position (input-size input))
                            (funcall (parser-token-index grammar) current)))
-         (direct (if (indexed-choice-p table)
-                     (and token-index (indexed-choice-direct table)
-                          (aref (indexed-choice-direct table) token-index))
-                     (and current (hash-table-p direct-table)
-                          (gethash current direct-table))))
-         (two-token (and current (two-token-choice-p table)
-                         (gethash current (two-token-choice-table table))))
-         (indexed-two (and token-index (indexed-choice-p table)
-                           (indexed-choice-two table)
-                           (aref (indexed-choice-two table) token-index)))
-         (two-token-result
-           (cond
-             ((and indexed-two (vectorp indexed-two))
-              (let* ((next (input-next-position input position))
-                     (index (funcall (parser-token-index grammar)
-                                     (if (< next (input-size input))
-                                         (token-key (input-token input next))
-                                         +end-of-input+))))
-                (and index (aref indexed-two index))))
-             (indexed-two indexed-two)
-             ((hash-table-p two-token)
-              (let ((next (input-next-position input position)))
-                (gethash (if (< next (input-size input))
-                             (token-key (input-token input next))
-                             +end-of-input+)
-                         two-token)))
-             (t two-token))))
+         (direct (cond ((indexed-choice-p table)
+                        (and token-index (indexed-choice-direct table)
+                             (svref (indexed-choice-direct table) token-index)))
+                       ((hash-table-p table) (and current (gethash current table)))
+                       ((direct-choice-p table)
+                        (and current (gethash current (direct-choice-table table))))))
+         (lookahead (cond ((and (indexed-choice-p table) (indexed-choice-lookahead table))
+                           (lookahead-alternative (indexed-choice-lookahead table)
+                                                  input position grammar token-index))
+                          ((lookahead-choice-p table)
+                           (lookahead-alternative (lookahead-choice-table table)
+                                                  input position)))))
     (cond (direct (1- (the fixnum direct)))
-          (two-token-result (1- (the fixnum two-token-result)))
-          ((indexed-choice-p table)
-           (or (indexed-choice-default-alternative table)
-               (predict grammar state-id stack input position)))
-          ((direct-choice-p table)
-           (direct-choice-default-alternative table))
+          (lookahead (1- (the fixnum lookahead)))
+          ((and (indexed-choice-p table) (indexed-choice-default-alternative table))
+           (indexed-choice-default-alternative table))
+          ((direct-choice-p table) (direct-choice-default-alternative table))
           (t (predict grammar state-id stack input position)))))
 
 (defun compiled-rule-states (grammar start)
@@ -1531,7 +1550,7 @@ the restarts at each error site to make a different local repair."
              (predict-current ()
                (let* ((state (aref (parser-states grammar) state-id))
                       (choice (state-direct-lookahead state))
-                      (table (if (member choice '(:contextual :contextual-two))
+                      (table (if (member choice '(:contextual :contextual-lookahead))
                                  (contextual-direct-lookahead
                                   grammar state-id stack context)
                                  choice))
@@ -1540,16 +1559,13 @@ the restarts at each error site to make a different local repair."
                       (direct (and (hash-table-p direct-table) (has-token-p)
                                    (gethash (token-key (current-value))
                                             direct-table)))
-                      (two-token (and (two-token-choice-p table)
-                                      (has-token-p)
-                                      (gethash (token-key (current-value))
-                                               (two-token-choice-table table))))
-                      (two-token-result
-                        (if (hash-table-p two-token)
-                            (gethash (token-key (next-value)) two-token)
-                            two-token)))
+                      (lookahead (and (lookahead-choice-p table)
+                                      (lookahead-alternative
+                                       (lookahead-choice-table table)
+                                       (if pending (remaining-values) input)
+                                       (if pending 0 physical-position)))))
                  (cond (direct (1- direct))
-                       (two-token-result (1- two-token-result))
+                       (lookahead (1- lookahead))
                        ((direct-choice-p table)
                         (direct-choice-default-alternative table))
                        (pending

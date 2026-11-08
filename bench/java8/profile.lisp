@@ -20,8 +20,7 @@
 (defparameter *tokens* (cnvrs:lex *java8-lexer* *source*))
 (defparameter *entry* (find-symbol "COMPILATIONUNIT" '#:java8/profile/parser))
 (when (uiop:getenv "PROFILE_SKIP_TWO_TOKEN")
-  (setf (symbol-function 'cnvrs::two-token-lookahead)
-        (lambda (&rest args) (declare (ignore args)) nil)))
+  (setf cnvrs:*eager-lookahead-limit* 0))
 ;; Diagnostic only: preserve full stack identity while replacing nested keys
 ;; with canonical integer IDs. These tables live only for this profiling process.
 (when (uiop:getenv "PROFILE_INTERN_STACK_KEYS")
@@ -57,10 +56,10 @@
 (defparameter *owners* (make-hash-table))
 
 (defun run-count-profile ()
-  (let ((old (symbol-function 'cnvrs::two-token-lookahead)))
-    (setf (symbol-function 'cnvrs::two-token-lookahead)
+  (let ((old (symbol-function 'cnvrs::bounded-lookahead)))
+    (setf (symbol-function 'cnvrs::bounded-lookahead)
           (lambda (grammar state-id stack)
-            (let ((*phase* :two-token-lookahead))
+            (let ((*phase* :bounded-lookahead))
               (funcall old grammar state-id stack)))))
   (maphash (lambda (name start)
              (dolist (id (cnvrs::compiled-rule-states *java8-parser* start))
@@ -86,7 +85,8 @@
                    (funcall old seeds key
                             (lambda (item pending result)
                               (incf count) (incf *visits*)
-                              (incf (gethash (sxhash (funcall key item)) hashes 0))
+                              ;; Do not call the budgeted key wrapper twice.
+                              (incf (gethash (sxhash (cnvrs::configuration-key item)) hashes 0))
                               (when (cnvrs::configuration-p item)
                                 (setf depth (max depth (length (cnvrs::configuration-stack item))))
                                 (setf (gethash (cons (cnvrs::configuration-state item)

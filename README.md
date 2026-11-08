@@ -352,6 +352,19 @@ The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4
 
 Compilation builds an in-memory transition graph with rule calls, token edges, and epsilon edges. Each parser rule is compiled separately for recognition and node building, with rule calls dispatched through an immutable function table and cursor state allocated per parse. Decisions with disjoint first tokens use a direct one-token table; caller-dependent tables are cached by return stack. Remaining decisions explore graph configurations with unbounded lookahead. A shared SLL DFA tries first; when alternatives need caller context, prediction retries with the active rule-return stack. DFA transitions are cached as input is encountered. Parsing then follows the selected path and constructs the tree.
 
+Contextual specialization builds a token-prefix trie with arbitrary lookahead
+depth. `cnvrs:*eager-lookahead-limit*` bounds the total prefix edges explored
+per contextual decision (default 64), counting shared prefixes once and charging
+each frontier before expanding it. This also bounds long unary prefixes and
+cycles. Setting it to zero disables multi-token specialization. A separate
+`cnvrs:*eager-lookahead-configuration-limit*` (default 4096) bounds configuration
+keys examined during speculative contextual analysis, because even one token
+transition can expand a large closure. Exceeding either budget discards the
+specialization and caches an adaptive-prediction fallback for that context.
+Neither budget limits ordinary adaptive prediction or the accepted language.
+These variables are dynamically bindable; clear a parser's caches when changing
+limits for an existing parser. Static one-token and FOLLOW tables still apply.
+
 The parser and lexer graphs use a common state base and transition type, with shared state creation, edge insertion, and closure traversal. Their matching policies remain distinct: the lexer finds the longest character match in its current mode, while the parser predicts token alternatives using rule-return context.
 
 Compilation rewrites direct left recursion into precedence levels before building the transition graph. It rejects indirect or zero-consumption rule cycles and repetitions whose body can match empty input. Ambiguous alternatives use their written order.

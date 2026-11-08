@@ -5,6 +5,7 @@
            #:label #:alt-label #:token #:not-token #:predicate #:action #:right
            #:antlr-precedence
            #:and #:or #:* #:+
+           #:*eager-lookahead-limit* #:*eager-lookahead-configuration-limit*
            #:compile-grammar #:compile-lexer #:compile-cached-dfa #:parse #:lex
            #:input-token-at #:input-token-count
            #:ensure-compiled #:clone-compiled #:clear-cache
