@@ -10,6 +10,9 @@
                 cnvrs/antlr-runtime::closure-work
                 cnvrs/antlr-runtime::get-epsilon-target
                 cnvrs/antlr-runtime::derive-config
+                cnvrs/antlr-runtime::can-drop-loop-entry-edge-in-left-recursive-rule
+                cnvrs/antlr-runtime::find-config-in-bucket
+                cnvrs/antlr-runtime::context-first-entry
                 cnvrs/antlr-runtime:config-set-add
                 cnvrs/antlr-runtime::config-lookup-hash
                 cnvrs/antlr-runtime::config-lookup-equal

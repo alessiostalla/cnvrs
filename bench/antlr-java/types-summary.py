@@ -20,6 +20,10 @@ for label in ("before", "after"):
                 cache = re.search(rf"^CACHE {grammar} {phase} PARSER-STATES (\d+) LEXER-STATES (\d+)$", text, re.M)
                 assert cache
                 row["cache"] = tuple(map(int, cache.groups()))
+                cpu = re.findall(rf"^WARM-CPU {grammar} {phase} BATCH \d+ MS ([\d.]+)$", text, re.M)
+                if cpu:
+                    assert len(cpu) == 7
+                    row["warm_cpu"] = [float(x) for x in cpu]
                 data[label, trial, grammar, phase] = row
 summary = {}
 for grammar in ("iri", "java8"):
@@ -36,6 +40,9 @@ for grammar in ("iri", "java8"):
                                cold_ms=median(t for r in records for t, b in r["cold"]),
                                cold_bytes=median(b for r in records for t, b in r["cold"]),
                                cache=next(iter(caches)))
+            if all("warm_cpu" in r for r in records):
+                rows[label]["warm_cpu_ms"] = median(median(r["warm_cpu"]) for r in records)
+                rows[label]["warm_cpu_runs"] = [median(r["warm_cpu"]) for r in records]
         assert rows["before"]["cache"] == rows["after"]["cache"]
         rows["speedup"] = rows["before"]["warm_ms"] / rows["after"]["warm_ms"]
         summary[grammar][phase] = rows

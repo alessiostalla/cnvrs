@@ -1,0 +1,13 @@
+{
+  "baseline": "b2e29bda739675a3971045a8170df44c70da71c0",
+  "candidate": "uncommitted direct-array/typed-traversal round",
+  "machine": "Apple M1 Max",
+  "runtime": "SBCL 2.4.0 ARM64",
+  "benchmark_heap_mib": 2048,
+  "source_sha256": {
+    "src/antlr-runtime/prediction-context.lisp": "abd6f20171c8a5faadfc6fc991fd9562613e61e829bc4f372e68f6fefea4e8df",
+    "src/antlr-runtime/atn-config.lisp": "9b08ae7cb7cd8d699e8823483ca09902284ef06ebd4623b8832b911ec5ba26d6",
+    "src/antlr-runtime/parser-atn-simulator.lisp": "f6107b41b2cd8bc6e07a6a94e6031c5d67043e76a939e7d0a311041154bfbdba",
+    "src/antlr-runtime/lexer-atn-simulator.lisp": "26f36a9b46ea77cffd7ce7ed8c28fcde84596eca4a9d8e9a3f8d63a189a9b3d1"
+  }
+}

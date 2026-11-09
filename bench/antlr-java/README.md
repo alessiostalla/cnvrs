@@ -1,5 +1,8 @@
 # IRI and Java 8 versus ANTLR Java
 
+The [direct-array and typed-traversal follow-up](arrays.md) implements the native-code
+audit findings and repeats the controlled before/after benchmark.
+
 The [native-code audit](disassembly.md) disassembles closure checks, configuration
 insertion, context merging and their helpers, with controlled type experiments.
 

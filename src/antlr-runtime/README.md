@@ -39,7 +39,8 @@ cannot be replaced casually with a merely similar result.
 ## Host-language and frontend boundaries
 
 - Immutable singleton contexts store a parent and return state directly; array
-  contexts store vectors, matching Java's separate representations. The empty
+  contexts store packed unsigned 32-bit payload arrays and parent vectors,
+  matching Java's separate representations. The empty
   singleton uses `EMPTY_RETURN_STATE`. Internal indexed traversal avoids creating
   vector views for singletons; the exported vector accessors remain available.
   Mixed singleton/array merging does not need a temporary array wrapper.
@@ -78,7 +79,7 @@ in SLL and evaluated on full-context closure as in Java.
 
 ## Fidelity checks
 
-`asdf:test-system :cnvrs/antlr-runtime` runs **2,898 checks** without Java:
+`asdf:test-system :cnvrs/antlr-runtime` runs **3,056 checks** without Java:
 
 - 140 Java-generated 32-bit hash/rotate boundary cases, including unsigned overflow and word-count mixing.
 - 256 Java-generated SLL/LL context-merge cases, including exact hashes,
@@ -204,3 +205,12 @@ insertions and context merges before and after compact singleton storage and
 integer-hash buckets. Buckets compare complete equality after hashing; no
 prediction algorithm or cache lifetime changed. Additional checks cover hash
 collisions, semantic-form equality and singleton-parent canonicalization.
+
+## Direct arrays and specialized traversal
+
+[The direct-array follow-up](../../bench/antlr-java/arrays.md) fills merge output
+arrays directly, trims duplicate payloads, and specializes singleton/array and
+bucket traversal. Helper arguments and transition-loop counters have explicit
+types. Exported payload vector views remain general simple vectors. Normal and
+forced-safety-3 builds pass all checks, and Java's full operation counts, ordered
+prediction positions and persistent cache sizes remain identical.

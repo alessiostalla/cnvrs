@@ -1,0 +1,164 @@
+{
+  "closure-checking-stop-state": {
+    "before": {
+      "code_bytes": 1120,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 2,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 1328,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "closure-work": {
+    "before": {
+      "code_bytes": 1932,
+      "generic_arithmetic_sites": 1,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 1844,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "derive-config": {
+    "before": {
+      "code_bytes": 340,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 208,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "config-set-add": {
+    "before": {
+      "code_bytes": 1120,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 1,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 1100,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "merge-contexts": {
+    "before": {
+      "code_bytes": 428,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 428,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "merge-arrays": {
+    "before": {
+      "code_bytes": 4236,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 15,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 2,
+      "generic_replace_reference_sites": 2
+    },
+    "after": {
+      "code_bytes": 4692,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "merge-cache-get": {
+    "before": {
+      "code_bytes": 612,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 520,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "merge-cache-put": {
+    "before": {
+      "code_bytes": 408,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 336,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  },
+  "context-equal": {
+    "before": {
+      "code_bytes": 984,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 4,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    },
+    "after": {
+      "code_bytes": 844,
+      "generic_arithmetic_sites": 0,
+      "assert_reference_sites": 0,
+      "generic_find_reference_sites": 0,
+      "list_reverse_reference_sites": 0,
+      "generic_replace_reference_sites": 0
+    }
+  }
+}
