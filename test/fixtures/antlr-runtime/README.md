@@ -116,3 +116,30 @@ These immutable generated tables are loaded as data, with reader evaluation
 disabled. Expanded grammar sets are frozen into grammar FASLs. The upstream BSD
 license applies to the tables and port; source hashes are listed in
 [src/antlr-runtime/UPSTREAM-SHA256.txt](../../../src/antlr-runtime/UPSTREAM-SHA256.txt).
+
+## LL(1) analysis and generated dispatch
+
+`LL1Oracle.java` exports `LL1Analyzer.getDecisionLookahead` sets and
+`AnalysisPipeline.disjoint` results for every parser decision. Its small
+LL1Parity corpus also invokes generated Java rules with valid/malformed token
+streams and records each adaptive-prediction call. This checks direct switches,
+optional/multi-alt optional, star/plus/multi-alt loops, nullable references,
+recursive calls, EOF, wildcard/not-set and overlapping alternatives.
+
+`test/file-ll1.lisp` is the native Lisp equivalent. Runtime and FASL compilation,
+recognition/tree builders, and generic/compiled execution are compared against
+Java. RuntimeParity adds semantic and precedence predicates; Java8Parser checks
+all decisions. Token IDs are normalized through symbolic/literal vocabulary;
+lookahead comparisons use the shared concrete vocabulary, while Lisp's extra
+token type is exercised separately. The existing `java8.sexp` trace additionally
+checks all 1,431 native execution calls and every resulting decision DFA size.
+
+Regenerate in a scratch directory containing the grammars and LL1Oracle.java:
+
+```sh
+java -jar "$ANTLR_JAR" -no-listener LL1Parity.g4 RuntimeParity.g4 Java8Lexer.g4 Java8Parser.g4
+javac -cp "$ANTLR_JAR" LL1ParityLexer.java LL1ParityParser.java RuntimeParityLexer.java RuntimeParityParser.java Java8Lexer.java Java8Parser.java LL1Oracle.java
+java -cp ".:$ANTLR_JAR" LL1Oracle LL1ParityParser > ll1-parity.sexp
+java -cp ".:$ANTLR_JAR" LL1Oracle RuntimeParityParser > runtime-ll1.sexp
+java -cp ".:$ANTLR_JAR" LL1Oracle Java8Parser > java8-ll1.sexp
+```

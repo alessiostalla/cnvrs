@@ -1,0 +1,16 @@
+iri: identical token signatures in all six processes: B15EEB5EE1A6F8C9
+java8: identical token signatures in all six processes: F820B4EE83D8A397
+
+iri
+phase java-warm-ms cnvrs-warm-ms ratio java-cold-ms cnvrs-cold-ms java-warm-bytes cnvrs-warm-bytes
+lexer 0.006180 0.046940 7.60 0.394334 0.273000 14152.6 64829.8
+parse-none 0.021696 0.167610 7.73 1.031917 0.984000 23632.6 94731.5
+parse-tree 0.028100 0.221580 7.89 0.733708 1.017000 76216.6 144541.0
+pipeline-tree 0.033243 0.271280 8.16 0.873417 1.283000 90368.6 208735.8
+
+java8
+phase java-warm-ms cnvrs-warm-ms ratio java-cold-ms cnvrs-cold-ms java-warm-bytes cnvrs-warm-bytes
+lexer 0.023250 0.207000 8.90 0.682375 1.725000 40964.0 294768.0
+parse-none 114.721688 522.953500 4.56 800.189208 3697.064000 200822372.0 367043808.0
+parse-tree 115.091646 522.222000 4.54 806.392375 3682.452000 200964356.0 367202680.0
+pipeline-tree 114.748208 521.289500 4.54 822.641375 3704.932000 201005292.0 367506160.0

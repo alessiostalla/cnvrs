@@ -60,7 +60,7 @@
 (declaim (ftype function resolve-full-context-strategy))
 (declaim (ftype function antlr-adaptive-predict))
 (declaim (ftype function compile-parser-runner))
-(declaim (ftype function initialize-token-index java-left-recursion build-java-atn apply-atn-events))
+(declaim (ftype function initialize-token-index initialize-direct-lookahead java-left-recursion build-java-atn apply-atn-events))
 
 (defun grammar-fail (control &rest arguments)
   (error 'grammar-error :message (apply #'format nil control arguments)))
@@ -458,8 +458,9 @@ Caller-specific caches and custom full-context start hooks are unsupported."
         (setf (parser-context-shift grammar)
               (integer-length (1- (length (parser-states grammar)))))
         (initialize-token-index grammar)
-        ;; Prediction follows the Java runtime; no contextual eager tables or
-        ;; grammar-wide FOLLOW shortcuts are constructed.
+        ;; Java performs SLL(1) decision analysis before choosing generated
+        ;; switches/loop tests versus adaptive prediction.
+        (initialize-direct-lookahead grammar)
         (when (and compile-runners (not (parser-semantic-rules grammar)))
           (setf (parser-runner grammar) (compile-parser-runner grammar nil)
                 (parser-node-runner grammar) (compile-parser-runner grammar t)))
@@ -629,14 +630,43 @@ Caller-specific caches and custom full-context start hooks are unsupported."
       (aref input index)))
 
 
+(defun direct-choice-index (grammar table input position)
+  (let* ((key (if (>= position (input-size input)) +end-of-input+
+                  (token-key (input-token input position))))
+         (index (funcall (the function (parser-token-index grammar)) key)))
+    (aref table (or index (length (parser-token-keys grammar))))))
+
 (defun predict (grammar state-id stack tokens position)
-  (or (antlr-adaptive-predict grammar state-id stack tokens position)
-      ;; Native PARSE permits any rule as an entry point with implicit EOF.
-      ;; A recursive-only rule has no EOF follow in Java's serialized ATN;
-      ;; finish its precedence loop at that entry boundary.
-      (and (>= position (input-size tokens))
-           (state-precedence-decision-p (aref (parser-states grammar) state-id))
-           (state-exit-alternative (aref (parser-states grammar) state-id)))))
+  (let* ((state (aref (parser-states grammar) state-id))
+         (direct (state-direct-lookahead state)))
+    (if direct (direct-choice-index grammar direct tokens position)
+        (or (antlr-adaptive-predict grammar state-id stack tokens position)
+            ;; Native PARSE permits any rule as an entry point with implicit EOF.
+            ;; A recursive-only rule has no EOF follow in Java's serialized ATN;
+            ;; finish its precedence loop at that entry boundary.
+            (and (>= position (input-size tokens))
+                 (state-precedence-decision-p state)
+                 (state-exit-alternative state))))))
+
+(defun direct-choice-form (grammar table)
+  "Emit Java-style one-token switches/tests in independently compiled rules."
+  (let* ((keys (parser-token-keys grammar)) (groups nil)
+         (other (aref table (length keys))) (eof nil))
+    (loop for key across keys for alternative across table do
+      (if (eq key +end-of-input+) (setf eof alternative)
+          (unless (eql alternative other)
+            (let ((group (assoc alternative groups)))
+              (if group (push key (cdr group)) (push (list alternative key) groups))))))
+    `(if (>= position (length tokens)) ,eof
+         ,(if (every #'symbolp keys)
+              `(case (token-key (aref tokens position))
+                 ,@(loop for (alternative . tokens) in (nreverse groups)
+                         collect `(,tokens ,alternative))
+                 (otherwise ,other))
+              `(let ((key (token-key (aref tokens position))))
+                 (cond ,@(loop for (alternative . tokens) in (nreverse groups)
+                               collect `((member key ',tokens :test #'equal) ,alternative))
+                       (t ,other)))))))
 
 (defun configuration-after-edge (grammar edge stack alternative)
   (case (transition-kind edge)
@@ -770,8 +800,9 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                              (return-from ,function-name nil))
                            (setf state-id ,target)))))))
              (choice-form (id state)
-               (declare (ignore state))
-               `(compiled-choice-index grammar ,id stack context input position))
+               (if (state-direct-lookahead state)
+                   (direct-choice-form grammar (state-direct-lookahead state))
+                   `(compiled-choice-index grammar ,id stack context input position)))
              (state-form (id function-name)
                (let* ((state (aref (parser-states grammar) id))
                       (edges (state-edges state)))

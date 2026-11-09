@@ -31,6 +31,8 @@
                (:file "test/file-java")
                (:file "test/file-topology")
                (:file "test/atn-topology")
+               (:file "test/file-ll1")
+               (:file "test/ll1")
                (:file "test/file-lexer-atn")
                (:file "test/lexer-atn")
                (:file "test/cnvrs"))
@@ -39,6 +41,7 @@
              (funcall (find-symbol "RUN-TESTS" "CNVRS/TESTS"))
              (funcall (find-symbol "RUN-TESTS" "CNVRS/TESTS/TOPOLOGY"))
              (funcall (find-symbol "RUN-TESTS" "CNVRS/TESTS/LEXER-ATN"))
+             (funcall (find-symbol "RUN-TESTS" "CNVRS/TESTS/LL1"))
              (funcall (find-symbol "RUN-TESTS" "CNVRS/ANTLR-RUNTIME/TESTS"))))
 
 (asdf:defsystem #:cnvrs/antlr-runtime
@@ -49,6 +52,7 @@
   :components ((:file "src/antlr-runtime/package")
                (:file "src/antlr-runtime/prediction-context")
                (:file "src/antlr-runtime/atn-config")
+               (:file "src/antlr-runtime/ll1-analyzer")
                (:file "src/antlr-runtime/parser-atn-simulator")
                (:file "src/antlr-runtime/lexer-atn-simulator")))
 

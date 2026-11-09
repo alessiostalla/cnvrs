@@ -113,3 +113,28 @@
   (let ((grammar (ensure-compiled parser)))
     (unless (parser-p grammar) (grammar-fail "Prediction requires a parser"))
     (first (ensure-antlr-runtime grammar))))
+
+(defun initialize-direct-lookahead (grammar)
+  "Apply Java AnalysisPipeline/ParserFactory LL(1) selection without changing ATNs."
+  (destructuring-bind (sim types decisions) (ensure-antlr-runtime grammar)
+    (declare (ignore decisions))
+    (let* ((atn (cnvrs/antlr-runtime:simulator-atn sim))
+           (states (parser-states grammar)) (keys (parser-token-keys grammar)))
+      (loop for id across (cnvrs/antlr-runtime:atn-decisions atn)
+            for state = (aref states id)
+            for look = (unless (state-non-greedy-p state)
+                         (cnvrs/antlr-runtime:decision-lookahead atn id)) do
+        ;; Java normalizes a multi-alt EBNF body into a nested choice; its
+        ;; entry/loopback and inner block are independently LL(1)-eligible.
+        (when (cnvrs/antlr-runtime:lookahead-disjoint-p look)
+          (let* ((default (state-exit-alternative state))
+                 (table (make-array (1+ (length keys)) :initial-element default)))
+            (labels ((alternative (type)
+                       (or (position-if (lambda (set) (member type set)) look) default)))
+              (loop for key across keys for index from 0 do
+                (setf (aref table index) (alternative (gethash key types))))
+              ;; Wildcard/not-set choices include arbitrary Lisp tokens outside
+              ;; the explicit vocabulary, using the adapter's existing extra type.
+              (setf (aref table (length keys)) (alternative (cnvrs/antlr-runtime::atn-max-token-type atn))))
+            (setf (state-direct-lookahead state) table))))))
+  grammar)

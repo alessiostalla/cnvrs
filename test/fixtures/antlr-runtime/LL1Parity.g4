@@ -1,0 +1,18 @@
+grammar LL1Parity;
+entry : (choice | optional | star | plus | multiStar | multiPlus | nested | nullable | ambiguous | eofChoice | wild | negated | recursive) EOF;
+choice : A B | C D;
+optional : (A B | C D)? E;
+star : (A B)* E;
+plus : (A B)+ E;
+multiStar : (A B | C D)* E;
+multiPlus : (A B | C D)+ E;
+nested : sub F | G;
+sub : H?;
+nullable : empty A | B;
+empty : ;
+ambiguous : A B | A C;
+eofChoice : A | EOF;
+wild : . B | EOF;
+negated : ~A B | A C;
+recursive : A recursive? | B;
+A:'a'; B:'b'; C:'c'; D:'d'; E:'e'; F:'f'; G:'g'; H:'h';

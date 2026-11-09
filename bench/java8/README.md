@@ -1,5 +1,8 @@
 # Current parser baseline
 
+The [post-lexer-port IRI and Java 8 comparison](../antlr-java/README.md) measures
+lexing, recognition, tree parsing and the full pipeline against ANTLR Java.
+
 The [Java runtime comparison](java-comparison.md) measures the generated ANTLR
 Java parser against CNVRS on the same 505-token input, with lexing excluded.
 

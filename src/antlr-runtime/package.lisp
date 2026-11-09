@@ -16,7 +16,7 @@
            #:atn-config-set #:make-atn-config-set #:config-set-items
            #:config-set-full-context #:config-set-add #:config-set-alternatives
            #:conflicting-alt-subsets #:has-sll-conflict-terminating-prediction
-           #:single-viable-alt #:unique-alt
+           #:single-viable-alt #:unique-alt #:decision-lookahead #:lookahead-disjoint-p
            #:parser-atn-simulator #:make-parser-atn-simulator #:adaptive-predict
            #:simulator-decision-dfas #:simulator-context-cache #:simulator-atn
            #:simulator-mode #:simulator-trace #:clear-dfa

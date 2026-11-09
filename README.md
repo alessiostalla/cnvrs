@@ -360,6 +360,15 @@ The prediction core follows ANTLR Java **4.13.2**, including graph-structured pr
 
 The native frontend follows Java 4.13.2's `ParserATNFactory`, left-recursion transformation, tail-epsilon removal and state compaction. Both Lisp forms and optional `.g4` import produce the same parser ATN topology: typed rule/block/loop states, ordered transitions, rule follows, precedence links, state numbers and decision numbers. Labels are tree-building annotations; they introduce no helper rules. Native low-to-high operator order maps to the equivalent Java rule's high-to-low order. Arbitrary Lisp token values are mapped to runtime token IDs.
 
+Parser compilation also follows Java's `LL1Analyzer`, `AnalysisPipeline` and
+code-generation selection: alternatives with nonempty, pairwise disjoint
+one-token lookahead sets use direct dispatch. Predicates before consumption
+prevent specialization; actions are transparent to analysis. Eligible optional,
+star and plus blocks use Java's default exit behavior. Overlapping or opaque
+choices retain adaptive prediction. Compiled rule functions contain direct token
+switches; the generic execution path uses the same immutable decision maps.
+These maps are grammar data preserved in FASLs, not trained DFA caches.
+
 The offline tests compare complete graphs for native runtime and file compilation, `.g4` import, and the Java 8 parser (2,843 states) and lexer (1,117 states). Lexer fixtures also compare complete token records, recovery positions, action cursors and DFA state/edge counts, including native runtime/FASL compilation. They also test the prediction core independently against Java-generated ATNs. See the [reference-port map and fidelity checks](src/antlr-runtime/README.md) for representation boundaries and fixture provenance.
 
 ### Compiled objects and caches
@@ -376,7 +385,7 @@ Parser compilation also stores compiled rule functions in `parser-runner` (recog
 
 SLL DFA states and their canonical prediction contexts persist between parses. Full-context reach sets are recomputed, and the merge cache belongs to one prediction. There are no caller-stack keys or full-context DFAs in the persistent cache. `parser-sll-decisions` remains an inspection view of the decision DFAs used by a parser; the old `parser-decisions` and `parser-direct-decisions` views remain empty.
 
-`clear-cache` clears a parser's DFAs, shared prediction contexts, inspection views, and attached lexer cache. `clone-compiled` shares the immutable grammar graph and starts with independent, empty runtime caches. FASLs contain grammar data and native rule functions, never trained prediction caches.
+`clear-cache` clears a parser's DFAs, shared prediction contexts, inspection views, and attached lexer cache, including attachments stored as grammar definitions. Static LL(1) decision maps are retained. `clone-compiled` shares the immutable grammar graph and starts with independent, empty runtime caches. FASLs contain grammar data and native rule functions, never trained prediction caches.
 
 Recompile dependent grammar FASLs and start a fresh Lisp image when migrating from the old predictor.
 

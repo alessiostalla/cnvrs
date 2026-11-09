@@ -423,7 +423,7 @@ end position, and rule index."
        (cache-clear (parser-contexts compiled))
        (setf (parser-compiled-sll compiled) nil
              (parser-compiled-full compiled) nil)
-       (when (compiled-lexer-p (parser-lexer compiled))
+       (when (typep (parser-lexer compiled) '(or compiled-lexer parser-definition))
          (clear-cache (parser-lexer compiled))))
       (compiled-lexer (clear-lexer-cache compiled)))
     compiled))

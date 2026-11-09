@@ -17,6 +17,7 @@ Upstream's BSD-3-Clause notice is retained in [LICENSE-ANTLR.txt](LICENSE-ANTLR.
 | `ParserATNSimulator` | [parser-atn-simulator.lisp](parser-atn-simulator.lisp): `adaptive-predict`, `exec-atn`, `compute-start-state`, `compute-reach-set`, stop-state/epsilon closure, SLL conflict handling, `exec-atn-with-full-context`, precedence filtering and loop-entry elimination |
 | `DFA`, `DFAState` | Decision DFA interning, accept/conflict/predicate states, cached token edges, precedence-specific start states |
 | Tool: `ParserATNFactory`, `TailEpsilonRemover`, `ATNOptimizer.optimizeStates` | [native-atn.lisp](../native-atn.lisp): typed rule/block/loop construction, element splicing, exact rule-target visitor traversal, tail-epsilon removal and state compaction |
+| `LL1Analyzer.getDecisionLookahead`, tool `AnalysisPipeline.disjoint`, `ParserFactory` and Java templates | [ll1-analyzer.lisp](ll1-analyzer.lisp): predicate-opaque one-token lookahead with recursion guards and exact rule returns; frontend emits direct switches/EBNF exits when sets are disjoint |
 | `LexerATNSimulator`, `LexerATNConfig`, `OrderedATNConfigSet`, `LexerActionExecutor` | [lexer-atn-simulator.lisp](lexer-atn-simulator.lisp): ordered closure, return contexts, nongreedy priority, speculative predicates, maximal-match rewind, indexed actions and ASCII DFA caching |
 | Tool: `LexerATNFactory`, `RangeBorderCharactersData`, `ATNOptimizer.optimizeSets` | [lexer-atn.lisp](../lexer-atn.lisp) and shared factory: mode starts, scalar/Unicode sets, case folding, lexer commands, lazy blocks/loops and sequential-alt set merging |
 | `Lexer.nextToken` | [lexer-runtime.lisp](../lexer-runtime.lisp): MORE/SKIP, mode stack, token overrides, EOF, conditions/restarts and Java-style optional recovery |
@@ -140,3 +141,30 @@ case mappings. Lisp grammar FASLs freeze expanded sets and require no Java tool.
 The importer still requires explicit Lisp mappings for embedded Java callbacks,
 uses symbolic command arguments, and does not load imported grammars or execute
 prequel Java code. These frontend boundaries are separate from ATN simulation.
+
+## Direct LL(1) parser dispatch
+
+The frontend computes Java's SLL(1) lookahead at grammar compilation. Predicates
+(including precedence predicates) before the next token make that alternative
+opaque. Actions are traversed without execution. Nested calls retain exact
+return contexts; outermost rule stops traverse global ATN follow edges, as Java's
+`getDecisionLookahead` does with EmptyPredictionContext and addEOF=false.
+Empty/opaque or intersecting alternative sets retain adaptive prediction.
+
+Eligible choices compile to one-token switches. Optional/star/plus decisions
+exit when no body alternative matches, following the Java templates; ordinary
+alternative blocks fail. Java normalizes multi-alt loop bodies into an inner
+choice, so loop entry/continuation and body alternatives are analyzed separately.
+The generic parser uses the same immutable token-indexed maps. EOF and arbitrary
+Lisp token values remain supported, with the adapter's extra token type for
+wildcard/not-set matches outside the explicit vocabulary. FASLs preserve the
+maps and compile direct rule functions; clear-cache clears runtime DFAs while
+retaining this grammar analysis. Recompile existing grammar FASLs to enable it.
+
+There are 2,282 additional differential/regression checks: exact lookahead and
+eligibility for LL1Parity, RuntimeParity and the entire Java 8 parser; generated
+Java adaptive-call sequences for valid rule inputs; malformed acceptance;
+native runtime/FASL and generic/compiled execution; predicate/action boundaries;
+arbitrary Lisp token values; and lexer-definition cache clearing. Full Java 8
+execution now makes exactly Java's 1,431 adaptive calls in the same order and
+matches its per-decision DFA counts (1,160 states), with 24,764 cached contexts.
