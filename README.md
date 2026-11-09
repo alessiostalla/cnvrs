@@ -2,7 +2,7 @@
 
 CNVRS compiles Common Lisp grammar forms into native parser functions and loadable FASLs. Its parser prediction runtime is a port of ANTLR Java 4.13.2. Lisp forms remain the primary grammar language; the optional `.g4` importer lowers ANTLR grammars into the same compiler.
 
-See [CNVRS and ANTLR 4/Java: current differences](docs/cnvrs-vs-antlr-java.md) for feature, algorithm, and benchmark comparisons.
+See [CNVRS and ANTLR 4/Java: current differences](docs/runtime-comparison.md) for feature, algorithm, and benchmark comparisons.
 
 ## Example
 
@@ -354,9 +354,9 @@ The integration tests parse the upstream `ANTLRv4Lexer.g4` and `ANTLRv4Parser.g4
 
 ## Implementation
 
-Lisp grammar forms compile to a rule-call graph and independently compiled recognition and tree-building functions. A frontend adapter lowers the graph and token kinds to the typed ATN and positive token types used by `cnvrs/antlr-runtime`. Runtime compilation, `compile-file`/FASL loading, grammar composition, and optional `.g4` import all use this frontend.
+Lisp grammar forms compile to a rule-call graph and independently compiled recognition and tree-building functions. The parser frontend lowers the graph and token kinds to the typed ATN and positive token types used by `cnvrs/runtime`, an internal package compiled as part of the main `cnvrs` system. Runtime compilation, `compile-file`/FASL loading, grammar composition, and optional `.g4` import all use this frontend.
 
-Runtime files carry explicit optimization policies and typed ATN/configuration/cursor fields; grammar construction retains conservative compilation settings. The [type and compiler-policy benchmark](bench/antlr-java/types.md) records the effects, including a fully checked safety-3 build.
+Runtime files carry explicit optimization policies and typed ATN/configuration/cursor fields; grammar construction retains conservative compilation settings. The [type and compiler-policy benchmark](bench/java-reference/types.md) records the effects, including a fully checked safety-3 build.
 
 The prediction core follows ANTLR Java **4.13.2**, including graph-structured prediction contexts, configuration-set merging, SLL conflict detection, full-context retry and ambiguity termination, predicates, precedence filtering, and DFA/context-cache lifetimes. The old eager lookahead tries, caller-specific prediction caches, ordered semantic backtracking matcher, and cached-DFA trace compiler have been removed. The lexer now follows Java's `LexerATNFactory`, `LexerATNSimulator`, `LexerATNConfig`, `OrderedATNConfigSet`, action executors and token-source lifecycle. Errors use Lisp conditions and restarts; parser error recovery remains the Lisp implementation.
 
@@ -371,7 +371,7 @@ choices retain adaptive prediction. Compiled rule functions contain direct token
 switches; the generic execution path uses the same immutable decision maps.
 These maps are grammar data preserved in FASLs, not trained DFA caches.
 
-The offline tests compare complete graphs for native runtime and file compilation, `.g4` import, and the Java 8 parser (2,843 states) and lexer (1,117 states). Lexer fixtures also compare complete token records, recovery positions, action cursors and DFA state/edge counts, including native runtime/FASL compilation. They also test the prediction core independently against Java-generated ATNs. See the [reference-port map and fidelity checks](src/antlr-runtime/README.md) for representation boundaries and fixture provenance.
+The offline tests compare complete graphs for native runtime and file compilation, `.g4` import, and the Java 8 parser (2,843 states) and lexer (1,117 states). Lexer fixtures also compare complete token records, recovery positions, action cursors and DFA state/edge counts, including native runtime/FASL compilation. They also test the prediction core independently against Java-generated ATNs. See the [reference-port map and fidelity checks](src/runtime/README.md) for representation boundaries and fixture provenance.
 
 ### Compiled objects and caches
 
@@ -381,15 +381,15 @@ The exported `parser-states`, `parser-starts`, `parser-stops`, and `parser-lexer
 
 Parser compilation also stores compiled rule functions in `parser-runner` (recognition without a tree) and `parser-node-runner` (the default node builder). Each runner has named local functions for the rules and takes the parser, token vector, start rule, and `require-eof` flag. `parse` selects one of them for valid input when recovery is off; custom builders and recovery use the general parser loop. The lexer uses the shared ATN simulator with lazy per-mode DFAs; there is no separate recursive or semantic matcher.
 
-`lexer-simulator` returns the lexer reference simulator; `cnvrs/antlr-runtime:lexer-simulator-dfas` exposes its DFAs. ASCII edges (0–127) are cached as in Java; Unicode and EOF edges are recomputed. Predicate-dependent starts/edges are not cached, and predicate results are never cached. Lexer configuration sets retain complete nested return contexts without parser-style context merging or shared context canonicalization.
+`lexer-simulator` returns the lexer reference simulator; `cnvrs/runtime:lexer-simulator-dfas` exposes its DFAs. ASCII edges (0–127) are cached as in Java; Unicode and EOF edges are recomputed. Predicate-dependent starts/edges are not cached, and predicate results are never cached. Lexer configuration sets retain complete nested return contexts without parser-style context merging or shared context canonicalization.
 
-`parser-prediction-simulator` returns a parser's reference simulator for inspection. Its decision DFAs are available through `cnvrs/antlr-runtime:simulator-decision-dfas`. The simulator supports `:ll` (the default), `:sll`, and `:ll-exact-ambig-detection` modes through `simulator-mode`.
+`parser-prediction-simulator` returns a parser's reference simulator for inspection. Its decision DFAs are available through `cnvrs/runtime:simulator-decision-dfas`. The simulator supports `:ll` (the default), `:sll`, and `:ll-exact-ambig-detection` modes through `simulator-mode`.
 
-SLL DFA states and their canonical prediction contexts persist between parses. Full-context reach sets are recomputed, and the merge cache belongs to one prediction. There are no caller-stack keys or full-context DFAs in the persistent cache. `parser-sll-decisions` remains an inspection view of the decision DFAs used by a parser; the old `parser-decisions` and `parser-direct-decisions` views remain empty.
+SLL DFA states and their canonical prediction contexts persist between parses. Full-context reach sets are recomputed, and the merge cache belongs to one prediction. There are no caller-stack keys or full-context DFAs in the persistent cache. `parser-decisions` exposes the decision DFAs used by a parser. The former empty inspection views and caller-context cache fields have been removed.
 
 `clear-cache` clears a parser's DFAs, shared prediction contexts, inspection views, and attached lexer cache, including attachments stored as grammar definitions. Static LL(1) decision maps are retained. `clone-compiled` shares the immutable grammar graph and starts with independent, empty runtime caches. FASLs contain grammar data and native rule functions, never trained prediction caches.
 
-Recompile dependent grammar FASLs and start a fresh Lisp image when migrating from the old predictor.
+Recompile dependent grammar FASLs and start a fresh Lisp image after this runtime replacement. Simulator inspection uses `cnvrs/runtime`; the shared decision cache is exposed through `parser-decisions`.
 
 The old `*eager-lookahead-limit*`, `*eager-lookahead-configuration-limit*`, `compile-cached-dfa`, and `make-full-context-start` APIs are gone. `:full-context-strategy` accepts only `:recompute`; `:cached` and custom hooks signal a grammar error. This makes the new baseline's behavior explicit rather than silently retaining a non-Java path.
 
@@ -441,4 +441,4 @@ XDG_CACHE_HOME=/tmp/cnvrs-asdf-cache sbcl --non-interactive --eval '(require :as
   --eval '(asdf:test-system :cnvrs)'
 ```
 
-The normal suite also replays Java-generated ATNs and prediction traces in pure Lisp; running it does not require Java or the ANTLR tool. The [fixture README](test/fixtures/antlr-runtime/README.md) documents optional regeneration with the pinned Java tool.
+The normal suite also replays Java-generated ATNs and prediction traces in pure Lisp; running it does not require Java or the ANTLR tool. The [fixture README](test/fixtures/runtime/README.md) documents optional regeneration with the pinned Java tool.

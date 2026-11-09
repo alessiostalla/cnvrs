@@ -31,10 +31,10 @@
 (defparameter *mode* (or (uiop:getenv "PROFILE_MODE") "timing"))
 (defun simulator (grammar) (cnvrs:parser-prediction-simulator grammar))
 (defun cache-summary (grammar)
-  (let ((dfas (cnvrs/antlr-runtime:simulator-decision-dfas (simulator grammar))))
+  (let ((dfas (cnvrs/runtime:simulator-decision-dfas (simulator grammar))))
     (format t "~&DFA ROOTS ~D STATES ~D~%"
-            (count-if (lambda (d) (plusp (hash-table-count (cnvrs/antlr-runtime:dfa-states d)))) dfas)
-            (reduce #'+ dfas :key (lambda (d) (hash-table-count (cnvrs/antlr-runtime:dfa-states d)))))))
+            (count-if (lambda (d) (plusp (hash-table-count (cnvrs/runtime:dfa-states d)))) dfas)
+            (reduce #'+ dfas :key (lambda (d) (hash-table-count (cnvrs/runtime:dfa-states d)))))))
 (defun parse-one (grammar)
   (sb-ext:with-timeout *seconds*
     (cnvrs:parse grammar *tokens* :lexer nil :rule *entry*)))
@@ -64,7 +64,7 @@
        (cache-summary grammar) (finish-output))))
   ((equal *mode* "count")
    (let ((reaches 0) (full 0) (max-configs 0) (fallbacks 0))
-     (setf (cnvrs/antlr-runtime::simulator-trace (simulator *java8-parser*))
+     (setf (cnvrs/runtime::simulator-trace (simulator *java8-parser*))
            (lambda (event data)
              (case event
                (:reach (incf reaches)

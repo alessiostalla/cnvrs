@@ -10,7 +10,7 @@ mkdir -p "$results"
 results=$(cd "$results" && pwd)
 scratch=$(mktemp -d /tmp/cnvrs-java8-generated.XXXXXX)
 trap 'rm -rf "$scratch"' EXIT
-cp "$root"/test/fixtures/antlr-runtime/Java8{Lexer,Parser}.g4 "$scratch/"
+cp "$root"/test/fixtures/runtime/Java8{Lexer,Parser}.g4 "$scratch/"
 cp "$root/bench/java8/Java8Benchmark.java" "$scratch/"
 cd "$scratch"
 java -jar "$ANTLR_JAR" -no-listener Java8Lexer.g4 Java8Parser.g4
@@ -22,6 +22,6 @@ done
 cd "$root"
 PROFILE_MODE=timing PROFILE_TRIALS=3 PROFILE_WARM_ITERATIONS=10 \
   "$SBCL_BIN" --dynamic-space-size 2048 --script bench/java8/profile.lisp \
-  test/fixtures/antlr-runtime/Java8Lexer.g4 \
-  test/fixtures/antlr-runtime/Java8Parser.g4 > "$results/cnvrs.txt"
+  test/fixtures/runtime/Java8Lexer.g4 \
+  test/fixtures/runtime/Java8Parser.g4 > "$results/cnvrs.txt"
 printf 'Results: %s\n' "$results"

@@ -148,4 +148,4 @@
   (format t "RETAINED-HEAP ~D FULL-STARTS ~D SLL-STARTS ~D~%"
           (sb-kernel:dynamic-usage)
           (cnvrs:cache-count (cnvrs::parser-decisions *java8-parser*))
-          (cnvrs:cache-count (cnvrs::parser-sll-decisions *java8-parser*))))
+          (cnvrs:cache-count (cnvrs::parser-decisions *java8-parser*))))

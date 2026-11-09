@@ -1,6 +1,6 @@
 # Current parser baseline
 
-The [post-lexer-port IRI and Java 8 comparison](../antlr-java/README.md) measures
+The [post-lexer-port IRI and Java 8 comparison](../java-reference/README.md) measures
 lexing, recognition, tree parsing and the full pipeline against ANTLR Java.
 
 The [Java runtime comparison](java-comparison.md) measures the generated ANTLR
@@ -14,7 +14,7 @@ port. Default input is the repository's 505-token Bench.java. Set `PROFILE_MODE`
 to `timing` (default), `count`, or `sample`; `PROFILE_TRIALS`,
 `PROFILE_WARM_ITERATIONS`, and `PROFILE_SECONDS` control the run. `JAVA8_SOURCE_FILE`
 or `JAVA8_SOURCE` selects another input. Grammar compilation, lexing and ATN
-lowering are outside timed parsing. See [the reference-port map](../../src/antlr-runtime/README.md).
+lowering are outside timed parsing. See [the reference-port map](../../src/runtime/README.md).
 
 The reports below describe the superseded predictor. Their interning and
 expansion hooks require the pre-port runtime (`b68a54f`); they are historical

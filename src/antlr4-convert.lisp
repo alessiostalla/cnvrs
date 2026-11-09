@@ -101,8 +101,8 @@
 
 (defun unicode-property-ranges (name node)
   (let* ((key (string-downcase (substitute #\_ #\- name)))
-         (canonical (or (gethash key cnvrs::*antlr-unicode-aliases*) key))
-         (ranges (gethash canonical cnvrs::*antlr-unicode-properties*)))
+         (canonical (or (gethash key cnvrs::*unicode-aliases*) key))
+         (ranges (gethash canonical cnvrs::*unicode-properties*)))
     (unless ranges (conversion-error node "unknown Unicode property ~S" name))
     ranges))
 (defvar *lexer-case-insensitive* nil)
@@ -479,7 +479,7 @@
     ;; Keep ANTLR's source order so the left-recursion rewrite can assign
     ;; precedence to prefix as well as recursive alternatives.
     (list rule (if recursive
-                   (list 'cnvrs::antlr-precedence (choice-form forms))
+                   (list 'cnvrs::source-order-precedence (choice-form forms))
                    (choice-form forms)))))
 
 (defun identifier-text (node)

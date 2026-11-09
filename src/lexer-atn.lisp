@@ -56,14 +56,14 @@
             (push edge result)))
         (setf (state-edges state) (nreverse result))))))
 
-(defvar *antlr-character-cases*)
+(defvar *character-cases*)
 (defvar *lexer-case-insensitive* nil)
 (defun lexer-case-intervals (ranges)
   (if (not *lexer-case-insensitive*) ranges
       (normalize-character-intervals
        (loop for (from to) in ranges
-             for f = (gethash from *antlr-character-cases* (list from from))
-             for e = (gethash to *antlr-character-cases* (list to to))
+             for f = (gethash from *character-cases* (list from from))
+             for e = (gethash to *character-cases* (list to to))
              for single = (or (and (= (first f) (second f)) (= (first e) (second e)))
                               (not (eql (= from (first f)) (= to (first e))))
                               (/= (- (first e) (first f)) (- (second e) (second f))))
@@ -171,12 +171,12 @@
       (case (state-kind s) (:rule-start (setf (aref starts (state-rule-index s)) id))
                            (:rule-stop (setf (aref stops (state-rule-index s)) id)))
       (setf (aref typed id)
-            (cnvrs/antlr-runtime::make-atn-state
+            (cnvrs/runtime::make-atn-state
              :number id :kind (state-kind s) :rule (state-rule-index s)
              :non-greedy-p (state-non-greedy-p s) :end-state (state-end-state s) :loop-back (state-loop-back s)
              :transitions
              (loop for e in (state-edges s) for k = (transition-kind e)
-                   collect (cnvrs/antlr-runtime::make-atn-transition
+                   collect (cnvrs/runtime::make-atn-transition
                             :kind (case k (:token :atom) (:token-set :set) (:not-token :not-set) (:call :rule) (t k))
                             :target (if (eq k :call) (gethash (transition-value e) (compiled-lexer-rule-starts lexer))
                                         (transition-target e))
@@ -184,18 +184,18 @@
                             :label (unless (eq k :call) (transition-value e)))))))
     ;; ATNDeserializer adds these links for lexer and parser ATNs alike.
     (loop for s across typed do
-      (dolist (e (cnvrs/antlr-runtime::atn-state-transitions s))
-        (when (eq (cnvrs/antlr-runtime::atn-transition-kind e) :rule)
-          (let* ((rule (cnvrs/antlr-runtime::atn-state-rule
-                        (aref typed (cnvrs/antlr-runtime::atn-transition-target e))))
+      (dolist (e (cnvrs/runtime::atn-state-transitions s))
+        (when (eq (cnvrs/runtime::atn-transition-kind e) :rule)
+          (let* ((rule (cnvrs/runtime::atn-state-rule
+                        (aref typed (cnvrs/runtime::atn-transition-target e))))
                  (stop (aref typed (aref stops rule)))
-                 (follow (cnvrs/antlr-runtime::atn-transition-follow e)))
-            (unless (find follow (cnvrs/antlr-runtime::atn-state-transitions stop)
-                          :key #'cnvrs/antlr-runtime::atn-transition-target)
-              (setf (cnvrs/antlr-runtime::atn-state-transitions stop)
-                    (append (cnvrs/antlr-runtime::atn-state-transitions stop)
-                            (list (cnvrs/antlr-runtime::make-atn-transition :target follow)))))))))
-    (cnvrs/antlr-runtime::make-atn
+                 (follow (cnvrs/runtime::atn-transition-follow e)))
+            (unless (find follow (cnvrs/runtime::atn-state-transitions stop)
+                          :key #'cnvrs/runtime::atn-transition-target)
+              (setf (cnvrs/runtime::atn-state-transitions stop)
+                    (append (cnvrs/runtime::atn-state-transitions stop)
+                            (list (cnvrs/runtime::make-atn-transition :target follow)))))))))
+    (cnvrs/runtime::make-atn
      :states typed :rule-starts starts :rule-stops stops
      :decisions (map 'vector #'cdr (sort decisions #'< :key #'car))
      :mode-starts (map 'vector (lambda (mode) (gethash mode (compiled-lexer-mode-starts lexer)))

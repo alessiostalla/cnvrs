@@ -1,0 +1,18 @@
+{
+  "revision": "a640f58601214830213e7008560933c98a63b4d8",
+  "candidate": "uncommitted compact-context/hash-bucket working tree",
+  "sbcl": "2.4.0 ARM64",
+  "machine": "Apple M1 Max",
+  "policy": {
+    "speed": 3,
+    "safety": 1,
+    "debug": 0,
+    "space": 0,
+    "compilation-speed": 1
+  },
+  "source_sha256": {
+    "src/runtime/atn-config.lisp": "4f7731970598f21633af2a805b8196fe3729b7a3d96c3311d8d5d3f4c7768106",
+    "src/runtime/parser-atn-simulator.lisp": "742d877eb41f2e6d561063b8ca4e8f43074bfb55ed31edca024d1dc1b1c9ab04",
+    "src/runtime/prediction-context.lisp": "531f0198adae6f35e453aab7bdfa2d7de167fb6f0025968c10239d7e968cdbb7"
+  }
+}

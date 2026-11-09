@@ -25,13 +25,6 @@
           do (setf (aref key index) value))
     key))
 
-(defun parser-context-key (head stack)
-  "Use a small pair for shallow stacks and a flat array for deeper ones."
-  (declare (type fixnum head) (type list stack))
-  (if (null (cdr stack))
-      (cons head (first stack))
-      (flat-cache-key head stack)))
-
 (defun flat-cache-key-p (key)
   (typep key '(simple-array fixnum (*))))
 

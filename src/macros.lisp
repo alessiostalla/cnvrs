@@ -413,16 +413,11 @@ end position, and rule index."
       (parser
        (when (parser-atn-runtime compiled)
          (let ((sim (first (parser-atn-runtime compiled))))
-           (cnvrs/antlr-runtime:clear-dfa sim)
+           (cnvrs/runtime:clear-dfa sim)
            (bordeaux-threads:with-lock-held
-               ((cnvrs/antlr-runtime::simulator-context-cache-lock sim))
-             (clrhash (cnvrs/antlr-runtime:simulator-context-cache sim)))))
-       (cache-clear (parser-sll-decisions compiled))
+               ((cnvrs/runtime::simulator-context-cache-lock sim))
+             (clrhash (cnvrs/runtime:simulator-context-cache sim)))))
        (cache-clear (parser-decisions compiled))
-       (cache-clear (parser-direct-decisions compiled))
-       (cache-clear (parser-contexts compiled))
-       (setf (parser-compiled-sll compiled) nil
-             (parser-compiled-full compiled) nil)
        (when (typep (parser-lexer compiled) '(or compiled-lexer parser-definition))
          (clear-cache (parser-lexer compiled))))
       (compiled-lexer (clear-lexer-cache compiled)))
@@ -439,19 +434,12 @@ The transition graph and lexer automaton are immutable and shared."
               (backend (or cache-backend (parser-cache-backend compiled)))
               (strategy (if strategy-supplied-p full-context-strategy
                             (parser-full-context-strategy compiled))))
+         (resolve-full-context-strategy strategy)
          (setf (parser-atn-runtime-lock copy) (bordeaux-threads:make-lock "ANTLR frontend runtime")
                (parser-atn-runtime copy) nil
                (parser-cache-backend copy) backend
                (parser-full-context-strategy copy) strategy
-               (parser-full-context-start copy)
-               (resolve-full-context-strategy strategy)
-               (parser-sll-decisions copy) (make-cache backend)
                (parser-decisions copy) (make-cache backend)
-               (parser-direct-decisions copy) (make-cache backend)
-               (parser-contexts copy) (make-cache backend)
-               (parser-context-count copy) 0
-               (parser-compiled-sll copy) nil
-               (parser-compiled-full copy) nil
                (parser-lexer copy)
                (if (compiled-lexer-p (parser-lexer compiled))
                    (clone-compiled (parser-lexer compiled)

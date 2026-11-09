@@ -3,7 +3,7 @@
   (:shadow #:parse-error)
   (:export #:seq #:? #:*? #:+? #:?? #:range #:unicode-property #:one-of #:not-one-of #:any #:eof
            #:label #:alt-label #:token #:not-token #:predicate #:action #:right
-           #:antlr-precedence
+           #:source-order-precedence
            #:and #:or #:* #:+
            #:compile-grammar #:compile-lexer #:parse #:lex
            #:make-lexer-state #:lexer-next-token #:*lexer-state*
@@ -27,7 +27,7 @@
            #:parser-metadata #:parser-prediction-simulator #:parser-definition-metadata
            #:parser-definition-parser-package #:parser-definition-lexer-package
            #:parser-tree-builder #:parser-runner #:parser-node-runner
-           #:parser-decisions #:parser-sll-decisions #:parser-direct-decisions
+           #:parser-decisions
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
            #:state-direct-lookahead
            #:transition-kind #:transition-target #:transition-value

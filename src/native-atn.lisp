@@ -1,6 +1,6 @@
 ;;; Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
 ;;; ParserATNFactory, TailEpsilonRemover and parser state compaction,
-;;; following ANTLR Java 4.13.2. See antlr-runtime/LICENSE-ANTLR.txt.
+;;; following ANTLR Java 4.13.2. See runtime/LICENSE.txt.
 (in-package #:cnvrs)
 
 (defun java-left-recursion (definitions)
@@ -8,15 +8,15 @@
   (let ((left-rules nil))
     (values
      (loop for (rule source) in definitions collect
-       (let* ((antlr (and (consp source) (eq (first source) 'antlr-precedence)))
-              (body (if antlr (second source) source))
+       (let* ((source-order-p (and (consp source) (eq (first source) 'source-order-precedence)))
+              (body (if source-order-p (second source) source))
               (alts (if (eq (expression-kind body) :choice) (rest body) (list body)))
               (recursive (remove-if-not (lambda (a) (direct-left-alternative rule a)) alts)))
          (if (null recursive) (list rule body)
              (let ((bases nil) (binary nil) (suffixes nil)
                    ;; Native forms historically list operators low to high;
                    ;; the equivalent Java rule lists them high to low.
-                   (ordered (if antlr alts
+                   (ordered (if source-order-p alts
                                 (let ((ops (reverse recursive)))
                                   (mapcar (lambda (a)
                                             (if (member a recursive :test #'eq)
@@ -49,7 +49,7 @@
                                           (cons 'and (cons (list 'atn-precedence precedence)
                                                            (rest tail))))))
                            (if has-right (push op binary) (push op suffixes)))
-                         (push (if (antlr-prefix-alternative rule alt)
+                         (push (if (prefix-alternative-p rule alt)
                                    (retarget-last alt precedence) alt) bases)))))
                (unless bases (grammar-fail "Left-recursive rule ~S needs a base alternative" rule))
                (setf bases (nreverse bases))

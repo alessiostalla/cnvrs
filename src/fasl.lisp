@@ -79,7 +79,6 @@
         :rewrites (frozen-table (parser-rewrites parser))
         :default-rule (parser-default-rule parser)
         :has-negated-tokens (not (null (parser-has-negated-tokens parser)))
-        :context-shift (parser-context-shift parser)
         :semantic-rules
         (when (parser-semantic-rules parser)
           (loop for name being the hash-keys of (parser-semantic-rules parser)
@@ -88,6 +87,7 @@
 
 (defun thawed-parser (data lexer tree-builder full-context-strategy
                      cache-backend metadata runner node-runner)
+  (resolve-full-context-strategy full-context-strategy)
   (let ((parser
           (make-parser
            :states (thawed-states (getf data :states) t)
@@ -96,16 +96,10 @@
            :rewrites (thawed-table (getf data :rewrites))
            :default-rule (getf data :default-rule)
            :has-negated-tokens (getf data :has-negated-tokens)
-           :context-shift (getf data :context-shift)
            :lexer lexer :tree-builder tree-builder
            :full-context-strategy full-context-strategy
-           :full-context-start (resolve-full-context-strategy
-                                full-context-strategy)
            :cache-backend cache-backend :metadata metadata
            :decisions (make-cache cache-backend)
-           :sll-decisions (make-cache cache-backend)
-           :direct-decisions (make-cache cache-backend)
-           :contexts (make-cache cache-backend)
            :runner runner :node-runner node-runner)))
     (initialize-token-index parser)
     (when (getf data :semantic-rules)

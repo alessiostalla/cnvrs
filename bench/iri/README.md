@@ -1,7 +1,7 @@
 # IRI parser prediction benchmark
 
 The current Java-reference parser/lexer comparison is in
-[bench/antlr-java](../antlr-java/README.md). The experiments below describe the
+[bench/java-reference](../java-reference/README.md). The experiments below describe the
 superseded predictor and require its historical implementation; their cache
 strategies and compiled-DFA hooks are not supported by the current runtime.
 

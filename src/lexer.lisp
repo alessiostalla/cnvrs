@@ -90,8 +90,8 @@
                       (member (third form) '(nil t)))
            (grammar-fail "UNICODE-PROPERTY requires a property name and optional inversion boolean"))
          (let* ((key (string-downcase (substitute #\_ #\- (second form))))
-                (canonical (or (gethash key *antlr-unicode-aliases*) key))
-                (ranges (gethash canonical *antlr-unicode-properties*)))
+                (canonical (or (gethash key *unicode-aliases*) key))
+                (ranges (gethash canonical *unicode-properties*)))
            (unless ranges (grammar-fail "Unknown Unicode property ~S" (second form)))
            (make-instance 'lx-set-expr :source form :ranges ranges :scalars nil :inverted (third form))))
         (:eof

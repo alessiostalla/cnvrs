@@ -396,42 +396,6 @@
                 (eq (type-of parser) 'cnvrs::parser)
                 (plusp (length (cnvrs:parser-states parser))))
            "compiled grammar is a parser structure"))
-  (let* ((parser (cnvrs:compile-grammar '((start :word))))
-         (lexer (cnvrs:compile-lexer '((:word "word"))))
-         (parser-state (aref (cnvrs:parser-states parser) 0))
-         (lexer-state (aref (cnvrs:compiled-lexer-states lexer) 0))
-         (parser-edge (first (cnvrs:state-edges parser-state)))
-         (lexer-edge (first (cnvrs:lx-state-edges lexer-state))))
-    (check (and (cnvrs::graph-state-p parser-state)
-                (cnvrs::graph-state-p lexer-state)
-                (cnvrs::transition-p parser-edge)
-                (cnvrs::transition-p lexer-edge)
-                (eq (cnvrs:lx-edge-kind lexer-edge)
-                    (cnvrs:transition-kind lexer-edge)))
-           "parser and lexer use common graph primitives"))
-  (let* ((parser (cnvrs:compile-grammar '((start :word))))
-         (state (position-if (lambda (state)
-                               (find :token (cnvrs:state-edges state)
-                                     :key #'cnvrs::transition-kind))
-                             (cnvrs:parser-states parser)))
-         (stack (append (make-list 80 :initial-element 1) (list 2)))
-         (other-stack (append (make-list 80 :initial-element 1) (list 3)))
-         (seeds (loop for (return-stack alternative)
-                        in (list (list stack 0) (list (copy-list stack) 0)
-                                 (list other-stack 0) (list stack 1)
-                                 (list nil 0))
-                      collect (cnvrs::make-configuration
-                               :state state :stack return-stack
-                               :alternative alternative)))
-         (closed (cnvrs::closure parser seeds)))
-    (check (= (length closed) 4)
-           "closure deduplicates equal stacks but preserves deep tails and alternatives")
-    (check (every (lambda (configuration) (member configuration seeds :test #'eq))
-                  closed)
-           "closure keeps original configurations and stack lists")
-    (check (equal (mapcar #'cnvrs::configuration-key closed)
-                  (mapcar #'cnvrs::configuration-key (cnvrs::closure parser seeds)))
-           "independent closures preserve exact configuration identity"))
   (let* ((parser (cnvrs:compile-grammar
                   '((expr (or (and expr :bang) :n)))))
          (sink (make-event-sink)))
@@ -517,11 +481,6 @@
            "separately compiled rules propagate a nested failure")
     (check (funcall (cnvrs:parser-runner grammar) grammar tokens 'start t)
            "failed runner calls leave subsequent parse cursors independent"))
-  (let ((grammar (cnvrs:compile-grammar
-                  '((start (and item :b)) (item :a)))))
-    (cnvrs:parse grammar '(:a :b) :tree-builder :none)
-    (check (zerop (cnvrs:cache-count (cnvrs::parser-contexts grammar)))
-           "deterministic compiled rule calls do not intern contexts"))
   ;; Reference-runtime integration. Context-specific eager tables and full-LL
   ;; DFA snapshots are deliberately absent from the Java baseline.
   (dolist (case '((((start (and outer :a)) (outer inner) (inner (? :a)))
@@ -542,8 +501,8 @@
       (check (null (cnvrs::parser-atn-runtime (cnvrs:clone-compiled grammar)))
              "parser clones start with no shared mutable Java runtime")
       (cnvrs:clear-cache grammar)
-      (check (every (lambda (dfa) (zerop (hash-table-count (cnvrs/antlr-runtime:dfa-states dfa))))
-                    (cnvrs/antlr-runtime:simulator-decision-dfas
+      (check (every (lambda (dfa) (zerop (hash-table-count (cnvrs/runtime:dfa-states dfa))))
+                    (cnvrs/runtime:simulator-decision-dfas
                      (first (cnvrs::parser-atn-runtime grammar))))
              "clear-cache discards the Java decision DFAs")))
   (let* ((grammar (cnvrs:compile-grammar
@@ -643,28 +602,28 @@
       (check (and (plusp (cnvrs:cache-count
                           (cnvrs:compiled-lexer-cache lexer)))
                   (plusp (cnvrs:cache-count
-                          (cnvrs:parser-sll-decisions grammar))))
+                          (cnvrs:parser-decisions grammar))))
              "lexer and parser both populate their caches")
       (let ((start (cnvrs:cache-get-or-compute
                     (cnvrs:compiled-lexer-cache lexer) :default
                     (lambda () :missing))))
-        (check (cnvrs/antlr-runtime::lexer-dfa-state-p start)
+        (check (cnvrs/runtime::lexer-dfa-state-p start)
                "lexer caches its initial DFA state by mode")
-        (check (cnvrs/antlr-runtime::lexer-dfa-state-p
-                (aref (cnvrs/antlr-runtime::lexer-dfa-state-edges start)
+        (check (cnvrs/runtime::lexer-dfa-state-p
+                (aref (cnvrs/runtime::lexer-dfa-state-edges start)
                       (char-code #\a)))
                "ASCII lexer transitions use direct DFA edges"))
       (let ((copy (cnvrs:clone-compiled grammar)))
         (check (and (equal (cnvrs:parser-cache-backend copy) backend)
                     (zerop (cnvrs:cache-count
-                            (cnvrs:parser-sll-decisions copy)))
+                            (cnvrs:parser-decisions copy)))
                     (zerop (cnvrs:cache-count
                             (cnvrs:compiled-lexer-cache
                              (cnvrs:parser-lexer copy)))))
                "clone starts with independent parser and lexer caches"))
       (cnvrs:clear-cache grammar)
       (check (and (zerop (cnvrs:cache-count
-                          (cnvrs:parser-sll-decisions grammar)))
+                          (cnvrs:parser-decisions grammar)))
                   (zerop (cnvrs:cache-count
                           (cnvrs:compiled-lexer-cache lexer))))
              "one call clears parser and attached lexer caches")
@@ -691,7 +650,7 @@
     (check (and (eq (cnvrs:node-rule
                      (cnvrs:parse grammar '(:a))) 'start)
                 (plusp (cnvrs:cache-count
-                        (cnvrs:parser-sll-decisions grammar))))
+                        (cnvrs:parser-decisions grammar))))
            "custom cache factory participates in prediction"))
   (check (typep (cnvrs:make-cache '(:locked :test-cache))
                 'cnvrs::locked-cache)
@@ -739,13 +698,13 @@
                   (eq (cnvrs:parser-states grammar)
                       (cnvrs:parser-states copy))
                   (zerop (cnvrs:cache-count
-                          (cnvrs::parser-sll-decisions copy)))
+                          (cnvrs::parser-decisions copy)))
                   (plusp (cnvrs:cache-count
-                          (cnvrs::parser-sll-decisions grammar))))
+                          (cnvrs::parser-decisions grammar))))
              "parser clone shares its graph but starts with an empty cache")
       (cnvrs:clear-cache grammar)
       (check (zerop (cnvrs:cache-count
-                    (cnvrs::parser-sll-decisions grammar)))
+                    (cnvrs::parser-decisions grammar)))
              "parser prediction cache can be cleared")))
   (check (cnvrs:parser-definition-p *inline-parser*)
          "single-form parser definition")
@@ -943,8 +902,8 @@
     (check (equal (cnvrs:node-children
                    (first (cnvrs:node-children tree))) '(#\a #\b))
            "caller context chooses longer alternative")
-    (check (zerop (cnvrs:cache-count (cnvrs:parser-decisions grammar)))
-           "full-context prediction does not cache caller-specific DFAs")
+    (check (plusp (cnvrs:cache-count (cnvrs:parser-decisions grammar)))
+           "adaptive prediction exposes its shared decision DFA")
     (check (equal (cnvrs:node-children
                    (first (cnvrs:node-children
                            (cnvrs:parse grammar "ab")))) '(#\a))
@@ -1768,7 +1727,7 @@ options {")))
              "prequel metadata survives lexer compilation"))
     (let ((grammar (antlr-parse
                     "lexer grammar Lazy; STAR : '<' .*? '>'; PLUS : '[' .+? ']'; OPTIONAL : 'a' 'x'?? 'x'; OTHER : .;")))
-      (check (typep (cnvrs:lexer-simulator grammar) 'cnvrs/antlr-runtime:lexer-atn-simulator)
+      (check (typep (cnvrs:lexer-simulator grammar) 'cnvrs/runtime:lexer-atn-simulator)
              "nongreedy lexer rules use the Java lexer ATN simulator")
       (check (equal (map 'list #'cnvrs:lexeme-text
                          (cnvrs:lex grammar "<1>2>"))

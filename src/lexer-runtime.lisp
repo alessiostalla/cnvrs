@@ -50,7 +50,7 @@
          (source (lexer-state-source state)))
     (unless mode (grammar-fail "Unknown lexer mode ~S" (lexer-state-mode state)))
     (multiple-value-bind (kind end line column)
-        (cnvrs/antlr-runtime::lexer-match
+        (cnvrs/runtime::lexer-match
          sim source (lexer-state-position state) mode
          :line (lexer-state-line state) :column (lexer-state-column state)
          :predicate
@@ -66,8 +66,8 @@
         (setf (lexer-state-position state) end (lexer-state-line state) line (lexer-state-column state) column)
         ;; The Java executor runs after rewinding to the accepted position.
         ;; Extract it through the simulator's ACTION callback below in match-one.
-        (let ((start (cnvrs/antlr-runtime::lexer-dfa-start
-                      (aref (cnvrs/antlr-runtime::lexer-simulator-dfas sim) mode))))
+        (let ((start (cnvrs/runtime::lexer-dfa-start
+                      (aref (cnvrs/runtime::lexer-simulator-dfas sim) mode))))
           (when start (cache-get-or-compute (compiled-lexer-cache lexer) (lexer-state-mode state) (lambda () start))))
         (values kind end))))
 
@@ -75,7 +75,7 @@
   (let ((executor nil) (match-start (lexer-state-position state)))
     ;; Bind the acceptance callback independently from predicate evaluation so
     ;; effects occur only after the simulator has chosen the winning rule.
-    (let ((cnvrs/antlr-runtime::*lexer-accept-executor* (lambda (actions start end)
+    (let ((cnvrs/runtime::*lexer-accept-executor* (lambda (actions start end)
                                                         (declare (ignore start end)) (setf executor actions))))
       (multiple-value-bind (kind end) (lexer-match-state state)
         (lexer-execute-actions state executor match-start end)
@@ -99,8 +99,8 @@ RECOVER selects Java's default consume-and-continue recovery; the default signal
           (let ((kind
                   (handler-case
                       (nth-value 0 (lexer-match-with-actions state))
-                    (cnvrs/antlr-runtime::lexer-no-viable-alt (failure)
-                      (let* ((at (cnvrs/antlr-runtime::lexer-error-position failure))
+                    (cnvrs/runtime::lexer-no-viable-alt (failure)
+                      (let* ((at (cnvrs/runtime::lexer-error-position failure))
                              (condition (make-condition 'lexical-error
                                          :position (lexer-state-start state)
                                          :failed-position at
@@ -111,8 +111,8 @@ RECOVER selects Java's default consume-and-continue recovery; the default signal
                             (if recover (signal condition) (error condition))
                           (skip-character () :report "Discard the failed token prefix and one character, then continue lexing."))
                         (setf (lexer-state-position state) at
-                              (lexer-state-line state) (cnvrs/antlr-runtime::lexer-error-line failure)
-                              (lexer-state-column state) (cnvrs/antlr-runtime::lexer-error-column failure))
+                              (lexer-state-line state) (cnvrs/runtime::lexer-error-line failure)
+                              (lexer-state-column state) (cnvrs/runtime::lexer-error-column failure))
                         (when (< at (length source))
                           (if (char= (char source at) #\Newline)
                               (setf (lexer-state-line state) (1+ (lexer-state-line state)) (lexer-state-column state) 0)
@@ -134,14 +134,14 @@ RECOVER selects Java's default consume-and-continue recovery; the default signal
                                    :end (lexer-state-position state) :channel (lexer-state-channel state)
                                    :line (lexer-state-start-line state) :column (lexer-state-start-column state))))))))))))
 (defun initialize-compiled-lexer (lexer)
-  (setf (compiled-lexer-runtime lexer) (cnvrs/antlr-runtime::new-lexer-atn-simulator (lexer-runtime-atn lexer)))
+  (setf (compiled-lexer-runtime lexer) (cnvrs/runtime::new-lexer-atn-simulator (lexer-runtime-atn lexer)))
   (setf (compiled-lexer-matcher lexer)
         (lambda (source position mode)
           (let ((state (%make-lexer-state :lexer lexer :source source :position position :mode mode)))
             (handler-case
                 (multiple-value-bind (kind end) (lexer-match-with-actions state)
                   (values kind end (position kind (compiled-lexer-kinds lexer))))
-              (cnvrs/antlr-runtime::lexer-no-viable-alt () (values nil nil nil))))))
+              (cnvrs/runtime::lexer-no-viable-alt () (values nil nil nil))))))
   (setf (compiled-lexer-function lexer)
         (lambda (source &key recover)
           (let ((state (make-lexer-state lexer source)) (tokens nil))
@@ -151,4 +151,4 @@ RECOVER selects Java's default consume-and-continue recovery; the default signal
   (values lexer (compiled-lexer-matcher lexer)))
 (defun clear-lexer-cache (lexer)
   (cache-clear (compiled-lexer-cache lexer))
-  (cnvrs/antlr-runtime::lexer-clear-dfa (compiled-lexer-runtime lexer)))
+  (cnvrs/runtime::lexer-clear-dfa (compiled-lexer-runtime lexer)))

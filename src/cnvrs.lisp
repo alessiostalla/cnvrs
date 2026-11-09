@@ -28,23 +28,15 @@
   direct-lookahead
   (kind :basic) rule-index end-state loop-back decision non-greedy-p precedence-rule-p
   precedence-decision-p (call-precedence 0) events)
-(defvar *antlr-input-cache* nil)
-(defvar *antlr-precedence* 0)
-(defstruct (rule-context
-            (:constructor make-rule-context (return-state parent)))
-  (return-state 0 :type fixnum)
-  parent
-  canonical-id)
-(defstruct configuration (state 0 :type fixnum) (stack nil :type list)
-  (alternative 0 :type fixnum))
+(defvar *prediction-input-cache* nil)
+(defvar *prediction-precedence* 0)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
   has-negated-tokens metadata semantic-rules
   (cache-backend :hash-table)
-  (full-context-strategy :recompute) full-context-start
-  decisions sll-decisions direct-decisions contexts
-  (context-count 0) context-shift token-keys token-index runner node-runner
-  compiled-sll compiled-full atn-runtime
+  (full-context-strategy :recompute)
+  decisions token-keys token-index runner node-runner
+  atn-runtime
   (atn-runtime-lock (bordeaux-threads:make-lock "ANTLR frontend runtime")))
 (defstruct parser-definition name kind default-rule lexer cache-backend metadata
   parser-package lexer-package
@@ -58,7 +50,7 @@
   (logical-position 0 :type fixnum))
 (declaim (ftype function ensure-parser-compiled))
 (declaim (ftype function resolve-full-context-strategy))
-(declaim (ftype function antlr-adaptive-predict))
+(declaim (ftype function runtime-adaptive-predict ensure-parser-runtime))
 (declaim (ftype function compile-parser-runner))
 (declaim (ftype function initialize-token-index initialize-direct-lookahead java-left-recursion build-java-atn apply-atn-events))
 
@@ -72,7 +64,7 @@
 (defun grammar-operator-p (symbol)
   (member symbol '(and or * + seq ? *? +? ?? range unicode-property one-of not-one-of any
                    label alt-label token not-token eof predicate action right
-                   antlr-precedence defparser defrule with-mode use)))
+                   source-order-precedence defparser defrule with-mode use)))
 
 (defun check-lexer-kind-overlap (rule-names lexer)
   (when (compiled-lexer-p lexer)
@@ -339,7 +331,7 @@ NULLABLE maps rule names to whether they can match empty input."))
                           alternative))
           (values nil nil nil nil)))))
 
-(defun antlr-prefix-alternative (rule alternative)
+(defun prefix-alternative-p (rule alternative)
   (let* ((body (if (eq (expression-kind alternative) :alt-label)
                    (third alternative) alternative))
          (parts (and (eq (expression-kind body) :sequence) (rest body)))
@@ -382,6 +374,7 @@ TREE-BUILDER selects the parse-node construction strategy. The result also
 contains compiled rule runners for :NONE and the default :NODE builder.
 FULL-CONTEXT-STRATEGY must be :RECOMPUTE, matching the Java predictor.
 Caller-specific caches and custom full-context start hooks are unsupported."
+  (resolve-full-context-strategy full-context-strategy)
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let* ((names (make-hash-table :test 'eq))
@@ -437,13 +430,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                                    :rewrites rewrites
                                    :cache-backend cache-backend
                                    :full-context-strategy full-context-strategy
-                                   :full-context-start
-                                   (resolve-full-context-strategy
-                                    full-context-strategy)
-                                   :decisions (make-cache cache-backend)
-                                   :sll-decisions (make-cache cache-backend)
-                                   :direct-decisions (make-cache cache-backend)
-                                   :contexts (make-cache cache-backend))))
+                                   :decisions (make-cache cache-backend))))
         (build-java-atn grammar definitions left-rules)
         (when (some (lambda (definition)
                       (semantic-expression-p (second definition))) definitions)
@@ -455,8 +442,6 @@ Caller-specific caches and custom full-context start hooks are unsupported."
               (loop for state across (parser-states grammar)
                     thereis (find :not-token (state-edges state)
                                   :key #'transition-kind)))
-        (setf (parser-context-shift grammar)
-              (integer-length (1- (length (parser-states grammar)))))
         (initialize-token-index grammar)
         ;; Java performs SLL(1) decision analysis before choosing generated
         ;; switches/loop tests versus adaptive prediction.
@@ -465,69 +450,6 @@ Caller-specific caches and custom full-context start hooks are unsupported."
           (setf (parser-runner grammar) (compile-parser-runner grammar nil)
                 (parser-node-runner grammar) (compile-parser-runner grammar t)))
         grammar))))
-
-(defun configuration-key (configuration)
-  (declare (type configuration configuration))
-  (list (configuration-state configuration)
-        (configuration-stack configuration)
-        (configuration-alternative configuration)))
-
-(defun make-closure-key-function ()
-  "Return a key function whose exact stack IDs live for one closure only."
-  (let ((by-stack (make-hash-table :test 'eq))
-        (by-pair (make-hash-table :test 'equal))
-        (next-id 0))
-    ;; Lists remain in configurations and persistent DFA states. Only the
-    ;; temporary seen-table keys use IDs. Canonicalize shallow pairs so deep
-    ;; stacks do not require deep EQUAL comparisons in that table.
-    (labels ((stack-id (stack)
-               (if (null stack) 0
-                   (or (gethash stack by-stack)
-                       (setf (gethash stack by-stack)
-                             (let ((pair (cons (car stack) (stack-id (cdr stack)))))
-                               (or (gethash pair by-pair)
-                                   (setf (gethash pair by-pair) (incf next-id))))))))
-             (key (configuration)
-               (declare (type configuration configuration))
-               (list (configuration-state configuration)
-                     (stack-id (configuration-stack configuration))
-                     (configuration-alternative configuration))))
-      #'key)))
-
-(defun closure (grammar initial)
-  (declare (type parser grammar) (type list initial))
-  (nreverse
-   (graph-closure
-    initial (make-closure-key-function)
-    (lambda (configuration pending result)
-      (let* ((state (aref (parser-states grammar)
-                          (configuration-state configuration)))
-             (stack (configuration-stack configuration))
-             (alternative (configuration-alternative configuration)))
-        (if (state-stop-rule state)
-            (if stack
-                (push (make-configuration :state (first stack)
-                                          :stack (rest stack)
-                                          :alternative alternative)
-                      pending)
-                (push configuration result))
-            (let ((has-token nil))
-              (dolist (edge (state-edges state))
-                (case (transition-kind edge)
-                  ((:epsilon :predicate :action :precedence)
-                   (push (make-configuration :state (transition-target edge)
-                                             :stack stack :alternative alternative)
-                         pending))
-                  (:call
-                   (push (make-configuration
-                          :state (gethash (transition-value edge)
-                                          (parser-starts grammar))
-                          :stack (cons (transition-target edge) stack)
-                          :alternative alternative)
-                         pending))
-                  ((:token :token-set :wildcard :not-token) (setf has-token t))))
-              (when has-token (push configuration result))))
-        (values pending result))))))
 
 (defun resolve-full-context-strategy (strategy)
   ;; Kept at the grammar-option boundary for explicit migration errors.
@@ -651,7 +573,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
   (let* ((state (aref (parser-states grammar) state-id))
          (direct (state-direct-lookahead state)))
     (if direct (direct-choice-index grammar direct tokens position)
-        (or (antlr-adaptive-predict grammar state-id stack tokens position)
+        (or (runtime-adaptive-predict grammar state-id stack tokens position)
             ;; Native PARSE permits any rule as an entry point with implicit EOF.
             ;; A recursive-only rule has no EOF follow in Java's serialized ATN;
             ;; finish its precedence loop at that entry boundary.
@@ -679,15 +601,6 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                                collect `((member key ',tokens :test #'equal) ,alternative))
                        (t ,other)))))))
 
-(defun configuration-after-edge (grammar edge stack alternative)
-  (case (transition-kind edge)
-    (:call (make-configuration :state (gethash (transition-value edge)
-                                               (parser-starts grammar))
-                               :stack (cons (transition-target edge) stack)
-                               :alternative alternative))
-    (otherwise (make-configuration :state (transition-target edge)
-                                   :stack stack :alternative alternative))))
-
 (defun initialize-token-index (grammar)
   (let ((keys nil))
     (loop for state across (parser-states grammar) do
@@ -710,10 +623,6 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                           (cond
                             ,@(loop for token in keys for index from 0
                                     collect `((equal key ',token) ,index)))))))))
-
-(defun compiled-choice-index (grammar state-id stack context input position)
-  (declare (ignore context))
-  (predict grammar state-id stack input position))
 
 (defun compiled-rule-states (grammar start)
   (let ((seen (make-hash-table :test 'eql))
@@ -741,19 +650,18 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                      rules))
              (parser-starts grammar))
     (labels ((rule-call (edge)
-               `(let ((*antlr-precedence* (state-call-precedence
+               `(let ((*prediction-precedence* (state-call-precedence
                                           (aref (parser-states grammar) state-id))))
                   (funcall (the function
                                 (svref runners ,(gethash (transition-value edge) rule-indices)))
                            grammar run runners
-                           (cons ,(transition-target edge) stack)
-                           (make-rule-context ,(transition-target edge) context))))
+                           (cons ,(transition-target edge) stack))))
              (edge-form (edge function-name)
                (let ((target (transition-target edge)))
                  (case (transition-kind edge)
                    (:epsilon `(setf state-id ,target))
                    (:action `(setf state-id ,target))
-                   (:precedence `(if (>= ,(transition-value edge) *antlr-precedence*)
+                   (:precedence `(if (>= ,(transition-value edge) *prediction-precedence*)
                                      (setf state-id ,target)
                                      (return-from ,function-name nil)))
                    (:wildcard
@@ -813,7 +721,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
              (choice-form (id state)
                (if (state-direct-lookahead state)
                    (direct-choice-form grammar (state-direct-lookahead state))
-                   `(compiled-choice-index grammar ,id stack context input position)))
+                   `(predict grammar ,id stack input position)))
              (state-form (id function-name)
                (let* ((state (aref (parser-states grammar) id))
                       (edges (state-edges state)))
@@ -834,13 +742,13 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                               (otherwise (return-from ,function-name nil)))))))))
       (loop for (name first-state function-name) in rules do
         (setf (svref forms (gethash name rule-indices))
-              `(lambda (grammar run runners stack context)
+              `(lambda (grammar run runners stack)
                   #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
                                              (space 0) (compilation-speed 0)))
                   (declare (type parser grammar)
                            (type parser-run-state run)
                            (type simple-vector runners)
-                           (ignorable grammar run runners stack context))
+                           (ignorable grammar run runners stack))
                   (symbol-macrolet ((input (parser-run-state-input run))
                                     (tokens (parser-run-state-tokens run))
                                     (position (parser-run-state-position run))
@@ -878,7 +786,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                                          :position (input-start-position input)))
              (result (funcall (the function
                                   (svref runners (gethash start rule-indices)))
-                              grammar run runners nil nil)))
+                              grammar run runners nil)))
         (and result
              (or (not require-eof)
                  (= (parser-run-state-position run) (length tokens)))
@@ -894,16 +802,15 @@ Caller-specific caches and custom full-context start hooks are unsupported."
     (make-parser-runner (map 'vector (lambda (form) (compile nil form)) forms)
                        names)))
 
-(defun possible-tokens (grammar configurations)
-  (remove-duplicates
-   (loop for configuration in (closure grammar configurations)
-         for state = (aref (parser-states grammar)
-                           (configuration-state configuration))
-         append (loop for edge in (state-edges state)
-                      append (case (transition-kind edge)
-                               (:token (list (transition-value edge)))
-                               (:token-set (copy-list (transition-value edge))))))
-   :test #'equal))
+(defun possible-tokens (grammar state stack)
+  "Use the shared ATN analyzer for recovery's expected-token set."
+  (destructuring-bind (sim types decisions) (ensure-parser-runtime grammar)
+    (declare (ignore decisions))
+    (let ((look (cnvrs/runtime:state-lookahead
+                 (cnvrs/runtime:simulator-atn sim) state
+                 :context stack :see-through-predicates t)))
+      (loop for key across (parser-token-keys grammar)
+            when (member (gethash key types) look) collect key))))
 
 (defun parse (grammar tokens &key rule start (require-eof t) recover
                               (tree-builder nil tree-builder-supplied-p)
@@ -934,7 +841,7 @@ the restarts at each error site to make a different local repair."
     (grammar-fail "Unknown start rule ~S" start))
   (unless (or (eq channels :all) (listp channels))
     (error 'type-error :datum channels :expected-type '(or list (eql :all))))
-  (let* ((*antlr-input-cache* (make-hash-table :test 'eq))
+  (let* ((*prediction-input-cache* (make-hash-table :test 'eq))
          (build-tree-p (parse-build-tree-p tree-builder))
          (lexed (coerce (if lexer (lex lexer tokens) tokens)
                         'simple-vector))
@@ -944,8 +851,7 @@ the restarts at each error site to make a different local repair."
          (physical-position (input-start-position input))
          (state-id (gethash start (parser-starts grammar)))
          (stack nil)
-         (context 0)
-         (frames (list (vector start 0 nil 0 0 nil nil)))
+         (frames (list (vector start 0 nil 0 nil nil)))
          (pending nil)
          (forced-set-token nil)
          (event-state nil)
@@ -1050,10 +956,7 @@ the restarts at each error site to make a different local repair."
              (can-insert-before-current-p (target)
                (and (has-token-p)
                     (member (token-key (current-value))
-                            (possible-tokens grammar
-                                             (list (make-configuration
-                                                    :state target :stack stack
-                                                    :alternative 0)))
+                            (possible-tokens grammar target stack)
                             :test #'equal))))
       (handler-bind
           ((mismatched-token
@@ -1092,21 +995,21 @@ the restarts at each error site to make a different local repair."
         (loop
           (let* ((state (aref (parser-states grammar) state-id))
                  (stop (state-stop-rule state))
-                 (*antlr-precedence* (aref (first frames) 4)))
+                 (*prediction-precedence* (aref (first frames) 3)))
             (when (and build-tree-p (not (eql state-id event-state)))
               (setf event-state state-id)
               (let ((frame (first frames)))
                 (multiple-value-bind (children label labels)
                     (apply-atn-events (state-events state) tree-builder (aref frame 0)
                                       (aref frame 2) (aref frame 1) position
-                                      (aref frame 5) (aref frame 6))
-                  (setf (aref frame 2) children (aref frame 5) label (aref frame 6) labels))))
+                                      (aref frame 4) (aref frame 5))
+                  (setf (aref frame 2) children (aref frame 4) label (aref frame 5) labels))))
             (when stop
               (let* ((frame (pop frames))
                      (completed (when build-tree-p
                                   (make-labeled-parse-node tree-builder (aref frame 0)
                                                    (nreverse (aref frame 2))
-                                                   (aref frame 1) position (aref frame 5)))))
+                                                   (aref frame 1) position (aref frame 4)))))
                 (unless (eq tree-builder :none)
                   (parse-rule-exit tree-builder
                                    (visible-rule grammar (aref frame 0))
@@ -1115,7 +1018,6 @@ the restarts at each error site to make a different local repair."
                     (progn
                       (when build-tree-p
                         (push completed (aref (first frames) 2)))
-                      (setf context (aref frame 3))
                       (setf state-id (pop stack)))
                     (progn
                       (when (and require-eof (has-token-p))
@@ -1155,11 +1057,7 @@ the restarts at each error site to make a different local repair."
                            :token (current-value)
                            :rule (visible-rule grammar (aref (first frames) 0))
                            :expected
-                           (possible-tokens
-                            grammar
-                            (loop for edge in edges for alternative from 0
-                                  collect (configuration-after-edge
-                                           grammar edge stack alternative))))))
+                           (possible-tokens grammar state-id stack))))
                     (multiple-value-bind (action value)
                         (restart-case (error condition)
                           (delete-tokens (&optional (count 1))
@@ -1200,7 +1098,7 @@ the restarts at each error site to make a different local repair."
                                 :rule (visible-rule grammar (aref (first frames) 0))))
                        (setf state-id (transition-target edge)))
                       (:precedence
-                       (unless (>= (transition-value edge) *antlr-precedence*)
+                       (unless (>= (transition-value edge) *prediction-precedence*)
                          (error 'no-viable-alternative :position position :token (current-value)
                                 :expected nil :rule (aref (first frames) 0)))
                        (setf state-id (transition-target edge)))
@@ -1210,10 +1108,8 @@ the restarts at each error site to make a different local repair."
                        (setf state-id (transition-target edge)))
                       (:call
                        (push (vector (transition-value edge) position nil
-                                     context (state-call-precedence state) nil nil)
+                                     (state-call-precedence state) nil nil)
                              frames)
-                       (setf context
-                             (make-rule-context (transition-target edge) context))
                        (push (transition-target edge) stack)
                        (unless (eq tree-builder :none)
                          (parse-rule-enter

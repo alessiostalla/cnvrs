@@ -29,7 +29,7 @@ Reproduce from the repository root:
 ```sh
 PROFILE_MODE=timing PROFILE_TRIALS=3 PROFILE_WARM_ITERATIONS=3 \
 "$SBCL_BIN" --dynamic-space-size 2048 --script bench/java8/profile.lisp \
-  test/fixtures/antlr-runtime/Java8Lexer.g4 test/fixtures/antlr-runtime/Java8Parser.g4
+  test/fixtures/runtime/Java8Lexer.g4 test/fixtures/runtime/Java8Parser.g4
 ```
 
 [Raw results](topology-results.txt).

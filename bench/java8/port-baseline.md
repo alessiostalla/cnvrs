@@ -31,7 +31,7 @@ tool, so its decision/state counts are not expected to match a Java-generated
 parser. The separate differential suite uses **identical Java-generated ATNs**
 and matches **1,620 predictions**, every recorded DFA-state count, and error
 outcomes across LL, SLL and exact-ambiguity modes. See the
-[port map and boundary notes](../../src/antlr-runtime/README.md).
+[port map and boundary notes](../../src/runtime/README.md).
 
 To reproduce from the repository root:
 
