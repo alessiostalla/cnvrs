@@ -201,21 +201,31 @@
                                    (context-node (array-prediction-context-return-states context) parents)))))))
                     (context-cache-add cache updated)))))))
 
+(defstruct (merge-cache-entry
+             (:constructor make-merge-cache-entry (a b result next)) (:copier nil))
+  (a nil :type (or null prediction-context) :read-only t)
+  (b nil :type (or null prediction-context) :read-only t)
+  (result nil :type (or null prediction-context) :read-only t)
+  (next nil :type (or null merge-cache-entry) :read-only t))
 (defun merge-cache-get (cache a b wildcard)
   (declare (ignore wildcard) (type (or null hash-table) cache)
            (type (or null prediction-context) a b))
   (when cache
-    (loop for (x y result) in
-          (gethash (logxor (context-hash a) (context-hash b)) cache)
+    (loop for entry of-type (or null merge-cache-entry) =
+            (gethash (logxor (context-hash a) (context-hash b)) cache)
+          then (merge-cache-entry-next entry)
+          while entry
+          for x = (merge-cache-entry-a entry) for y = (merge-cache-entry-b entry)
           when (or (and (context-equal x a) (context-equal y b))
                    (and (context-equal x b) (context-equal y a)))
-            return result)))
+            return (merge-cache-entry-result entry))))
 (defun merge-cache-put (cache a b wildcard result)
   (declare (ignore wildcard) (type (or null hash-table) cache)
            (type (or null prediction-context) a b result))
   (when cache
-    (push (list a b result)
-          (gethash (logxor (context-hash a) (context-hash b)) cache)))
+    (let ((key (logxor (context-hash a) (context-hash b))))
+      (setf (gethash key cache)
+            (make-merge-cache-entry a b result (gethash key cache)))))
   result)
 
 (declaim (inline two-return-states))
@@ -257,10 +267,20 @@
                                (if single-parent (vector single-parent single-parent) (vector bp ap))))))))))
 (defun combine-common-parents (parents)
   (declare (type simple-vector parents))
-  (let ((unique (make-context-cache)))
-    (loop for parent across parents when parent do (context-cache-add unique parent))
-    (loop for parent across parents for i from 0 when parent do
-      (setf (aref parents i) (context-cache-get unique parent))))
+  ;; Small merge results dominate prediction. Canonicalize them in place,
+  ;; retaining the first equal parent without allocating a temporary hash table.
+  ;; Larger arrays keep hashed lookup, bounding the quadratic scan.
+  (if (<= (length parents) 16)
+      (loop for i fixnum below (length parents)
+            for parent = (svref parents i) when parent do
+              (loop for j fixnum below i
+                    for previous = (svref parents j)
+                    when (context-equal parent previous) do
+                      (setf (svref parents i) previous) (return)))
+      (let ((unique (make-context-cache)))
+        (loop for parent across parents when parent do (context-cache-add unique parent))
+        (loop for parent across parents for i from 0 when parent do
+          (setf (aref parents i) (context-cache-get unique parent)))))
   parents)
 ;; A normalized input view contains packed arrays or singleton scalar fields.
 ;; The traversal below dispatches once per input and expands four small merge

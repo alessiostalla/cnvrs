@@ -18,7 +18,7 @@ cd "$root"
   date -u '+UTC %Y-%m-%dT%H:%M:%SZ'
   git rev-parse HEAD
   uname -m
-  sysctl -n machdep.cpu.brand_string
+  sysctl -n machdep.cpu.brand_string 2>/dev/null || printf 'CPU model unavailable\n'
   java -version 2>&1
   "$SBCL_BIN" --version
   shasum -a 256 "$REFERENCE_JAR" test/fixtures/IRI.g4 test/fixtures/runtime/Java8Lexer.g4 test/fixtures/runtime/Java8Parser.g4 bench/java-reference/iri.txt bench/antlr4-grammar/Bench.java
