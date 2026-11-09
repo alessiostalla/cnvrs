@@ -1,5 +1,8 @@
 # IRI and Java 8 versus ANTLR Java
 
+The [transient-configuration follow-up](config.md) measures stack-scoped scratch
+configurations and copy-on-retention against the committed storage baseline.
+
 The [fresh paired benchmark and context-storage optimization](storage.md) records
 the latest Java comparison, allocation probe, and controlled before/after results.
 

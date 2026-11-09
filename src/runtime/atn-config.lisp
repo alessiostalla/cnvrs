@@ -20,20 +20,39 @@
 (defstruct atn-config (state 0 :type fixnum) (alt 1 :type fixnum)
   (context (empty-prediction-context) :type (or null prediction-context))
   (semantic t) (outer-depth 0 :type fixnum) precedence-filter-suppressed-p)
+(defstruct (transient-atn-config (:include atn-config)
+             (:constructor make-transient-atn-config ()) (:copier nil)))
 (defstruct (atn-config-set (:conc-name config-set-))
   (items (make-array 0 :adjustable t :fill-pointer 0) :type (vector t))
   (lookup (make-hash-table :test 'eql) :type (or null hash-table)) full-context
   (unique-alt nil :type (or null fixnum)) conflicting-alts has-semantic-context dips-into-outer-context read-only-p)
 (defvar *merge-cache* nil)
 
+(declaim (inline derive-config retained-config))
 (defun derive-config (config state &key (context (atn-config-context config))
-                                      (semantic (atn-config-semantic config)))
+                                      (semantic (atn-config-semantic config)) destination)
   (declare (type atn-config config) (type fixnum state)
-           (type (or null prediction-context) context))
-  (make-atn-config :state state :alt (atn-config-alt config) :context context
-                   :semantic semantic :outer-depth (atn-config-outer-depth config)
-                   :precedence-filter-suppressed-p
-                   (atn-config-precedence-filter-suppressed-p config)))
+           (type (or null prediction-context) context)
+           (type (or null transient-atn-config) destination))
+  (if destination
+      (progn
+        (setf (atn-config-state destination) state
+              (atn-config-alt destination) (atn-config-alt config)
+              (atn-config-context destination) context
+              (atn-config-semantic destination) semantic
+              (atn-config-outer-depth destination) (atn-config-outer-depth config)
+              (atn-config-precedence-filter-suppressed-p destination)
+              (atn-config-precedence-filter-suppressed-p config))
+        destination)
+      (make-atn-config :state state :alt (atn-config-alt config) :context context
+                      :semantic semantic :outer-depth (atn-config-outer-depth config)
+                      :precedence-filter-suppressed-p
+                      (atn-config-precedence-filter-suppressed-p config))))
+(defun retained-config (config)
+  "Snapshot stack-scoped scratch configurations at an ownership boundary."
+  (declare (type atn-config config))
+  (if (transient-atn-config-p config)
+      (derive-config config (atn-config-state config)) config))
 (declaim (inline config-lookup-hash config-lookup-equal))
 (defun config-lookup-hash (config)
   (declare (type atn-config config))
@@ -52,6 +71,9 @@
   (loop for candidate of-type atn-config in bucket
         when (config-lookup-equal config candidate) return candidate))
 (defun config-set-add (set config &optional (merge-cache *merge-cache*))
+  "Return T and the source configuration to use for continued traversal.
+An inserted scratch configuration is promoted to an owned object; a merged
+input remains the traversal source, preserving the reference aliasing rules."
   (declare (type atn-config-set set) (type atn-config config)
            (type (or null hash-table) merge-cache))
   (when (config-set-read-only-p set) (error "ATNConfigSet is read-only"))
@@ -61,7 +83,7 @@
     (setf (config-set-dips-into-outer-context set) t))
   (let* ((lookup (the hash-table (config-set-lookup set)))
          (key (config-lookup-hash config)) (bucket (gethash key lookup))
-         (existing (find-config-in-bucket config bucket)))
+         (existing (find-config-in-bucket config bucket)) (source config))
     (if existing
         (setf (atn-config-context existing)
               (merge-contexts (atn-config-context existing) (atn-config-context config)
@@ -71,9 +93,13 @@
               (atn-config-precedence-filter-suppressed-p existing)
               (or (atn-config-precedence-filter-suppressed-p existing)
                   (atn-config-precedence-filter-suppressed-p config)))
-        (progn (setf (gethash key lookup) (cons config bucket))
-               (vector-push-extend config (config-set-items set)))))
-  t)
+        (let ((owned (retained-config config)))
+          (setf (gethash key lookup) (cons owned bucket)
+                source owned)
+          (vector-push-extend owned (config-set-items set))))
+    ;; Continue traversal with the retained object on insertion. Later merges
+    ;; must update the same object the active traversal uses, as in Java.
+    (values t source)))
 (defun config-set-alternatives (set)
   (sort (remove-duplicates (map 'list #'atn-config-alt (config-set-items set))) #'<))
 (defun unique-alt (set)

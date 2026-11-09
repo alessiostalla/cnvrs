@@ -106,6 +106,39 @@ structurally equal objects, cache misses and replacement, NIL paths, first-paren
 identity, and canonicalization on both sides of the small-array boundary.
 [Normal](storage-results/checks-normal.txt), [safety 3](storage-results/checks-safety3.txt).
 
+## Remaining warm Java 8 costs
+
+Fresh CPU and allocation profiles of revision **7f3f87a** use the same harness:
+five training parses, a full GC, then 30 tree parses of prepared Java 8 tokens.
+The runtime source hashes still match the measured storage candidate. These
+profiles are diagnostic and are separate from the uninstrumented timing results.
+
+CPU self samples put memory zeroing (`__bzero`) at about 22%, `derive-config`
+at 12%, closure traversal at 11%, EQL hash lookup at 7%, and context equality
+at 5%. Smaller costs include singleton construction, vector allocation, array
+merging, configuration-set addition, and hash-table growth. GC accounts for
+0.208 of 3.970 elapsed seconds (about 5%). Allocation-region sampling primarily
+attributes allocations to closure-work and its inlined construction paths;
+these are stack/region samples, not exact per-object byte accounting.
+[CPU profile](storage-results/after-cpu.txt),
+[allocation profile](storage-results/after-alloc.txt).
+
+The measured algorithm-operation counts match Java, so the remaining evidence
+points to the cost of executing those operations, including transient config
+construction and initialization, hashed membership, and structural context
+comparison. The 92 full-context retries still perform about 1.44 million closure
+checks on a warm parse; Java performs the same measured work. Reducing those
+counts through additional persistent caches would change the reference policy.
+
+Total allocated bytes are now slightly below the prior Java reference, so excess
+byte volume alone cannot explain the timing gap. Similar byte totals need not
+imply similar object counts, allocation/initialization costs, or cache locality.
+A matched Java CPU profile is still needed to attribute the approximately 27 ms
+remaining difference to particular costs. The percentages above describe where
+Lisp spends sampled CPU time, not percentages of that difference. This diagnosis
+covers the Java 8 parser; the separate IRI/tree and lexer gaps require their own
+profiles.
+
 ## Reproduction
 
 ```sh

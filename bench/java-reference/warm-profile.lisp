@@ -60,10 +60,10 @@
                            (:reach (bump :reach-input (length (cnvrs/runtime:config-set-items (second args))))
                                    (when (fourth args) (bump :full-reach)))
                            (:start (when (fourth args) (bump :full-start))))
-                         (let ((answer (apply original args)))
+                         (multiple-value-bind (answer source) (apply original args)
                            (when (and (eq special :reach) answer)
                              (bump :reach-output (length (cnvrs/runtime:config-set-items answer))))
-                           answer))))))
+                           (values answer source)))))))
       (unwind-protect
           (progn
             ;; SBCL can compile self-recursion as local calls, bypassing an
@@ -79,6 +79,18 @@
               (compile name `(lambda ,(third form) ,(first body)
                                (incf (gethash :closure-check cl-user::*operation-counts* 0))
                                (block ,name ,@(rest body)))))
+            ;; Production inlines epsilon-target construction. Keep this
+            ;; diagnostic call out of line so the wrapper counts every visit.
+            (let* ((name 'cnvrs/runtime::closure-work)
+                   (original (symbol-function name))
+                   (*package* (find-package :cnvrs/runtime))
+                   (form (with-open-file (in "src/runtime/parser-atn-simulator.lisp")
+                           (loop for f = (read in nil) while f
+                                 when (and (consp f) (eq (car f) 'defun) (eq (second f) name)) return f))))
+              (push (cons name original) saved)
+              (compile name `(lambda ,(third form)
+                               (declare (notinline cnvrs/runtime::get-epsilon-target))
+                               ,@(cdddr form))))
             (dolist (spec '((cnvrs/runtime:adaptive-predict :adaptive :adaptive)
                             (cnvrs/runtime:compute-start-state :start :start)
                             (cnvrs/runtime:compute-reach-set :reach :reach)

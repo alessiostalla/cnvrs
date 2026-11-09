@@ -95,14 +95,16 @@
                  ((member t parts) t)
                  (t (reduce (lambda (a b) (semantic-operator :or a b)) parts :initial-value nil)))))
         (t semantic)))
-(defun get-epsilon-target (config transition collect-predicates in-context full-context eof-as-epsilon)
+(declaim (inline get-epsilon-target))
+(defun get-epsilon-target (config transition collect-predicates in-context
+                           full-context eof-as-epsilon &optional destination)
   (declare (type atn-config config) (type atn-transition transition))
   (let ((target (atn-transition-target transition)))
     (case (atn-transition-kind transition)
-      (:rule (derive-config config target
+      (:rule (derive-config config target :destination destination
                             :context (singleton-context (atn-config-context config)
                                                         (atn-transition-follow transition))))
-      ((:epsilon :action) (derive-config config target))
+      ((:epsilon :action) (derive-config config target :destination destination))
       ((:predicate :precedence)
        (let* ((precedence-p (eq (atn-transition-kind transition) :precedence))
               (predicate (if precedence-p (list :precedence (atn-transition-label transition))
@@ -110,13 +112,13 @@
               (collect (and collect-predicates
                             (if precedence-p in-context
                                 (or (not (atn-transition-context-dependent-p transition)) in-context)))))
-         (cond ((not collect) (derive-config config target))
-               (full-context (and (semantic-eval predicate) (derive-config config target)))
-               (t (derive-config config target
+         (cond ((not collect) (derive-config config target :destination destination))
+               (full-context (and (semantic-eval predicate) (derive-config config target :destination destination)))
+               (t (derive-config config target :destination destination
                                  :semantic (semantic-operator :and (atn-config-semantic config) predicate))))))
       ((:atom :range :set)
        (when (and eof-as-epsilon (transition-matches-p transition -1))
-         (derive-config config target)))
+         (derive-config config target :destination destination)))
       ((:not-set :wildcard) nil)
       (otherwise (error "Unsupported ATN transition: ~S" (atn-transition-kind transition))))))
 (defun config-equal (a b)
@@ -128,12 +130,15 @@
             (atn-config-precedence-filter-suppressed-p b))
        (context-equal (atn-config-context a) (atn-config-context b))))
 (defun busy-add (busy config)
+  "Return T and an owned configuration on insertion, NIL on a visited hit."
   (declare (type hash-table busy) (type atn-config config))
   (let* ((key (murmur-update (config-lookup-hash config) (context-hash (atn-config-context config))))
          (bucket (gethash key busy)))
     (unless (loop for candidate of-type atn-config in bucket
                   thereis (config-equal config candidate))
-      (setf (gethash key busy) (cons config bucket)) t)))
+      (let ((owned (retained-config config)))
+        (setf (gethash key busy) (cons owned bucket))
+        (values t owned)))))
 (defun can-drop-loop-entry-edge-in-left-recursive-rule (config)
   (declare (type atn-config config))
   (let* ((p (get-state (atn-config-state config))) (context (atn-config-context config)))
@@ -181,12 +186,17 @@
   (closure-work config configs busy collect-predicates full-context depth eof-as-epsilon))
 (defun closure-work (config configs busy collect-predicates full-context depth eof-as-epsilon)
   (declare (type atn-config config) (type atn-config-set configs) (type hash-table busy) (type fixnum depth))
-  (let ((state (get-state (atn-config-state config))))
-    (unless (epsilon-only-p state) (config-set-add configs config))
+  (let ((state (get-state (atn-config-state config)))
+        (scratch (make-transient-atn-config)))
+    ;; Only this frame owns SCRATCH. Retaining sets promote it before storing;
+    ;; active traversal then uses that owned object so later merges stay visible.
+    (declare (dynamic-extent scratch))
+    (unless (epsilon-only-p state)
+      (setf config (nth-value 1 (config-set-add configs config))))
     (loop for transition in (atn-state-transitions state) for index fixnum from 0 do
       (unless (and (zerop index) (can-drop-loop-entry-edge-in-left-recursive-rule config))
         (let* ((collect (and collect-predicates (not (eq (atn-transition-kind transition) :action))))
-               (next (get-epsilon-target config transition collect (zerop depth) full-context eof-as-epsilon))
+               (next (get-epsilon-target config transition collect (zerop depth) full-context eof-as-epsilon scratch))
                (new-depth depth))
           (when next
             (cond ((eq (atn-state-kind state) :rule-stop)
@@ -196,12 +206,14 @@
                                  (atn-state-rule (get-state (dfa-start-state *current-dfa*)))))
                      (setf (atn-config-precedence-filter-suppressed-p next) t))
                    (incf (atn-config-outer-depth next))
-                   (unless (busy-add busy next) (setf next nil))
+                   (multiple-value-bind (added owned) (busy-add busy next)
+                     (setf next (and added owned)))
                    (setf (config-set-dips-into-outer-context configs) t)
                    (decf new-depth))
                   (t
-                   (when (and (not (epsilon-transition-p transition)) (not (busy-add busy next)))
-                     (setf next nil))
+                   (unless (epsilon-transition-p transition)
+                     (multiple-value-bind (added owned) (busy-add busy next)
+                       (setf next (and added owned))))
                    (when (and (eq (atn-transition-kind transition) :rule) (>= new-depth 0))
                      (incf new-depth))))
             (when next (closure-checking-stop-state next configs busy collect full-context new-depth eof-as-epsilon))))))))
