@@ -77,7 +77,7 @@
 
 (defun build-java-atn (grammar definitions left-rules &key lexer-modes rule-modes)
   "Construct and compact the same parser graph as Java's ParserATNFactory."
-  (declare (optimize (speed 1) (compilation-speed 3)))
+  (declare (optimize (speed 1) (compilation-speed 3) (safety 2)))
   (let ((rule-index -1) (decisions 0) (event-id 0) (mode-starts (make-hash-table :test 'eq)))
     (labels
         ((state (id) (aref (parser-states grammar) id))
@@ -280,6 +280,8 @@
 
 (defun apply-atn-events (events builder rule children start end label labels)
   "Apply tree annotations without adding transitions or helper rules to the ATN."
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1))
+           (type list events children labels) (type fixnum start end))
   (dolist (event events)
     (case (first event)
       (:alternative (setf label (second event)))

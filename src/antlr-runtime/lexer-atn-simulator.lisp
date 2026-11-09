@@ -3,13 +3,20 @@
 ;;; from ANTLR Java 4.13.2. See LICENSE-ANTLR.txt.
 (in-package #:cnvrs/antlr-runtime)
 
-(defstruct lexer-config state alt (context (empty-prediction-context)) actions non-greedy)
-(defstruct lexer-config-set (items (make-array 0 :adjustable t :fill-pointer 0))
-  (lookup (make-hash-table :test 'equal)) semantic-p)
-(defstruct lexer-dfa-state number configs prediction actions (edges (make-array 128 :initial-element nil)))
-(defstruct lexer-dfa start (state-count 0) (states (make-hash-table :test 'equal)))
-(defstruct (lexer-atn-simulator (:conc-name lexer-simulator-)) atn
-  (dfas #()) (lock (bordeaux-threads:make-lock "ANTLR lexer DFA")))
+;; Runtime policy is file-local: the standalone ASDF system is compiled before
+;; the native frontend. Retain safety checks while optimizing the hot loops.
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
+
+(defstruct lexer-config (state 0 :type fixnum) (alt 1 :type fixnum)
+  (context (empty-prediction-context) :type (or null prediction-context)) (actions nil :type list) non-greedy)
+(defstruct lexer-config-set (items (make-array 0 :adjustable t :fill-pointer 0) :type (vector t))
+  (lookup (make-hash-table :test 'equal) :type hash-table) semantic-p)
+(defstruct lexer-dfa-state (number 0 :type fixnum) (configs #() :type (vector t)) prediction
+  (actions nil :type list) (edges (make-array 128 :initial-element nil) :type simple-vector))
+(defstruct lexer-dfa (start nil :type (or null lexer-dfa-state)) (state-count 0 :type fixnum)
+  (states (make-hash-table :test 'equal) :type hash-table))
+(defstruct (lexer-atn-simulator (:conc-name lexer-simulator-)) (atn (make-atn) :type atn)
+  (dfas #() :type simple-vector) (lock (bordeaux-threads:make-lock "ANTLR lexer DFA")))
 (define-condition lexer-no-viable-alt (error)
   ((start :initarg :start :reader lexer-error-start)
    (position :initarg :position :reader lexer-error-position)
@@ -24,6 +31,10 @@
 (defvar *lexer-predicate*)
 (defvar *lexer-dfa*)
 (defvar *lexer-accept-executor* nil)
+(declaim (type lexer-atn-simulator *lexer-simulator*) (type string *lexer-source*)
+         (type fixnum *lexer-position* *lexer-line* *lexer-column* *lexer-start*)
+         (type lexer-dfa *lexer-dfa*))
+(declaim (inline lexer-state-at lexer-consume lexer-lookahead lexer-transition-matches-p))
 
 (defun lexer-clear-dfa (sim)
   (bordeaux-threads:with-lock-held ((lexer-simulator-lock sim))
@@ -33,7 +44,7 @@
   sim)
 (defun new-lexer-atn-simulator (atn)
   (lexer-clear-dfa (make-lexer-atn-simulator :atn atn)))
-(defun lexer-state-at (number) (aref (atn-states (lexer-simulator-atn *lexer-simulator*)) number))
+(defun lexer-state-at (number) (declare (type fixnum number)) (aref (atn-states (lexer-simulator-atn *lexer-simulator*)) number))
 (defun derive-lexer-config (c target &key (context (lexer-config-context c))
                                          (actions (lexer-config-actions c)))
   (make-lexer-config :state target :alt (lexer-config-alt c) :context context :actions actions
@@ -80,12 +91,14 @@
 (defun lexer-lookahead ()
   (if (< *lexer-position* (length *lexer-source*)) (char-code (char *lexer-source* *lexer-position*)) -1))
 (defun lexer-label-contains-p (set code)
-  (some (lambda (range) (<= (first range) code (second range))) set))
+  (declare (type fixnum code))
+  (some (lambda (range) (<= (the fixnum (first range)) code (the fixnum (second range)))) set))
 (defun lexer-transition-matches-p (edge code)
+  (declare (type atn-transition edge) (type fixnum code))
   (let ((label (atn-transition-label edge)))
     (case (atn-transition-kind edge)
-      (:atom (= label code))
-      (:range (<= (first label) code (second label)))
+      (:atom (= (the fixnum label) code))
+      (:range (<= (the fixnum (first label)) code (the fixnum (second label))))
       (:set (lexer-label-contains-p label code))
       (:not-set (and (<= 0 code #x10ffff) (not (lexer-label-contains-p label code))))
       (:wildcard (<= 0 code #x10ffff)))))
@@ -150,6 +163,7 @@
                      set nil nil nil))
     set))
 (defun lexer-compute-target (state code)
+  (declare (type lexer-dfa-state state) (type fixnum code))
   (let ((reach (make-lexer-config-set)) (skip-alt nil))
     (loop for c across (lexer-dfa-state-configs state)
           for accepted = (eql (lexer-config-alt c) skip-alt)

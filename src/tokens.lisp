@@ -1,5 +1,7 @@
 (in-package #:cnvrs)
 
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
+
 ;; PARSE checks compiled lexers before the lexer implementation is loaded.
 (defstruct compiled-lexer states mode-starts kinds skips channels
   push-modes pop-modes set-modes metadata cache-backend cache function matcher
@@ -27,6 +29,7 @@
 (defun (setf lexeme-text) (value lexeme)
   (setf (lexeme-stored-text lexeme) value))
 
+(declaim (inline token-key token-channel))
 (defun token-key (token)
   "Return a lexeme's kind or a plain token value for parser matching."
   (if (lexeme-p token) (lexeme-kind token) token))

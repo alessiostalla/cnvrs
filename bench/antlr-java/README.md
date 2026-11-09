@@ -1,5 +1,8 @@
 # IRI and Java 8 versus ANTLR Java
 
+The [type declarations and compiler-policy follow-up](types.md) measures the next
+optimization round against the committed LL(1) baseline.
+
 The [direct LL(1) follow-up](ll1.md) removes the extra adaptive decisions described
 in this baseline and records a controlled before/after performance comparison.
 

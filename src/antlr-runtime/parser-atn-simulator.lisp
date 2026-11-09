@@ -2,21 +2,26 @@
 ;;; Method names follow the Java source; grammar frontends supply a typed ATN.
 (in-package #:cnvrs/antlr-runtime)
 
+;; Runtime policy is file-local: the standalone ASDF system is compiled before
+;; the native frontend. Retain safety checks while optimizing the hot loops.
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
+
 (define-condition no-viable-alt (error)
   ((decision :initarg :decision :reader failed-decision)
    (position :initarg :position :reader failed-position)
    (start-index :initarg :start-index :reader failed-start-index)
    (configs :initarg :configs :reader failed-configs)))
-(defstruct dfa-state configs (edges (make-hash-table :test 'eql))
+(defstruct dfa-state (configs (make-atn-config-set) :type atn-config-set) (edges (make-hash-table :test 'eql) :type hash-table)
   (lock (bordeaux-threads:make-lock "ANTLR DFA edges"))
-  accept-p prediction requires-full-context predicates)
-(defstruct dfa (decision 0) (start-state 0) start
+  accept-p (prediction nil :type (or null fixnum)) requires-full-context predicates)
+(defstruct dfa (decision 0 :type fixnum) (start-state 0 :type fixnum) (start nil :type (or null dfa-state))
   (lock (bordeaux-threads:make-lock "ANTLR DFA states"))
-  (states (make-hash-table :test 'equal))
-  (precedence-starts (make-hash-table :test 'eql)))
+  (states (make-hash-table :test 'equal) :type hash-table)
+  (precedence-starts (make-hash-table :test 'eql) :type hash-table))
 (defstruct (parser-atn-simulator (:conc-name simulator-)
              (:constructor %make-parser-atn-simulator))
-  atn decision-dfas (context-cache (make-context-cache))
+  (atn (make-atn) :type atn) (decision-dfas #() :type simple-vector)
+  (context-cache (make-context-cache) :type hash-table)
   (mode :ll) predicate-evaluator precedence-evaluator trace
   (context-cache-lock (bordeaux-threads:make-lock "ANTLR shared context cache")))
 (defvar *simulator* nil)
@@ -25,6 +30,10 @@
 (defvar *outer-context* nil)
 (defvar *precedence* 0)
 (defvar *current-dfa* nil)
+(declaim (type (or null parser-atn-simulator) *simulator*)
+         (type (vector t) *input*) (type fixnum *start-index* *precedence*)
+         (type (or null dfa) *current-dfa*))
+(declaim (inline get-state rule-stop-p epsilon-transition-p epsilon-only-p transition-matches-p input-la))
 
 (defun make-parser-atn-simulator (atn &key (mode :ll) predicate-evaluator
                                           precedence-evaluator trace)
@@ -44,7 +53,7 @@
 (defun runtime-trace (event &rest data)
   (when (simulator-trace *simulator*)
     (funcall (simulator-trace *simulator*) event data)))
-(defun get-state (id) (aref (atn-states (simulator-atn *simulator*)) id))
+(defun get-state (id) (declare (type fixnum id)) (aref (atn-states (simulator-atn *simulator*)) id))
 (defun rule-stop-p (id) (eq (atn-state-kind (get-state id)) :rule-stop))
 (defun epsilon-transition-p (transition)
   (member (atn-transition-kind transition) '(:epsilon :rule :predicate :action :precedence)))
@@ -52,10 +61,11 @@
   (and (atn-state-transitions state)
        (every #'epsilon-transition-p (atn-state-transitions state))))
 (defun transition-matches-p (transition token)
+  (declare (type atn-transition transition) (type fixnum token))
   (let ((label (atn-transition-label transition)))
     (case (atn-transition-kind transition)
       (:atom (eql token label))
-      (:range (<= (car label) token (cdr label)))
+      (:range (<= (the fixnum (car label)) token (the fixnum (cdr label))))
       (:set (member token label))
       (:not-set (and (<= 0 token (atn-max-token-type (simulator-atn *simulator*)))
                      (not (member token label))))
@@ -143,6 +153,7 @@
                                    (= (atn-transition-target (first next)) (atn-state-number p))))))))))
 
 (defun closure-checking-stop-state (config configs busy collect-predicates full-context depth eof-as-epsilon)
+  (declare (type atn-config config) (type atn-config-set configs) (type hash-table busy) (type fixnum depth))
   (when (rule-stop-p (atn-config-state config))
     (let ((context (atn-config-context config)))
       (cond ((not (empty-context-p context))
@@ -161,6 +172,7 @@
                           (return-from closure-checking-stop-state)))))
   (closure-work config configs busy collect-predicates full-context depth eof-as-epsilon))
 (defun closure-work (config configs busy collect-predicates full-context depth eof-as-epsilon)
+  (declare (type atn-config config) (type atn-config-set configs) (type hash-table busy) (type fixnum depth))
   (let ((state (get-state (atn-config-state config))))
     (unless (epsilon-only-p state) (config-set-add configs config))
     (loop for transition in (atn-state-transitions state) for index from 0 do
@@ -194,6 +206,7 @@
                    configs (make-hash-table :test 'equal) t full-context nil))
     configs))
 (defun compute-reach-set (simulator closure token full-context)
+  (declare (type parser-atn-simulator simulator) (type atn-config-set closure) (type fixnum token))
   (unless *merge-cache* (setf *merge-cache* (make-hash-table :test 'eql)))
   (let* ((*simulator* simulator) (atn (simulator-atn simulator))
          (intermediate (make-atn-config-set :full-context full-context))
@@ -303,7 +316,9 @@
 (defun no-alt (dfa configs &optional (position *start-index*))
   (error 'no-viable-alt :decision (dfa-decision dfa) :position position
                        :start-index *start-index* :configs configs))
-(defun input-la (position) (if (< position (length *input*)) (aref *input* position) -1))
+(defun input-la (position)
+  (declare (type fixnum position))
+  (if (< position (length *input*)) (the fixnum (aref *input* position)) -1))
 (defun exec-atn-with-full-context (dfa start)
   (let ((previous start) (position *start-index*))
     (loop
@@ -358,6 +373,8 @@
   "ParserATNSimulator.adaptivePredict. TOKENS are positive types; EOF is -1.
 The input is immutable; cursor restoration is implicit. Alternatives are one-based.
 OUTER-CONTEXT is a nearest-first caller follow-state list or a prediction context."
+  (declare (type parser-atn-simulator simulator) (type (vector t) tokens)
+           (type fixnum decision position precedence))
   (let* ((*simulator* simulator) (*input* tokens) (*start-index* position)
          (*outer-context* (or outer-context (empty-prediction-context))) (*precedence* precedence)
          (*merge-cache* nil)

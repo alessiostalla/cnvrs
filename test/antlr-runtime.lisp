@@ -119,9 +119,20 @@
                  "Java clearDFA preserves the shared context cache"))
         (check (every (lambda (d) (zerop (hash-table-count (dfa-states d))))
                       (simulator-decision-dfas sim)) "clearDFA")))))
+(defun test-hash-boundaries ()
+  (with-open-file (in (fixture "murmur.sexp"))
+    (loop for form = (read in nil nil) while form do
+      (destructuring-bind (operation hash argument expected) form
+        (let ((actual (ecase operation
+                        (:update (cnvrs/antlr-runtime::murmur-update hash argument))
+                        (:finish (cnvrs/antlr-runtime::murmur-finish hash argument))
+                        (:rotate (cnvrs/antlr-runtime::rotate-left-32 hash argument)))))
+          (check (= actual expected) "typed 32-bit hash boundary ~S" form))))))
+
 (defun run-tests ()
   (let ((*checks* 0))
     (test-context-merges)
+    (test-hash-boundaries)
     (test-prediction-trace "runtime-parity.sexp")
     (test-prediction-trace "runtime-sll.sexp")
     (test-prediction-trace "runtime-exact.sexp")

@@ -1,8 +1,9 @@
 ;;; Lisp token-source adaptation of ANTLR Java 4.13.2 Lexer.nextToken.
 (in-package #:cnvrs)
-(declaim (optimize (speed 3) (compilation-speed 1) (safety 1)))
-(defstruct (lexer-state (:constructor %make-lexer-state)) lexer source
-  (position 0) (line 1) (column 0) (start 0) (start-line 1) (start-column 0)
+(declaim (optimize (speed 3) (compilation-speed 1) (safety 1) (debug 0) (space 0)))
+(defstruct (lexer-state (:constructor %make-lexer-state)) lexer (source "" :type string)
+  (position 0 :type fixnum) (line 1 :type fixnum) (column 0 :type fixnum)
+  (start 0 :type fixnum) (start-line 1 :type fixnum) (start-column 0 :type fixnum)
   (mode :default) mode-stack type (channel :default) text hit-eof)
 (defvar *lexer-state* nil)
 (defun lexer-simulator (lexer)

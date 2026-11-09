@@ -143,3 +143,16 @@ java -cp ".:$ANTLR_JAR" LL1Oracle LL1ParityParser > ll1-parity.sexp
 java -cp ".:$ANTLR_JAR" LL1Oracle RuntimeParityParser > runtime-ll1.sexp
 java -cp ".:$ANTLR_JAR" LL1Oracle Java8Parser > java8-ll1.sexp
 ```
+
+## Typed hash arithmetic boundaries
+
+`MurmurOracle.java` uses the pinned Java runtime's MurmurHash and
+Integer.rotateLeft to generate 140 unsigned bit-pattern cases in `murmur.sexp`.
+They cover zero, sign-bit and all-one boundaries; update/finalization overflow;
+word-count mixing overflow; and rotations by 0, 1, 13, 15 and 31. The standalone
+runtime suite checks these independently of grammar prediction.
+
+```sh
+javac -cp "$ANTLR_JAR" MurmurOracle.java
+java -cp ".:$ANTLR_JAR" MurmurOracle > murmur.sexp
+```

@@ -1,17 +1,29 @@
 ;;; Port of ATNConfig, ATNConfigSet and PredictionMode, ANTLR 4.13.2.
 (in-package #:cnvrs/antlr-runtime)
 
-(defstruct atn (states #()) (rule-stops #()) (decisions #()) (max-token-type 0) (mode-starts #()) (rule-starts #()) (rule-token-types #()) (lexer-actions #()))
-(defstruct atn-state (number 0) (kind :basic) (rule 0) (transitions nil)
-  precedence-rule-p precedence-decision-p loop-back end-state non-greedy-p)
-(defstruct atn-transition (kind :epsilon) (target 0) follow label
-  (outermost-precedence-return -1) context-dependent-p (precedence 0))
-(defstruct atn-config (state 0) (alt 1) (context (empty-prediction-context))
-  (semantic t) (outer-depth 0) precedence-filter-suppressed-p)
+;; Runtime policy is file-local: the standalone ASDF system is compiled before
+;; the native frontend. Retain safety checks while optimizing the hot loops.
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
+
+(defstruct atn
+  (states #() :type simple-vector) (rule-stops #() :type simple-vector)
+  (decisions #() :type simple-vector) (max-token-type 0 :type fixnum)
+  (mode-starts #() :type simple-vector) (rule-starts #() :type simple-vector)
+  (rule-token-types #() :type simple-vector) (lexer-actions #() :type simple-vector))
+(defstruct atn-state (number 0 :type fixnum) (kind :basic :type symbol)
+  (rule 0 :type fixnum) (transitions nil :type list)
+  precedence-rule-p precedence-decision-p
+  (loop-back nil :type (or null fixnum)) (end-state nil :type (or null fixnum)) non-greedy-p)
+(defstruct atn-transition (kind :epsilon :type symbol) (target 0 :type fixnum)
+  (follow nil :type (or null fixnum)) label
+  (outermost-precedence-return -1 :type fixnum) context-dependent-p (precedence 0 :type fixnum))
+(defstruct atn-config (state 0 :type fixnum) (alt 1 :type fixnum)
+  (context (empty-prediction-context) :type (or null prediction-context))
+  (semantic t) (outer-depth 0 :type fixnum) precedence-filter-suppressed-p)
 (defstruct (atn-config-set (:conc-name config-set-))
-  (items (make-array 0 :adjustable t :fill-pointer 0))
-  (lookup (make-hash-table :test 'equal)) full-context
-  unique-alt conflicting-alts has-semantic-context dips-into-outer-context read-only-p)
+  (items (make-array 0 :adjustable t :fill-pointer 0) :type (vector t))
+  (lookup (make-hash-table :test 'equal) :type (or null hash-table)) full-context
+  (unique-alt nil :type (or null fixnum)) conflicting-alts has-semantic-context dips-into-outer-context read-only-p)
 (defvar *merge-cache* nil)
 
 (defun derive-config (config state &key (context (atn-config-context config))

@@ -77,8 +77,9 @@ in SLL and evaluated on full-context closure as in Java.
 
 ## Fidelity checks
 
-`asdf:test-system :cnvrs/antlr-runtime` runs **2,741 checks** without Java:
+`asdf:test-system :cnvrs/antlr-runtime` runs **2,881 checks** without Java:
 
+- 140 Java-generated 32-bit hash/rotate boundary cases, including unsigned overflow and word-count mixing.
 - 256 Java-generated SLL/LL context-merge cases, including exact hashes,
   path sets, identity reuse and context-cache canonicalization.
 - **1,620 Java prediction decisions** over identical ATNs: grammar ambiguity,
@@ -168,3 +169,28 @@ native runtime/FASL and generic/compiled execution; predicate/action boundaries;
 arbitrary Lisp token values; and lexer-definition cache clearing. Full Java 8
 execution now makes exactly Java's 1,431 adaptive calls in the same order and
 matches its per-decision DFA counts (1,160 states), with 24,764 cached contexts.
+
+## Runtime types and compiler policy
+
+Runtime source files explicitly request speed 3, safety 1, debug 0, space 0 and
+compilation-speed 1. These declarations are file-local: placing one in the native
+package file does not configure the standalone runtime's earlier ASDF compilation.
+Token/tree/cache helpers and selected native execution functions have explicit
+hot-path policies too. Grammar construction/ATN adaptation favor compilation
+speed (speed 1, compilation-speed 3) with safety 2. No safety-0 region is added.
+
+ATN arrays, configuration vectors, hash tables, state/alternative IDs and cursors
+have concrete storage types. Actions, predicates, symbolic lexer token types and
+Lisp token values retain their existing flexible representations. Numeric bounds
+are declared where labels are known integers, rather than imposing numeric types
+on all transition labels. Read-only config-set lookup tables remain nullable,
+matching Java's setReadonly lifecycle.
+
+The unsigned 32-bit hash helpers and small accessors are inlined. Explicit modulo
+arithmetic lets SBCL emit machine multiplies/shifts/masks instead of generic
+arithmetic calls and temporary bignums. Word-count mixing wraps to 32 bits before
+shifting, matching Java integer overflow; independent boundary fixtures cover it.
+Both normal and forced-safety-3 clean builds pass all 11,897 checks. The Java
+prediction, topology, DFA/context-cache and lexer parity fixtures remain unchanged.
+
+[Compiler diagnostics and measured effects](../../bench/antlr-java/types.md).

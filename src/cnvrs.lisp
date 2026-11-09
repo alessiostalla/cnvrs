@@ -551,20 +551,29 @@ Caller-specific caches and custom full-context start hooks are unsupported."
   last-physical
   visible-count)
 
-(declaim (inline input-size input-token input-next-position))
+(declaim (inline input-size input-token input-next-position compiled-choice-index))
 (defun input-size (input)
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type (or simple-vector filtered-token-input) input))
   (if (filtered-token-input-p input)
       (length (filtered-token-input-tokens input))
       (length input)))
 
 (defun input-token (input position)
+  (declare (type fixnum position))
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type (or simple-vector filtered-token-input) input))
   (aref (if (filtered-token-input-p input)
             (filtered-token-input-tokens input)
             input)
         position))
 
 (defun input-next-position (input position)
+  (declare (type fixnum position))
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type (or simple-vector filtered-token-input) input))
   (let ((next (1+ position)))
+    (declare (type fixnum next))
     (when (filtered-token-input-p input)
       (let ((tokens (filtered-token-input-tokens input))
             (channels (filtered-token-input-channels input)))
@@ -631,12 +640,14 @@ Caller-specific caches and custom full-context start hooks are unsupported."
 
 
 (defun direct-choice-index (grammar table input position)
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
   (let* ((key (if (>= position (input-size input)) +end-of-input+
                   (token-key (input-token input position))))
          (index (funcall (the function (parser-token-index grammar)) key)))
     (aref table (or index (length (parser-token-keys grammar))))))
 
 (defun predict (grammar state-id stack tokens position)
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
   (let* ((state (aref (parser-states grammar) state-id))
          (direct (state-direct-lookahead state)))
     (if direct (direct-choice-index grammar direct tokens position)
@@ -854,6 +865,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
       (values (coerce forms 'list) (mapcar #'first (reverse rules))))))
 
 (defun make-parser-runner (runners names)
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
   ;; The table is immutable after compilation. Mutable cursor state belongs
   ;; to each invocation, so runners can be shared by clones and threads.
   (let ((rule-indices (make-hash-table :test 'eq)))
@@ -906,6 +918,7 @@ parse; :ALL selects every channel. TREE-BUILDER overrides the compiled
 grammar's node construction strategy for this call. With RECOVER true, single-token deletion,
 insertion, and choice resynchronization are attempted. Handlers may invoke
 the restarts at each error site to make a different local repair."
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
   (when (parser-definition-p grammar)
     (when (eq (parser-definition-kind grammar) :lexer)
       (grammar-fail "Use LEX to run a lexer grammar"))

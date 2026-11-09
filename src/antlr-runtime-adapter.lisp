@@ -1,12 +1,17 @@
 ;;; Frontend boundary: Lisp grammar graphs and arbitrary token values are
 ;;; lowered to the typed ATN/token stream consumed by the Java runtime port.
 (in-package #:cnvrs)
+
+;; Runtime policy is file-local: the standalone ASDF system is compiled before
+;; the native frontend. Retain safety checks while optimizing the hot loops.
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
 (defvar *antlr-callback-input* nil)
 (defun ensure-antlr-runtime (grammar)
   (or (parser-atn-runtime grammar)
       (bordeaux-threads:with-lock-held ((parser-atn-runtime-lock grammar))
         (%ensure-antlr-runtime grammar))))
 (defun %ensure-antlr-runtime (grammar)
+  (declare (optimize (speed 1) (compilation-speed 3) (safety 2)))
   (or (parser-atn-runtime grammar)
       (let* ((original (parser-states grammar))
              (states (make-array (length original)))
@@ -86,7 +91,8 @@
 (defun antlr-token-input (input table)
   (or (and *antlr-input-cache* (gethash input *antlr-input-cache*))
       (let ((types nil) (positions (make-hash-table)) (logical 0))
-        (loop for p = (input-start-position input) then (input-next-position input p)
+        (declare (type fixnum logical))
+        (loop for p of-type fixnum = (input-start-position input) then (input-next-position input p)
               while (< p (input-size input)) do
                 (setf (gethash p positions) logical)
                 (push (gethash (token-key (input-token input p)) table (1+ (hash-table-count table))) types)
@@ -116,6 +122,7 @@
 
 (defun initialize-direct-lookahead (grammar)
   "Apply Java AnalysisPipeline/ParserFactory LL(1) selection without changing ATNs."
+  (declare (optimize (speed 1) (compilation-speed 3) (safety 2)))
   (destructuring-bind (sim types decisions) (ensure-antlr-runtime grammar)
     (declare (ignore decisions))
     (let* ((atn (cnvrs/antlr-runtime:simulator-atn sim))
