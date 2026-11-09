@@ -126,8 +126,7 @@
             (atn-config-precedence-filter-suppressed-p b))
        (context-equal (atn-config-context a) (atn-config-context b))))
 (defun busy-add (busy config)
-  (let ((key (list (atn-config-state config) (atn-config-alt config)
-                    (context-hash (atn-config-context config)) (atn-config-semantic config))))
+  (let ((key (murmur-update (config-lookup-hash config) (context-hash (atn-config-context config)))))
     (unless (find config (gethash key busy) :test #'config-equal)
       (push config (gethash key busy)) t)))
 (defun can-drop-loop-entry-edge-in-left-recursive-rule (config)
@@ -138,7 +137,8 @@
       (return-from can-drop-loop-entry-edge-in-left-recursive-rule nil))
     (let* ((decision (get-state (atn-transition-target (first (atn-state-transitions p)))))
            (end (atn-state-end-state decision)))
-      (loop for id across (context-return-states context)
+      (loop for i fixnum below (context-size context)
+            for id = (context-return-state context i)
             for state = (get-state id) for edges = (atn-state-transitions state)
             always (and (= (atn-state-rule state) (atn-state-rule p))
                         (= (length edges) 1) (epsilon-transition-p (first edges))
@@ -157,8 +157,9 @@
   (when (rule-stop-p (atn-config-state config))
     (let ((context (atn-config-context config)))
       (cond ((not (empty-context-p context))
-             (loop for return-state across (context-return-states context)
-                   for parent across (context-parents context) do
+             (loop for i fixnum below (context-size context)
+                   for return-state = (context-return-state context i)
+                   for parent = (context-parent context i) do
                (cond ((= return-state +empty-return-state+)
                       (if full-context
                           (config-set-add configs (derive-config config (atn-config-state config)
@@ -203,7 +204,7 @@
   (let ((*simulator* simulator) (configs (make-atn-config-set :full-context full-context)))
     (loop for edge in (atn-state-transitions (get-state decision)) for alt from 1 do
       (atn-closure (make-atn-config :state (atn-transition-target edge) :alt alt :context initial-context)
-                   configs (make-hash-table :test 'equal) t full-context nil))
+                   configs (make-hash-table :test 'eql) t full-context nil))
     configs))
 (defun compute-reach-set (simulator closure token full-context)
   (declare (type parser-atn-simulator simulator) (type atn-config-set closure) (type fixnum token))
@@ -222,7 +223,7 @@
       (setf reach intermediate))
     (unless reach
       (setf reach (make-atn-config-set :full-context full-context))
-      (let ((busy (make-hash-table :test 'equal)))
+      (let ((busy (make-hash-table :test 'eql)))
         (loop for c across (config-set-items intermediate) do
           (atn-closure c reach busy nil full-context (= token -1)))))
     ;; Java removeAllConfigsNotInRuleStopState. EOF always takes closure above,

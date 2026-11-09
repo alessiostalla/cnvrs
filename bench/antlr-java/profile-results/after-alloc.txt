@@ -1,0 +1,692 @@
+WARM PROFILE alloc SBCL 2.4.0 TOKENS 505
+Evaluation took:
+  9.978 seconds of real time
+  8.087156 seconds of total run time (7.759867 user, 0.327289 system)
+  [ Real times consist of 0.541 seconds GC time, and 9.437 seconds non-GC time. ]
+  [ Run times consist of 0.454 seconds GC time, and 7.634 seconds non-GC time. ]
+  81.05% CPU
+  8,140,004,448 bytes consed
+  
+
+Number of samples:     121866
+Unique traces:         6150
+Alloc interval:        1 regions (approximately 64 kB)
+Total sampling amount: 121866 regions (approximately 7799424 kB)
+Graph cycles:        0
+Sampled threads:
+   #<THREAD "main thread" RUNNING {7005520193}> (196816/1048576 bytes, 5746 hash buckets)
+
+                               Callers
+                 Total.     Function
+ Count     %  Count     %      Callees
+------------------------------------------------------------------------
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [36]
+   830   0.7                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+  4358   3.6                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+  4551   3.7                   foreign function search_all_gc_spaces [40]
+  3212   2.6                   foreign function page_table_pages [52]
+  4247   3.5                   foreign function component_ptr_from_pc [49]
+   572   0.5                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   533   0.4                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+    25   0.0                   CNVRS/ANTLR-RUNTIME:CONTEXT-FROM-STACK [12]
+  6338   5.2                   foreign function collect_backtrace [44]
+    82   0.1                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+   393   0.3                   foreign function lisp_frame_previous [48]
+  7004   5.7                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [22]
+     1   0.0                   foreign function allocator_record_backtrace [43]
+     2   0.0                   foreign function copy_instance [56]
+   126   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/src/antlr4-parser.lisp") [55]
+     2   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-REACH-SET [14]
+     1   0.0                   foreign function scav_list_pointer [50]
+    20   0.0                   foreign function gc_alloc_new_region [46]
+     3   0.0                   foreign function _ZN3WTF17SharedTaskFunctorIFvRN3JSC12CCallHelpersERNS1_2B33Air17GenerationContextEEZNKS4_24StackmapGenerationParams11addLatePathIZZNS1_3FTL12_GLOBAL__N_112LowerDFGToB311compileInByILNS1_10AccessTypeE20EPNS4_5ValueEEEvSH_T0_ENKUlS3_RKS9_E_clES3_SK_EUlS3_E_EEvRKT_EUlS3_S7_E_E3runES3_S7_ [54]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [29]
+   443   0.4                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    32   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+   379   0.3                   foreign function debug_function_from_pc [51]
+    25   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     4   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+    35   0.0                   VECTOR-PUSH-EXTEND [8]
+    13   0.0                   foreign function collector_alloc_fallback [45]
+     8   0.0                   foreign function page_table [42]
+  3510   2.9                   Unknown fn 2 [39]
+ 63561  52.2  76846  63.1   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+  3179   2.6                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   998   0.8                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+  7004   5.7                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+   851   0.7                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+   497   0.4                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+     1   0.0                   VECTOR-PUSH-EXTEND [8]
+   753   0.6                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+------------------------------------------------------------------------
+    97   0.1                   foreign function page_table [42]
+  2022   1.7                   foreign function search_all_gc_spaces [40]
+   812   0.7                   foreign function page_table_pages [52]
+   321   0.3                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+  1217   1.0                   foreign function component_ptr_from_pc [49]
+    91   0.1                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+  1766   1.4                   foreign function collect_backtrace [44]
+   226   0.2                   foreign function lisp_frame_previous [48]
+   242   0.2                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+    95   0.1                   foreign function debug_function_from_pc [51]
+   543   0.4                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+  3179   2.6                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    93   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+     1   0.0                   foreign function copy_instance [56]
+    67   0.1                   foreign function scav_list_pointer [50]
+    18   0.0                   foreign function lisp_alloc [57]
+    13   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+   195   0.2                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [31]
+   115   0.1                   foreign function gc_alloc_new_region [46]
+    51   0.0                   foreign function collector_alloc_fallback [45]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/src/antlr4-parser.lisp") [55]
+    20   0.0                   foreign function gc_alloc_region [47]
+     8   0.0                   Unknown fn 2406477268 [53]
+     3   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+    46   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [25]
+    19   0.0                   foreign function allocator_record_backtrace [43]
+    12   0.0                   LIST-ALLOC-TRAMP [41]
+  1436   1.2                   Unknown fn 2 [39]
+  2606   2.1                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+ 25779  21.2  27843  22.8   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   321   0.3                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   390   0.3                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   830   0.7                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   297   0.2                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   145   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    81   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+------------------------------------------------------------------------
+   163   0.1                   foreign function lisp_frame_previous [48]
+   686   0.6                   foreign function search_all_gc_spaces [40]
+   465   0.4                   foreign function page_table_pages [52]
+   716   0.6                   foreign function component_ptr_from_pc [49]
+   740   0.6                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+   297   0.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    46   0.0                   foreign function debug_function_from_pc [51]
+   887   0.7                   foreign function collect_backtrace [44]
+    30   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   110   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   998   0.8                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    91   0.1                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+     1   0.0                   VECTOR-PUSH-EXTEND [8]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/src/antlr4-parser.lisp") [55]
+    62   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+   454   0.4                   Unknown fn 2 [39]
+ 10457   8.6  11940   9.8   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    84   0.1                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   543   0.4                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   572   0.5                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    87   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   110   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    87   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+------------------------------------------------------------------------
+   390   0.3                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   874   0.7                   foreign function page_table_pages [52]
+   788   0.6                   foreign function search_all_gc_spaces [40]
+   736   0.6                   foreign function component_ptr_from_pc [49]
+   342   0.3                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+   527   0.4                   foreign function collect_backtrace [44]
+    84   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   465   0.4                   foreign function lisp_frame_previous [48]
+    25   0.0                   foreign function debug_function_from_pc [51]
+    11   0.0                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   100   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    30   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+     1   0.0                   foreign function collector_alloc_fallback [45]
+   753   0.6                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   355   0.3                   Unknown fn 2 [39]
+  8804   7.2   9808   8.0   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   242   0.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   533   0.4                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    11   0.0                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+    91   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    29   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+    98   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+------------------------------------------------------------------------
+   366   0.3                   foreign function page_table_pages [52]
+   551   0.5                   foreign function search_all_gc_spaces [40]
+   482   0.4                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+   400   0.3                   foreign function component_ptr_from_pc [49]
+   145   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   590   0.5                   foreign function collect_backtrace [44]
+    40   0.0                   foreign function debug_function_from_pc [51]
+    87   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    48   0.0                   foreign function lisp_frame_previous [48]
+   851   0.7                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    20   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+    98   0.1                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+    48   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+     1   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0                   VECTOR-PUSH-EXTEND [8]
+   243   0.2                   Unknown fn 2 [39]
+  6857   5.6   7743   6.4   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+   100   0.1                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   195   0.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    62   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    38   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+    48   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+   443   0.4                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0                   foreign function copy_instance [56]
+   339   0.3                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+   110   0.1                   foreign function page_table_pages [52]
+   226   0.2                   foreign function search_all_gc_spaces [40]
+    27   0.0                   foreign function lisp_frame_previous [48]
+   269   0.2                   foreign function component_ptr_from_pc [49]
+    81   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    87   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   777   0.6                   foreign function collect_backtrace [44]
+    37   0.0                   foreign function debug_function_from_pc [51]
+    29   0.0                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   497   0.4                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    38   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    12   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   124   0.1                   Unknown fn 2 [39]
+  4202   3.4   4513   3.7   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+    30   0.0                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    93   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    30   0.0                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   126   0.1                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    20   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    12   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+------------------------------------------------------------------------
+    67   0.1                   foreign function page_table [42]
+     1   0.0                   foreign function search_all_gc_spaces [40]
+    12   0.0                   foreign function lisp_alloc [57]
+    56   0.0                   foreign function scav_list_pointer [50]
+    44   0.0                   foreign function page_table_pages [52]
+    91   0.1                   foreign function gc_alloc_new_region [46]
+    81   0.1                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     1   0.0                   foreign function collect_backtrace [44]
+    45   0.0                   foreign function collector_alloc_fallback [45]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+    10   0.0                   Unknown fn 2406477268 [53]
+     1   0.0                   foreign function component_ptr_from_pc [49]
+     1   0.0                   foreign function lisp_frame_previous [48]
+    11   0.0                   foreign function gc_alloc_region [47]
+    10   0.0                   foreign function allocator_record_backtrace [43]
+    11   0.0                   LIST-ALLOC-TRAMP [41]
+   854   0.7   1029   0.8   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    91   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    82   0.1                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+------------------------------------------------------------------------
+    46   0.0                   foreign function search_all_gc_spaces [40]
+    39   0.0                   foreign function page_table_pages [52]
+    29   0.0                   foreign function component_ptr_from_pc [49]
+    73   0.1                   foreign function collect_backtrace [44]
+    22   0.0                   Unknown fn 2 [39]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    60   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+   298   0.2    335   0.3   VECTOR-PUSH-EXTEND [8]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    35   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+------------------------------------------------------------------------
+     2   0.0                   foreign function search_all_gc_spaces [40]
+    31   0.0                   foreign function page_table [42]
+     4   0.0                   foreign function lisp_alloc [57]
+    14   0.0                   foreign function scav_list_pointer [50]
+    15   0.0                   foreign function page_table_pages [52]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+    14   0.0                   foreign function collector_alloc_fallback [45]
+     1   0.0                   foreign function component_ptr_from_pc [49]
+    20   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     2   0.0                   Unknown fn 2406477268 [53]
+     1   0.0                   foreign function collect_backtrace [44]
+     2   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+     4   0.0                   foreign function gc_alloc_region [47]
+    31   0.0                   foreign function gc_alloc_new_region [46]
+     5   0.0                   foreign function allocator_record_backtrace [43]
+     7   0.0                   LIST-ALLOC-TRAMP [41]
+   295   0.2    369   0.3   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    25   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    46   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     1   0.0                   foreign function page_table_pages [52]
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     1   0.0                   foreign function collector_alloc_fallback [45]
+     1   0.0                   foreign function gc_alloc_new_region [46]
+   151   0.1                   foreign function collect_backtrace [44]
+    15   0.0                   Unknown fn 2 [39]
+   178   0.1    183   0.2   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+     4   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    27   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     1   0.0                   foreign function debug_function_from_pc [51]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   foreign function gc_alloc_new_region [46]
+     2   0.0                   foreign function component_ptr_from_pc [49]
+     1   0.0                   foreign function allocator_record_backtrace [43]
+    31   0.0                   foreign function collect_backtrace [44]
+     1   0.0                   foreign function page_table_pages [52]
+     2   0.0                   Unknown fn 2 [39]
+     1   0.0                   foreign function search_all_gc_spaces [40]
+   149   0.1    184   0.2   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+    32   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     3   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+    44   0.0                   Unknown fn 2 [39]
+    90   0.1    115   0.1   CNVRS/ANTLR-RUNTIME:CONTEXT-FROM-STACK [12]
+    25   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     9   0.0                   foreign function lisp_frame_previous [48]
+     6   0.0                   foreign function component_ptr_from_pc [49]
+     8   0.0                   foreign function search_all_gc_spaces [40]
+     3   0.0                   foreign function collect_backtrace [44]
+    16   0.0                   SB-KERNEL:SUB-GC [13]
+     4   0.0                   Unknown fn 2 [39]
+    75   0.1     91   0.1   SB-KERNEL:SUB-GC [13]
+    16   0.0                   SB-KERNEL:SUB-GC [13]
+------------------------------------------------------------------------
+    31   0.0                   Unknown fn 2 [39]
+    66   0.1     68   0.1   CNVRS/ANTLR-RUNTIME:COMPUTE-REACH-SET [14]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     2   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0                   foreign function lisp_alloc [57]
+     2   0.0                   foreign function page_table_pages [52]
+     4   0.0                   foreign function page_table [42]
+     2   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     2   0.0                   foreign function collector_alloc_fallback [45]
+     2   0.0                   foreign function scav_list_pointer [50]
+     1   0.0                   foreign function gc_alloc_region [47]
+     1   0.0                   foreign function allocator_record_backtrace [43]
+    30   0.0     45   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+    13   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     2   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0                   foreign function lisp_alloc [57]
+     2   0.0                   foreign function page_table_pages [52]
+     4   0.0                   foreign function page_table [42]
+     2   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     2   0.0                   foreign function collector_alloc_fallback [45]
+     2   0.0                   foreign function scav_list_pointer [50]
+     1   0.0                   foreign function gc_alloc_region [47]
+     1   0.0                   foreign function allocator_record_backtrace [43]
+    30   0.0     30   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+------------------------------------------------------------------------
+     2   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0                   foreign function lisp_alloc [57]
+     2   0.0                   foreign function page_table_pages [52]
+     4   0.0                   foreign function page_table [42]
+     2   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     2   0.0                   foreign function collector_alloc_fallback [45]
+     2   0.0                   foreign function scav_list_pointer [50]
+     1   0.0                   foreign function gc_alloc_region [47]
+     1   0.0                   foreign function allocator_record_backtrace [43]
+    30   0.0     30   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+------------------------------------------------------------------------
+    26   0.0                   foreign function collect_backtrace [44]
+     1   0.0                   foreign function search_all_gc_spaces [40]
+     1   0.0                   foreign function component_ptr_from_pc [49]
+    30   0.0     30   0.0   SB-IMPL::GROW-HASH-TABLE [18]
+------------------------------------------------------------------------
+    16   0.0                   Unknown fn 2 [39]
+    29   0.0     29   0.0   CNVRS::ANTLR-TOKEN-INPUT [19]
+------------------------------------------------------------------------
+     1   0.0                   foreign function lisp_alloc [57]
+     2   0.0                   foreign function page_table_pages [52]
+     3   0.0                   foreign function page_table [42]
+     2   0.0                   foreign function gc_alloc_new_region [46]
+     2   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     2   0.0                   foreign function scav_list_pointer [50]
+     1   0.0                   foreign function collector_alloc_fallback [45]
+     1   0.0                   foreign function gc_alloc_region [47]
+     1   0.0                   foreign function allocator_record_backtrace [43]
+    29   0.0     29   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0                   foreign function collector_alloc_fallback [45]
+     4   0.0      4   0.0   CNVRS::PREDICT [21]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0                   foreign function page_table [42]
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [38]
+     3   0.0      4   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [22]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0                   foreign function scav_list_pointer [50]
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [23]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_region [47]
+     1   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [25]
+     1   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     1   0.0                   foreign function page_table [42]
+     1   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [29]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0                   foreign function page_table [42]
+     1   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [31]
+     1   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     1   0.0                   foreign function page_table [42]
+     1   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [36]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   SB-FORMAT::%FORMAT [24]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_region [47]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [26]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [27]
+------------------------------------------------------------------------
+     1   0.0                   foreign function scav_list_pointer [50]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [28]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [30]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [32]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [46]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [33]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [34]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [35]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/ANTLR-RUNTIME:MAKE-ATN-CONFIG-SET [37]
+------------------------------------------------------------------------
+     0   0.0  11171   9.2   foreign function collect_backtrace [44]
+   887   0.7                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+  1766   1.4                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   527   0.4                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+    26   0.0                   SB-IMPL::GROW-HASH-TABLE [18]
+   777   0.6                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+  6338   5.2                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   590   0.5                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    73   0.1                   VECTOR-PUSH-EXTEND [8]
+     3   0.0                   SB-KERNEL:SUB-GC [13]
+    31   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+   151   0.1                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+------------------------------------------------------------------------
+     0   0.0   9065   7.4   SB-SPROF::UNAVAILABLE-FRAMES [38]
+  4358   3.6                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   339   0.3                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   740   0.6                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   342   0.3                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+   482   0.4                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    27   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+    81   0.1                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [22]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+    20   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+    60   0.0                   VECTOR-PUSH-EXTEND [8]
+  2606   2.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     0   0.0   8883   7.3   foreign function search_all_gc_spaces [40]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+  2022   1.7                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   686   0.6                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   788   0.6                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+  4551   3.7                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   226   0.2                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   551   0.5                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    46   0.0                   VECTOR-PUSH-EXTEND [8]
+     8   0.0                   SB-KERNEL:SUB-GC [13]
+     1   0.0                   SB-IMPL::GROW-HASH-TABLE [18]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+------------------------------------------------------------------------
+     0   0.0   7625   6.3   foreign function component_ptr_from_pc [49]
+  1217   1.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   716   0.6                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   736   0.6                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+  4247   3.5                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   269   0.2                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   400   0.3                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    29   0.0                   VECTOR-PUSH-EXTEND [8]
+     6   0.0                   SB-KERNEL:SUB-GC [13]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   SB-IMPL::GROW-HASH-TABLE [18]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+------------------------------------------------------------------------
+     0   0.0   6256   5.1   Unknown fn 2 [39]
+    22   0.0                   VECTOR-PUSH-EXTEND [8]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+    16   0.0                   CNVRS::ANTLR-TOKEN-INPUT [19]
+    44   0.0                   CNVRS/ANTLR-RUNTIME:CONTEXT-FROM-STACK [12]
+    31   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-REACH-SET [14]
+     4   0.0                   SB-KERNEL:SUB-GC [13]
+  1436   1.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    15   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+  3510   2.9                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   454   0.4                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   124   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   243   0.2                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+   355   0.3                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+------------------------------------------------------------------------
+     0   0.0   5947   4.9   foreign function page_table_pages [52]
+   812   0.7                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   874   0.7                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+  3212   2.6                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+   465   0.4                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   110   0.1                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   366   0.3                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+    39   0.0                   VECTOR-PUSH-EXTEND [8]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+    44   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    15   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+------------------------------------------------------------------------
+     0   0.0   1332   1.1   foreign function lisp_frame_previous [48]
+   163   0.1                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+   226   0.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    27   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+   465   0.4                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+     9   0.0                   SB-KERNEL:SUB-GC [13]
+   393   0.3                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+    48   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+------------------------------------------------------------------------
+     0   0.0    623   0.5   foreign function debug_function_from_pc [51]
+    46   0.0                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+    95   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+    25   0.0                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+    37   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+    40   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+   379   0.3                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     0   0.0    272   0.2   foreign function gc_alloc_new_region [46]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+     1   0.0                   CNVRS::PREDICT [21]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [33]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [22]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [32]
+    91   0.1                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+   115   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+    20   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS [5]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+    31   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+------------------------------------------------------------------------
+     0   0.0    222   0.2   foreign function page_table [42]
+    97   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [36]
+    67   0.1                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    31   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [22]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+     4   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     4   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [31]
+     4   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [29]
+     8   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     0   0.0    148   0.1   foreign function scav_list_pointer [50]
+    67   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    56   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    14   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [23]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [28]
+------------------------------------------------------------------------
+     0   0.0    133   0.1   foreign function collector_alloc_fallback [45]
+    51   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    14   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+    45   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS [4]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE [10]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+     1   0.0                   CNVRS::PREDICT [21]
+    13   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     0   0.0     41   0.0   foreign function gc_alloc_region [47]
+    20   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    11   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [26]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+     4   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [25]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+------------------------------------------------------------------------
+     0   0.0     40   0.0   foreign function allocator_record_backtrace [43]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE [11]
+    10   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    19   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     5   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+------------------------------------------------------------------------
+     0   0.0     38   0.0   foreign function lisp_alloc [57]
+    12   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    18   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [20]
+     4   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [17]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [16]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp") [15]
+------------------------------------------------------------------------
+     0   0.0     30   0.0   LIST-ALLOC-TRAMP [41]
+    11   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+    12   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     7   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+------------------------------------------------------------------------
+     0   0.0     20   0.0   Unknown fn 2406477268 [53]
+    10   0.0                   CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT [7]
+     8   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [9]
+------------------------------------------------------------------------
+     0   0.0      6   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/src/antlr4-parser.lisp") [55]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD [3]
+     3   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     0   0.0      4   0.0   foreign function copy_instance [56]
+     1   0.0                   CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS [6]
+     1   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     2   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     0   0.0      3   0.0   foreign function _ZN3WTF17SharedTaskFunctorIFvRN3JSC12CCallHelpersERNS1_2B33Air17GenerationContextEEZNKS4_24StackmapGenerationParams11addLatePathIZZNS1_3FTL12_GLOBAL__N_112LowerDFGToB311compileInByILNS1_10AccessTypeE20EPNS4_5ValueEEEvSH_T0_ENKUlS3_RKS9_E_clES3_SK_EUlS3_E_EEvRKT_EUlS3_S7_E_E3runES3_S7_ [54]
+     3   0.0                   CNVRS/ANTLR-RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+
+
+           Self        Total        Cumul
+  Nr  Count     %  Count     %  Count     %    Calls  Function
+------------------------------------------------------------------------
+   1  63561  52.2  76846  63.1  63561  52.2        -  CNVRS/ANTLR-RUNTIME::CLOSURE-WORK
+   2  25779  21.2  27843  22.8  89340  73.3        -  (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP")
+   3  10457   8.6  11940   9.8  99797  81.9        -  CNVRS/ANTLR-RUNTIME:CONFIG-SET-ADD
+   4   8804   7.2   9808   8.0 108601  89.1        -  CNVRS/ANTLR-RUNTIME::COMBINE-COMMON-PARENTS
+   5   6857   5.6   7743   6.4 115458  94.7        -  CNVRS/ANTLR-RUNTIME::MERGE-ARRAYS
+   6   4202   3.4   4513   3.7 119660  98.2        -  CNVRS/ANTLR-RUNTIME::MERGE-SINGLETONS
+   7    854   0.7   1029   0.8 120514  98.9        -  CNVRS/ANTLR-RUNTIME:ADAPTIVE-PREDICT
+   8    298   0.2    335   0.3 120812  99.1        -  VECTOR-PUSH-EXTEND
+   9    295   0.2    369   0.3 121107  99.4        -  CNVRS/ANTLR-RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT
+  10    178   0.1    183   0.2 121285  99.5        -  CNVRS/ANTLR-RUNTIME:COMPUTE-START-STATE
+  11    149   0.1    184   0.2 121434  99.6        -  CNVRS/ANTLR-RUNTIME::CLOSURE-CHECKING-STOP-STATE
+  12     90   0.1    115   0.1 121524  99.7        -  CNVRS/ANTLR-RUNTIME:CONTEXT-FROM-STACK
+  13     75   0.1     91   0.1 121599  99.8        -  SB-KERNEL:SUB-GC
+  14     66   0.1     68   0.1 121665  99.8        -  CNVRS/ANTLR-RUNTIME:COMPUTE-REACH-SET
+  15     30   0.0     45   0.0 121695  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  16     30   0.0     30   0.0 121725  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  17     30   0.0     30   0.0 121755  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  18     30   0.0     30   0.0 121785  99.9        -  SB-IMPL::GROW-HASH-TABLE
+  19     29   0.0     29   0.0 121814 100.0        -  CNVRS::ANTLR-TOKEN-INPUT
+  20     29   0.0     29   0.0 121843 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  21      4   0.0      4   0.0 121847 100.0        -  CNVRS::PREDICT
+  22      3   0.0      4   0.0 121850 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  23      2   0.0      2   0.0 121852 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  24      1   0.0      2   0.0 121853 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  25      1   0.0      2   0.0 121854 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  26      1   0.0      2   0.0 121855 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  27      1   0.0      2   0.0 121856 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  28      1   0.0      1   0.0 121857 100.0        -  SB-FORMAT::%FORMAT
+  29      1   0.0      1   0.0 121858 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  30      1   0.0      1   0.0 121859 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  31      1   0.0      1   0.0 121860 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  32      1   0.0      1   0.0 121861 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  33      1   0.0      1   0.0 121862 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  34      1   0.0      1   0.0 121863 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  35      1   0.0      1   0.0 121864 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  36      1   0.0      1   0.0 121865 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/bench/antlr-java/warm-profile.lisp")
+  37      1   0.0      1   0.0 121866 100.0        -  CNVRS/ANTLR-RUNTIME:MAKE-ATN-CONFIG-SET
+  38      0   0.0  11171   9.2 121866 100.0        -  foreign function collect_backtrace
+  39      0   0.0   9065   7.4 121866 100.0        -  SB-SPROF::UNAVAILABLE-FRAMES
+  40      0   0.0   8883   7.3 121866 100.0        -  foreign function search_all_gc_spaces
+  41      0   0.0   7625   6.3 121866 100.0        -  foreign function component_ptr_from_pc
+  42      0   0.0   6256   5.1 121866 100.0        -  Unknown fn 2
+  43      0   0.0   5947   4.9 121866 100.0        -  foreign function page_table_pages
+  44      0   0.0   1332   1.1 121866 100.0        -  foreign function lisp_frame_previous
+  45      0   0.0    623   0.5 121866 100.0        -  foreign function debug_function_from_pc
+  46      0   0.0    272   0.2 121866 100.0        -  foreign function gc_alloc_new_region
+  47      0   0.0    222   0.2 121866 100.0        -  foreign function page_table
+  48      0   0.0    148   0.1 121866 100.0        -  foreign function scav_list_pointer
+  49      0   0.0    133   0.1 121866 100.0        -  foreign function collector_alloc_fallback
+  50      0   0.0     41   0.0 121866 100.0        -  foreign function gc_alloc_region
+  51      0   0.0     40   0.0 121866 100.0        -  foreign function allocator_record_backtrace
+  52      0   0.0     38   0.0 121866 100.0        -  foreign function lisp_alloc
+  53      0   0.0     30   0.0 121866 100.0        -  LIST-ALLOC-TRAMP
+  54      0   0.0     20   0.0 121866 100.0        -  Unknown fn 2406477268
+  55      0   0.0      6   0.0 121866 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN "/Users/alessio/projects/cnvrs/src/antlr4-parser.lisp")
+  56      0   0.0      4   0.0 121866 100.0        -  foreign function copy_instance
+  57      0   0.0      3   0.0 121866 100.0        -  foreign function _ZN3WTF17SharedTaskFunctorIFvRN3JSC12CCallHelpersERNS1_2B33Air17GenerationContextEEZNKS4_24StackmapGenerationParams11addLatePathIZZNS1_3FTL12_GLOBAL__N_112LowerDFGToB311compileInByILNS1_10AccessTypeE20EPNS4_5ValueEEEvSH_T0_ENKUlS3_RKS9_E_clES3_SK_EUlS3_E_EEvRKT_EUlS3_S7_E_E3runES3_S7_
+------------------------------------------------------------------------
+          0   0.0                                     elsewhere
+DFA ROOTS 66 STATES 1160
+CONTEXTS 24764

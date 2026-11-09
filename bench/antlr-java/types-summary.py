@@ -2,8 +2,9 @@
 from pathlib import Path
 import json
 import re
+import sys
 from statistics import median
-root = Path(__file__).resolve().parent / "types-results"
+root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent / "types-results"
 data = {}
 for label in ("before", "after"):
     for trial in (1, 2, 3):

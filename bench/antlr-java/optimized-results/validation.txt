@@ -1,0 +1,8 @@
+iri lexer: identical lexer states/edges, parser states and context count [31, 89, 0, 0]
+iri parse-none: identical lexer states/edges, parser states and context count [0, 0, 5, 20]
+iri parse-tree: identical lexer states/edges, parser states and context count [0, 0, 5, 20]
+iri pipeline-tree: identical lexer states/edges, parser states and context count [31, 89, 5, 20]
+java8 lexer: identical lexer states/edges, parser states and context count [111, 367, 0, 0]
+java8 parse-none: identical lexer states/edges, parser states and context count [0, 0, 1160, 24764]
+java8 parse-tree: identical lexer states/edges, parser states and context count [0, 0, 1160, 24764]
+java8 pipeline-tree: identical lexer states/edges, parser states and context count [111, 367, 1160, 24764]

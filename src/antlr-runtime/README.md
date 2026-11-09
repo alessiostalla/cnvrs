@@ -38,10 +38,11 @@ cannot be replaced casually with a merely similar result.
 
 ## Host-language and frontend boundaries
 
-- Immutable vector-backed context nodes implement Java's singleton/array
-  interface. A one-element node is a singleton; the distinguished empty node
-  uses `EMPTY_RETURN_STATE`. Java's temporary singleton-to-array view does not
-  need an allocated wrapper in this representation.
+- Immutable singleton contexts store a parent and return state directly; array
+  contexts store vectors, matching Java's separate representations. The empty
+  singleton uses `EMPTY_RETURN_STATE`. Internal indexed traversal avoids creating
+  vector views for singletons; the exported vector accessors remain available.
+  Mixed singleton/array merging does not need a temporary array wrapper.
 - Lisp hash buckets use the cached Java context hash and structural equality.
   Portable Common Lisp does not provide arbitrary hash-table equality tests.
 - Java's null/invalid-alt sentinel becomes `nil`; predicted alternatives inside
@@ -77,7 +78,7 @@ in SLL and evaluated on full-context closure as in Java.
 
 ## Fidelity checks
 
-`asdf:test-system :cnvrs/antlr-runtime` runs **2,881 checks** without Java:
+`asdf:test-system :cnvrs/antlr-runtime` runs **2,898 checks** without Java:
 
 - 140 Java-generated 32-bit hash/rotate boundary cases, including unsigned overflow and word-count mixing.
 - 256 Java-generated SLL/LL context-merge cases, including exact hashes,
@@ -194,3 +195,12 @@ Both normal and forced-safety-3 clean builds pass all 11,897 checks. The Java
 prediction, topology, DFA/context-cache and lexer parity fixtures remain unchanged.
 
 [Compiler diagnostics and measured effects](../../bench/antlr-java/types.md).
+
+## Warm prediction profiling
+
+The [warm CPU/allocation profile and matched Java operation counters](../../bench/antlr-java/profile.md)
+verify identical adaptive call positions, closure visits, reach sizes, config
+insertions and context merges before and after compact singleton storage and
+integer-hash buckets. Buckets compare complete equality after hashing; no
+prediction algorithm or cache lifetime changed. Additional checks cover hash
+collisions, semantic-form equality and singleton-parent canonicalization.

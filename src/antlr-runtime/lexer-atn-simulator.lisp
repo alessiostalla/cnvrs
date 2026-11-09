@@ -141,8 +141,9 @@
                                                          :context (empty-prediction-context)))
                    (setf accepted t))))
       (when (and context (not (empty-context-p context)))
-        (loop for ret across (context-return-states context)
-              for parent across (context-parents context)
+        (loop for i fixnum below (context-size context)
+              for ret = (context-return-state context i)
+              for parent = (context-parent context i)
               unless (= ret +empty-return-state+) do
                 (setf accepted (lexer-closure (derive-lexer-config config ret :context parent)
                                                set accepted speculative eof-as-epsilon))))

@@ -1,5 +1,14 @@
 # IRI and Java 8 versus ANTLR Java
 
+The [native-code audit](disassembly.md) disassembles closure checks, configuration
+insertion, context merging and their helpers, with controlled type experiments.
+
+The [warm profiling follow-up](profile.md) compares Java/Lisp operation counts
+and measures compact singleton contexts and allocation-free lookup keys.
+
+The [latest matched Java comparison](optimized.md) benchmarks optimized revision
+`a640f58` against freshly generated ANTLR 4.13.2 parsers and lexers.
+
 The [type declarations and compiler-policy follow-up](types.md) measures the next
 optimization round against the committed LL(1) baseline.
 

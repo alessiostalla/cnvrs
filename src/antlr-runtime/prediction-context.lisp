@@ -32,30 +32,61 @@
           h (u32 (* h #xc2b2ae35)))
     (u32 (logxor h (ash h -16)))))
 
-(defstruct (prediction-context
-             (:constructor %prediction-context (return-states parents hash)))
-  (return-states #() :type simple-vector :read-only t)
-  (parents #() :type simple-vector :read-only t)
+(defstruct (prediction-context (:constructor nil) (:copier nil))
   (hash 0 :type (unsigned-byte 32) :read-only t))
-(declaim (inline context-return-states context-parents context-hash empty-context-p empty-prediction-context))
-(defun context-return-states (context) (prediction-context-return-states context))
-(defun context-parents (context) (prediction-context-parents context))
+(defstruct (singleton-prediction-context
+             (:include prediction-context)
+             (:constructor %singleton-context (parent return-state hash)) (:copier nil))
+  (parent nil :type (or null prediction-context) :read-only t)
+  (return-state 0 :type (unsigned-byte 32) :read-only t))
+(defstruct (array-prediction-context
+             (:include prediction-context)
+             (:constructor %array-context (return-states parents hash)) (:copier nil))
+  (return-states #() :type simple-vector :read-only t)
+  (parents #() :type simple-vector :read-only t))
+(declaim (inline context-size context-return-state context-parent context-hash
+                 empty-context-p empty-prediction-context))
+(defun context-size (context)
+  (etypecase context
+    (singleton-prediction-context 1)
+    (array-prediction-context (length (array-prediction-context-return-states context)))))
+(defun context-return-state (context index)
+  (declare (type fixnum index))
+  (etypecase context
+    (singleton-prediction-context
+     (assert (zerop index)) (singleton-prediction-context-return-state context))
+    (array-prediction-context
+     (the (unsigned-byte 32) (aref (array-prediction-context-return-states context) index)))))
+(defun context-parent (context index)
+  (declare (type fixnum index))
+  (etypecase context
+    (singleton-prediction-context
+     (assert (zerop index)) (singleton-prediction-context-parent context))
+    (array-prediction-context (aref (array-prediction-context-parents context) index))))
+;; Preserve the exported vector views. Internal traversal uses indexed accessors
+;; so singleton contexts never need temporary one-element vectors.
+(defun context-return-states (context)
+  (etypecase context
+    (singleton-prediction-context (vector (singleton-prediction-context-return-state context)))
+    (array-prediction-context (array-prediction-context-return-states context))))
+(defun context-parents (context)
+  (etypecase context
+    (singleton-prediction-context (vector (singleton-prediction-context-parent context)))
+    (array-prediction-context (array-prediction-context-parents context))))
 (defun context-hash (context) (if context (prediction-context-hash context) 0))
 (defparameter *empty-prediction-context*
-  (%prediction-context (vector +empty-return-state+) (vector nil)
-                       (murmur-finish 1 0)))
+  (%singleton-context nil +empty-return-state+ (murmur-finish 1 0)))
 (defun empty-prediction-context () *empty-prediction-context*)
 (defun empty-context-p (context) (eq context *empty-prediction-context*))
 (defun context-has-empty-path-p (context)
-  (= (the (unsigned-byte 32)
-          (aref (context-return-states context)
-                (1- (length (context-return-states context))))) +empty-return-state+))
+  (= (context-return-state context (1- (context-size context))) +empty-return-state+))
 (defun context-equal (a b)
   (or (eq a b)
       (and a b (= (context-hash a) (context-hash b))
-           (equalp (context-return-states a) (context-return-states b))
-           (loop for x across (context-parents a)
-                 for y across (context-parents b) always (context-equal x y)))))
+           (= (context-size a) (context-size b))
+           (loop for i fixnum below (context-size a)
+                 always (and (= (context-return-state a i) (context-return-state b i))
+                             (context-equal (context-parent a i) (context-parent b i)))))))
 (defun context-node (states parents)
   (declare (type simple-vector states parents))
   (let ((hash 1))
@@ -63,12 +94,14 @@
     (loop for parent across parents do
       (setf hash (murmur-update hash (context-hash parent))))
     (loop for state across states do (setf hash (murmur-update hash (the (unsigned-byte 32) state))))
-    (%prediction-context states parents (murmur-finish hash (* 2 (length states))))))
+    (%array-context states parents (murmur-finish hash (* 2 (length states))))))
 (defun singleton-context (parent return-state)
   (declare (type (unsigned-byte 32) return-state))
   (if (and (null parent) (= return-state +empty-return-state+))
       (empty-prediction-context)
-      (context-node (vector return-state) (vector parent))))
+      (%singleton-context parent return-state
+                          (murmur-finish (murmur-update (murmur-update 1 (context-hash parent))
+                                                       return-state) 2))))
 (defun context-from-stack (stack)
   (if stack (singleton-context (context-from-stack (cdr stack)) (car stack))
       (empty-prediction-context)))
@@ -88,11 +121,18 @@
       (let ((existing (context-cache-get cache context)))
         (setf (gethash context visited)
               (or existing
-                  (let* ((parents (map 'vector (lambda (p) (cached-context p cache visited))
-                                       (context-parents context)))
-                         (updated (if (every #'eq parents (context-parents context))
-                                      context
-                                      (context-node (context-return-states context) parents))))
+                  (let ((updated
+                          (etypecase context
+                            (singleton-prediction-context
+                             (let* ((old (singleton-prediction-context-parent context))
+                                    (parent (cached-context old cache visited)))
+                               (if (eq parent old) context
+                                   (singleton-context parent (singleton-prediction-context-return-state context)))))
+                            (array-prediction-context
+                             (let* ((old (array-prediction-context-parents context))
+                                    (parents (map 'vector (lambda (p) (cached-context p cache visited)) old)))
+                               (if (every #'eq parents old) context
+                                   (context-node (array-prediction-context-return-states context) parents)))))))
                     (context-cache-add cache updated)))))))
 
 (defun merge-cache-get (cache a b wildcard)
@@ -115,19 +155,19 @@
       (cond ((empty-context-p a) a) ((empty-context-p b) b))
       (cond ((and (empty-context-p a) (empty-context-p b)) (empty-prediction-context))
             ((empty-context-p a)
-             (context-node (vector (aref (context-return-states b) 0) +empty-return-state+)
-                           (vector (aref (context-parents b) 0) nil)))
+             (context-node (vector (context-return-state b 0) +empty-return-state+)
+                           (vector (context-parent b 0) nil)))
             ((empty-context-p b)
-             (context-node (vector (aref (context-return-states a) 0) +empty-return-state+)
-                           (vector (aref (context-parents a) 0) nil))))))
+             (context-node (vector (context-return-state a 0) +empty-return-state+)
+                           (vector (context-parent a 0) nil))))))
 (defun merge-singletons (a b root-is-wildcard merge-cache)
   (let ((previous (merge-cache-get merge-cache a b root-is-wildcard)))
     (when previous (return-from merge-singletons previous)))
   (let ((root (merge-root a b root-is-wildcard)))
     (when root (return-from merge-singletons (merge-cache-put merge-cache a b root-is-wildcard root))))
-  (let ((ar (the (unsigned-byte 32) (aref (context-return-states a) 0)))
-        (br (the (unsigned-byte 32) (aref (context-return-states b) 0)))
-        (ap (aref (context-parents a) 0)) (bp (aref (context-parents b) 0)))
+  (let ((ar (the (unsigned-byte 32) (context-return-state a 0)))
+        (br (the (unsigned-byte 32) (context-return-state b 0)))
+        (ap (context-parent a 0)) (bp (context-parent b 0)))
     (if (= ar br)
         (let ((parent (merge-contexts ap bp root-is-wildcard merge-cache)))
           (cond ((eq parent ap) a) ((eq parent bp) b)
@@ -148,25 +188,24 @@
   (let ((previous (merge-cache-get merge-cache a b root-is-wildcard)))
     (when previous (return-from merge-arrays previous)))
   (let ((i 0) (j 0) (states nil) (parents nil)
-        (as (context-return-states a)) (bs (context-return-states b))
-        (ap (context-parents a)) (bp (context-parents b)))
+        (as (context-size a)) (bs (context-size b)))
     (declare (type fixnum i j))
-    (loop while (and (< i (length as)) (< j (length bs))) do
-      (cond ((= (the (unsigned-byte 32) (aref as i)) (the (unsigned-byte 32) (aref bs j)))
-             (let* ((payload (aref as i)) (x (aref ap i)) (y (aref bp j))
+    (loop while (and (< i as) (< j bs)) do
+      (cond ((= (the (unsigned-byte 32) (context-return-state a i)) (the (unsigned-byte 32) (context-return-state b j)))
+             (let* ((payload (context-return-state a i)) (x (context-parent a i)) (y (context-parent b j))
                     (both-empty (and (= payload +empty-return-state+) (null x) (null y)))
                     (same-parent (and x y (context-equal x y))))
                (push payload states)
                (push (if (or both-empty same-parent) x
                          (merge-contexts x y root-is-wildcard merge-cache)) parents))
              (incf i) (incf j))
-            ((< (the (unsigned-byte 32) (aref as i)) (the (unsigned-byte 32) (aref bs j)))
-             (push (aref as i) states) (push (aref ap i) parents) (incf i))
-            (t (push (aref bs j) states) (push (aref bp j) parents) (incf j))))
-    (loop while (< i (length as)) do
-      (push (aref as i) states) (push (aref ap i) parents) (incf i))
-    (loop while (< j (length bs)) do
-      (push (aref bs j) states) (push (aref bp j) parents) (incf j))
+            ((< (the (unsigned-byte 32) (context-return-state a i)) (the (unsigned-byte 32) (context-return-state b j)))
+             (push (context-return-state a i) states) (push (context-parent a i) parents) (incf i))
+            (t (push (context-return-state b j) states) (push (context-parent b j) parents) (incf j))))
+    (loop while (< i as) do
+      (push (context-return-state a i) states) (push (context-parent a i) parents) (incf i))
+    (loop while (< j bs) do
+      (push (context-return-state b j) states) (push (context-parent b j) parents) (incf j))
     (let* ((states (coerce (nreverse states) 'vector))
            (parents (coerce (nreverse parents) 'vector)))
       (when (= (length states) 1)
@@ -181,20 +220,21 @@
 (defun merge-contexts (a b root-is-wildcard &optional merge-cache)
   "PredictionContext.merge, retaining Java's singleton/root/array dispatch."
   (when (context-equal a b) (return-from merge-contexts a))
-  (when (and (= (length (context-return-states a)) 1)
-             (= (length (context-return-states b)) 1))
+  (when (and (= (context-size a) 1)
+             (= (context-size b) 1))
     (return-from merge-contexts (merge-singletons a b root-is-wildcard merge-cache)))
   (when root-is-wildcard
     (when (empty-context-p a) (return-from merge-contexts a))
     (when (empty-context-p b) (return-from merge-contexts b)))
-  ;; The abstract context interface exposes vectors for singleton and array
-  ;; nodes, so Java's temporary singleton-to-array wrapper needs no allocation.
+  ;; Indexed access handles singleton/array inputs without Java's temporary
+  ;; singleton-to-array wrappers.
   (merge-arrays a b root-is-wildcard merge-cache))
 
 (defun context-paths (context)
   "Enumerate paths for differential tests/debugging, never for prediction."
   (if (empty-context-p context) (list nil)
-      (loop for state across (context-return-states context)
-            for parent across (context-parents context)
+      (loop for i fixnum below (context-size context)
+            for state = (context-return-state context i)
+            for parent = (context-parent context i)
             append (if (= state +empty-return-state+) (list nil)
                        (mapcar (lambda (tail) (cons state tail)) (context-paths parent))))))

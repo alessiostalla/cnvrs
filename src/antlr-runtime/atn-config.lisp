@@ -22,7 +22,7 @@
   (semantic t) (outer-depth 0 :type fixnum) precedence-filter-suppressed-p)
 (defstruct (atn-config-set (:conc-name config-set-))
   (items (make-array 0 :adjustable t :fill-pointer 0) :type (vector t))
-  (lookup (make-hash-table :test 'equal) :type (or null hash-table)) full-context
+  (lookup (make-hash-table :test 'eql) :type (or null hash-table)) full-context
   (unique-alt nil :type (or null fixnum)) conflicting-alts has-semantic-context dips-into-outer-context read-only-p)
 (defvar *merge-cache* nil)
 
@@ -32,15 +32,24 @@
                    :semantic semantic :outer-depth (atn-config-outer-depth config)
                    :precedence-filter-suppressed-p
                    (atn-config-precedence-filter-suppressed-p config)))
+(declaim (inline config-lookup-hash config-lookup-equal))
+(defun config-lookup-hash (config)
+  (murmur-finish
+   (murmur-update
+    (murmur-update (u32 (atn-config-state config)) (u32 (atn-config-alt config)))
+    (if (eq (atn-config-semantic config) t) 0 (u32 (sxhash (atn-config-semantic config))))) 3))
+(defun config-lookup-equal (a b)
+  (and (= (atn-config-state a) (atn-config-state b))
+       (= (atn-config-alt a) (atn-config-alt b))
+       (equal (atn-config-semantic a) (atn-config-semantic b))))
 (defun config-set-add (set config &optional (merge-cache *merge-cache*))
   (when (config-set-read-only-p set) (error "ATNConfigSet is read-only"))
   (unless (eq (atn-config-semantic config) t)
     (setf (config-set-has-semantic-context set) t))
   (when (plusp (atn-config-outer-depth config))
     (setf (config-set-dips-into-outer-context set) t))
-  (let* ((key (list (atn-config-state config) (atn-config-alt config)
-                    (atn-config-semantic config)))
-         (existing (gethash key (config-set-lookup set))))
+  (let* ((key (config-lookup-hash config))
+         (existing (find config (gethash key (config-set-lookup set)) :test #'config-lookup-equal)))
     (if existing
         (setf (atn-config-context existing)
               (merge-contexts (atn-config-context existing) (atn-config-context config)
@@ -50,7 +59,7 @@
               (atn-config-precedence-filter-suppressed-p existing)
               (or (atn-config-precedence-filter-suppressed-p existing)
                   (atn-config-precedence-filter-suppressed-p config)))
-        (progn (setf (gethash key (config-set-lookup set)) config)
+        (progn (push config (gethash key (config-set-lookup set)))
                (vector-push-extend config (config-set-items set)))))
   t)
 (defun config-set-alternatives (set)
@@ -68,16 +77,18 @@
 (defun conflicting-alt-subsets (set)
   ;; Java AltAndContextMap ignores alt and semantic context, but compares
   ;; complete prediction contexts. Hash buckets avoid flattening the DAG.
-  (let ((buckets (make-hash-table :test 'equal)) (groups nil))
+  (let ((buckets (make-hash-table :test 'eql)) (groups nil))
     (loop for c across (config-set-items set) do
       (let* ((context (atn-config-context c))
-             (key (cons (atn-config-state c) (context-hash context)))
-             (group (find context (gethash key buckets) :key #'car :test #'context-equal)))
+             (key (murmur-update (u32 (atn-config-state c)) (context-hash context)))
+             (group (find-if (lambda (g) (and (= (atn-config-state c) (first g))
+                                             (context-equal context (second g))))
+                             (gethash key buckets))))
         (unless group
-          (setf group (list context))
+          (setf group (list (atn-config-state c) context))
           (push group (gethash key buckets)) (push group groups))
-        (pushnew (atn-config-alt c) (cdr group))))
-    (mapcar (lambda (g) (sort (copy-list (cdr g)) #'<)) groups)))
+        (pushnew (atn-config-alt c) (cddr group))))
+    (mapcar (lambda (g) (sort (copy-list (cddr g)) #'<)) groups)))
 (defun single-viable-alt (alt-subsets)
   (let ((answer nil))
     (dolist (subset alt-subsets)
