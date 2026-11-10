@@ -112,39 +112,44 @@
     (array-prediction-context
      (let ((states (array-prediction-context-return-states context)))
        (= (aref states (1- (length states))) +empty-return-state+)))))
+(declaim (inline context-equal))
 (defun context-equal (a b)
   (declare (type (or null prediction-context) a b))
   (or (eq a b)
       (and a b (= (context-hash a) (context-hash b))
-           (etypecase a
-             (singleton-prediction-context
-              (etypecase b
-                (singleton-prediction-context
-                 (and (= (singleton-prediction-context-return-state a)
-                         (singleton-prediction-context-return-state b))
-                      (context-equal (singleton-prediction-context-parent a)
-                                     (singleton-prediction-context-parent b))))
-                (array-prediction-context
-                 (let ((bs (array-prediction-context-return-states b)))
-                   (and (= 1 (length bs))
-                        (= (singleton-prediction-context-return-state a) (aref bs 0))
-                        (context-equal (singleton-prediction-context-parent a)
-                                       (aref (array-prediction-context-parents b) 0)))))))
-             (array-prediction-context
-              (let ((as (array-prediction-context-return-states a))
-                    (ap (array-prediction-context-parents a)))
-                (etypecase b
-                  (singleton-prediction-context
-                   (and (= 1 (length as))
-                        (= (aref as 0) (singleton-prediction-context-return-state b))
-                        (context-equal (aref ap 0) (singleton-prediction-context-parent b))))
-                  (array-prediction-context
-                   (let ((bs (array-prediction-context-return-states b))
-                         (bp (array-prediction-context-parents b)))
-                     (and (= (length as) (length bs))
-                          (loop for i fixnum below (length as)
-                                always (and (= (aref as i) (aref bs i))
-                                            (context-equal (aref ap i) (aref bp i))))))))))))))
+           (context-structurally-equal a b))))
+(defun context-structurally-equal (a b)
+  ;; The inline caller already checked identity, NIL and cached hashes.
+  (declare (type prediction-context a b))
+  (etypecase a
+    (singleton-prediction-context
+     (etypecase b
+       (singleton-prediction-context
+        (and (= (singleton-prediction-context-return-state a)
+                (singleton-prediction-context-return-state b))
+             (context-equal (singleton-prediction-context-parent a)
+                            (singleton-prediction-context-parent b))))
+       (array-prediction-context
+        (let ((bs (array-prediction-context-return-states b)))
+          (and (= 1 (length bs))
+               (= (singleton-prediction-context-return-state a) (aref bs 0))
+               (context-equal (singleton-prediction-context-parent a)
+                              (aref (array-prediction-context-parents b) 0)))))))
+    (array-prediction-context
+     (let ((as (array-prediction-context-return-states a))
+           (ap (array-prediction-context-parents a)))
+       (etypecase b
+         (singleton-prediction-context
+          (and (= 1 (length as))
+               (= (aref as 0) (singleton-prediction-context-return-state b))
+               (context-equal (aref ap 0) (singleton-prediction-context-parent b))))
+         (array-prediction-context
+          (let ((bs (array-prediction-context-return-states b))
+                (bp (array-prediction-context-parents b)))
+            (and (= (length as) (length bs))
+                 (loop for i fixnum below (length as)
+                       always (and (= (aref as i) (aref bs i))
+                                   (context-equal (aref ap i) (aref bp i))))))))))))
 (defun context-node (states parents)
   (declare (type (or simple-vector return-state-vector) states) (type simple-vector parents))
   ;; Internal builders already supply packed arrays. Accept the existing general
@@ -171,14 +176,19 @@
 ;; CL has no portable custom hash-table test. Buckets use Java's cached hash,
 ;; then the same structural equality as PredictionContext.equals().
 (defun make-context-cache () (make-hash-table :test 'eql))
+(declaim (inline find-context-in-bucket))
+(defun find-context-in-bucket (context bucket)
+  (declare (type prediction-context context) (type list bucket))
+  (loop for candidate of-type prediction-context in bucket
+        when (context-equal context candidate) return candidate))
 (defun context-cache-get (cache context)
   (declare (type hash-table cache) (type prediction-context context))
-  (loop for candidate of-type prediction-context in (gethash (context-hash context) cache)
-        when (context-equal context candidate) return candidate))
+  (find-context-in-bucket context (gethash (context-hash context) cache)))
 (defun context-cache-add (cache context)
   (declare (type hash-table cache) (type prediction-context context))
-  (or (context-cache-get cache context)
-      (progn (push context (gethash (context-hash context) cache)) context)))
+  (let* ((key (context-hash context)) (bucket (gethash key cache)))
+    (or (find-context-in-bucket context bucket)
+        (progn (setf (gethash key cache) (cons context bucket)) context))))
 (defun cached-context (context cache &optional (visited (make-hash-table :test 'eq)))
   (declare (type (or null prediction-context) context) (type hash-table cache visited))
   (when (or (null context) (empty-context-p context))

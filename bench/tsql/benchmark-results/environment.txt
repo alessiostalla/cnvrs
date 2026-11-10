@@ -1,0 +1,29 @@
+UTC 2026-11-10T08:20:28Z
+146e07cfee49271461c4063310e904fb5512fd85
+arm64
+java version "24" 2025-03-18
+Java(TM) SE Runtime Environment (build 24+36-3646)
+Java HotSpot(TM) 64-Bit Server VM (build 24+36-3646, mixed mode, sharing)
+SBCL 2.4.0
+eae2dfa119a64327444672aff63e9ec35a20180dc5b8090b7a6ab85125df4d76  /tmp/cnvrs-antlr-reference/antlr-4.13.2-complete.jar
+59e6eb841b162800814f3e955656ade78fb55b9e48a4ce0ca4a0386c8c965d1d  bench/tsql/TSqlLexer.g4
+c5b54e53816d7fbabb186397eacc64d231abb6e0070c86d2a93b2f2b213ea6dc  bench/tsql/TSqlParser.g4
+042793cc28f212ac291b638a08bf6443d57ed8cc689ba345d4894b61bdc70602  bench/tsql/examples/backup.sql
+0c55e565b08cb8778fd71ede7214cac36b6eeba9b2bfb1e22f9434b0844d24b1  bench/tsql/examples/built_in_functions_json.sql
+1e823a5a65fac57e48a8257208f52bc5c15fe6e92254e8f81c3b43429c22e9d3  bench/tsql/examples/ddl_create_table.sql
+e05a2436e9b020302dc31e442c63dcf2dbe9f0701a798289a45f39dfe7a048a4  bench/tsql/examples/dml_select.sql
+2d6ea0aac1127005166f5db638d1a2b3ac0f2fc665e80daa477c213f15685d54  bench/tsql/benchmark.lisp
+7d0b5026a1cb23d6831711a6c8a1c69fe846362006bd26474a0bb3f7283d3f4f  bench/tsql/prepare-core.lisp
+9d9b21393a6458a5a8b622c9eb7bebbb88ae7d6da2569f1a47ad7f39c51fbaf9  bench/tsql/prepare.lisp
+6d46d710d3a1ed956aafd83ed1e60585a28b1de57fd3453d96f102e9d35365ae  bench/tsql/validate.lisp
+e2a0b028bfe95f32b74f8c32db05b7db03c83cd9e38a8298c352fc7e7d43eba3  bench/tsql/Benchmark.java
+ccdfd8f7551d9377807685fa3759f3b0716013e82c5918cca33c5a01672ee8ae  bench/tsql/Validation.java
+ab2d3853d2789c1c2e54775e31873664f5289273f6ec533a22220a336d3a337a  src/runtime/atn-config.lisp
+464e8d1d34407df663cd3f22fdcc88de7eb63bbfafadd3610be4b59c3305cfcb  src/runtime/lexer-atn-simulator.lisp
+df8cf6438f5990f971987b6ba9065903d348901c05d21aeb4f35acdcb6b7f199  src/runtime/ll1-analyzer.lisp
+d0d2326f0c2927bbf545b5d43e5c60c6eb8796b14b767e13137126c19a99faba  src/runtime/package.lisp
+04754ed14bf24e21bc79c0deb3583ffe36aaa90403c84e58d72a26f18a4b75f0  src/runtime/parser-atn-simulator.lisp
+e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7  src/runtime/prediction-context.lisp
+f13e08587b731fdb5b128952661bdcb96a1a5849788b58a309379113b96fef68  src/cnvrs.lisp
+8672fca7c88a848192e42b64a2036d90ca1887516103a3ef2aa3c69c6a3e9477  src/macros.lisp
+de82fa74b27f5232d4504dee7845a558425e37d48734769112e817beb1bbbadf  src/parser-runtime.lisp

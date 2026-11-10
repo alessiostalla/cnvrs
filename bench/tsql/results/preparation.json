@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/Users/alessio/.local/opt/sbcl-2.4.0/bin/sbcl",
+    "--dynamic-space-size",
+    "2048",
+    "--script",
+    "bench/tsql/prepare.lisp"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 38.32253345893696,
+  "user_seconds": 37.084354,
+  "system_seconds": 1.042321,
+  "peak_rss_bytes": 355729408,
+  "platform": "macOS ARM64; ru_maxrss is bytes",
+  "heap_limit_mib": 2048,
+  "stack": "default"
+}

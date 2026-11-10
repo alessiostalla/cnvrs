@@ -56,10 +56,13 @@
 (declaim (inline config-lookup-hash config-lookup-equal))
 (defun config-lookup-hash (config)
   (declare (type atn-config config))
-  (murmur-finish
-   (murmur-update
-    (murmur-update (u32 (atn-config-state config)) (u32 (atn-config-alt config)))
-    (if (eq (atn-config-semantic config) t) 0 (u32 (sxhash (atn-config-semantic config))))) 3))
+  ;; This is an internal bucket key, not a Java-visible context/config hash.
+  ;; Full field equality still resolves collisions. Keep intermediate values
+  ;; bounded for machine arithmetic on the measured 64-bit runtime.
+  (let ((key (u32 (+ (* 31 (u32 (atn-config-state config)))
+                     (u32 (atn-config-alt config))))))
+    (if (eq (atn-config-semantic config) t) key
+        (u32 (+ (* 31 key) (u32 (sxhash (atn-config-semantic config))))))))
 (defun config-lookup-equal (a b)
   (declare (type atn-config a b))
   (and (= (atn-config-state a) (atn-config-state b))

@@ -39,6 +39,7 @@
                (:file "test/file-topology")
                (:file "test/atn-topology")
                (:file "test/file-ll1")
+               (:file "test/file-wide-parser")
                (:file "test/ll1")
                (:file "test/file-lexer-atn")
                (:file "test/lexer-atn")

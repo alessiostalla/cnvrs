@@ -1,5 +1,13 @@
 # IRI and Java 8 versus ANTLR Java
 
+The [C11 comparison](../c-reference/README.md) adds a full non-Java grammar
+and two upstream workloads. The [T-SQL compiler investigation](../tsql/README.md)
+resolves the compilation limit encountered while extending that comparison.
+
+The [lookup follow-up](lookup.md) measures configuration-set hashing and context
+lookup fast paths, with collision/equality checks, repeated A/B benchmarks,
+and a fresh paired Java comparison.
+
 The [transient-configuration follow-up](config.md) measures stack-scoped scratch
 configurations and copy-on-retention against the committed storage baseline.
 

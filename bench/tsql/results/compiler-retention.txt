@@ -1,0 +1,44 @@
+; compiling file "/tmp/tsql-roots-many-source.lisp" (written 10 NOV 2026 12:40:23 AM):
+
+Top 20 dynamic instance types:
+  SB-C:TN-REF                         21,882,896 bytes,   195,383 objects.
+  SB-C::GLOBAL-CONFLICTS              16,332,800 bytes,   204,160 objects.
+  SB-C:TN                             16,057,712 bytes,    91,237 objects.
+  SB-KERNEL:LEXENV                    15,716,224 bytes,   122,783 objects.
+  SB-C::LVAR                          15,463,680 bytes,   161,080 objects.
+  SB-C::LAMBDA-VAR                    13,938,432 bytes,    72,596 objects.
+  SB-C::CLAMBDA                       13,390,720 bytes,    41,846 objects.
+  SB-C::REF                           12,846,176 bytes,   114,698 objects.
+  SB-C::CTRAN                         12,787,520 bytes,   199,805 objects.
+  SB-C::VOP                            7,980,448 bytes,    71,254 objects.
+  SB-C::COMBINATION                    7,065,600 bytes,    44,160 objects.
+  SB-C::CBLOCK                         6,487,888 bytes,    36,863 objects.
+  SB-C::CONSTRAINT                     6,069,056 bytes,    94,829 objects.
+  SB-REGALLOC::VERTEX                  6,058,752 bytes,    54,096 objects.
+  SB-C::IR2-BLOCK                      4,913,280 bytes,    25,590 objects.
+  SB-C::IR2-LVAR                       4,350,912 bytes,    90,644 objects.
+  COMMON-LISP:HASH-TABLE               3,221,120 bytes,    20,132 objects.
+  SB-INT:SSET                          2,721,696 bytes,    56,702 objects.
+  SB-C::COMPILED-DEBUG-FUN             2,579,520 bytes,    32,244 objects.
+  SB-C::COMPILED-DEBUG-FUN-EXTERNAL    2,428,720 bytes,    30,359 objects.
+
+  Other types                         21,265,216 bytes,   326,986 objects.
+  Dynamic instance total             213,558,368 bytes, 2,087,447 objects.
+Path to #<SB-C::VOP :INFO SB-VM::MOVE-ARG :ARGS # :RESULTS #>:
+from "main thread" SB-C::*IR1-NAMESPACE* (TLS)
+ 5       7005520C93 [   5] a SB-C::IR1-NAMESPACE
+ 5       70055AA3F3 [   6] #<HASH-TABLE :TEST SB-FASL::SIMILARP :HASH-FUNCTION #<FUNCTION SB-FASL::SIMILAR-HASH> :COUNT 1991 {70055AA3F3}>
+ 5       700570000F [ 603] a (COMMON-LISP:SIMPLE-VECTOR 5223)
+ 5       7005802FB3 [   7] a SB-KERNEL:CONSTANT
+ 5       7005B03217 [   0] a cons = (# # # ...)
+ 5       7005EF9FB3 [   6] a SB-C::REF
+ 5       7006A8C463 [   7] a SB-KERNEL:LEXENV
+ 5       7008135B03 [  30] a SB-C::CLAMBDA
+ 5       70081EC683 [  20] a SB-C::CLAMBDA
+ 5       700AB91FE3 [   4] a SB-C::ENCLOSE
+ 5       700D71CF53 [   5] a SB-C::CTRAN
+ 5       7011445A83 [  18] a SB-C::CBLOCK
+ 5       701483E993 [  14] a SB-C::IR2-BLOCK
+ 5       701AA30EBF [  35] a (COMMON-LISP:SIMPLE-VECTOR 64)
+ 5       701BE7EF73 [   9] a SB-C:TN
+ 5       701C89DFE3 [   6] a SB-C:TN-REF

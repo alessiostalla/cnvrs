@@ -581,7 +581,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                  (state-precedence-decision-p state)
                  (state-exit-alternative state))))))
 
-(defun direct-choice-form (grammar table)
+(defun direct-choice-form (grammar table state-id)
   "Emit Java-style one-token switches/tests in independently compiled rules."
   (let* ((keys (parser-token-keys grammar)) (groups nil)
          (other (aref table (length keys))) (eof nil))
@@ -590,6 +590,16 @@ Caller-specific caches and custom full-context start hooks are unsupported."
           (unless (eql alternative other)
             (let ((group (assoc alternative groups)))
               (if group (push key (cdr group)) (push (list alternative key) groups))))))
+    ;; A single CASE clause with hundreds of token keys expands into a large
+    ;; disjunction in SBCL. Its type-constraint propagation can consume GBs,
+    ;; even for a rule with very few states. Reuse the grammar's token index
+    ;; and lookahead table rather than duplicating those tests at every state.
+    (when (> (loop for group in groups sum (length (cdr group))) 64)
+      (return-from direct-choice-form
+        `(direct-choice-index grammar
+                              (state-direct-lookahead
+                               (aref (parser-states grammar) ,state-id))
+                              input position)))
     `(if (>= position (length tokens)) ,eof
          ,(if (every #'symbolp keys)
               `(case (token-key (aref tokens position))
@@ -638,8 +648,88 @@ Caller-specific caches and custom full-context start hooks are unsupported."
               (push (transition-target edge) pending))))))
     (nreverse result)))
 
+(defun token-set-member-p (key tokens)
+  ;; Keep large constant sets out of the caller's optimizer component.
+  (member key tokens :test #'equal))
+
+(defun make-chunked-rule-runner (chunks first-state)
+  "Join independently compiled state chunks without sharing mutable closures."
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type simple-vector chunks) (type fixnum first-state))
+  (lambda (grammar run runners stack)
+    (let ((state-id first-state)
+          (start-position (parser-run-state-logical-position run))
+          (children nil) (label nil) (labels nil))
+      (declare (type fixnum state-id))
+      (loop
+        (multiple-value-bind (result next-state next-children next-label next-labels)
+            (funcall (the function (svref chunks (ash state-id -6)))
+                     grammar run runners stack state-id start-position children label labels)
+          ;; A normal rule return (including failure) has no continuation state.
+          (unless next-state (return result))
+          (setf state-id next-state children next-children
+                label next-label labels next-labels))))))
+
+(defun compile-rule-runner-form (form)
+  (if (eq (first form) 'make-chunked-rule-runner)
+      (make-chunked-rule-runner
+       (map 'vector (lambda (chunk) (and chunk (compile nil chunk)))
+            (rest (second form)))
+       (third form))
+      (compile nil form)))
+
+(defun load-rule-runners (descriptors)
+  ;; Resolve names in a loop at load time. A VECTOR form with hundreds of
+  ;; distinct FUNCTION arguments itself overwhelms SBCL's type propagation.
+  (map 'vector
+       (lambda (descriptor)
+         (if (symbolp descriptor)
+             (fdefinition descriptor)
+             (make-chunked-rule-runner
+              (map 'vector (lambda (name) (and name (fdefinition name)))
+                   (rest descriptor))
+              (first descriptor))))
+       descriptors))
+
+(defun release-rule-compiler-constants ()
+  ;; SBCL 2.4 ARM64 retains constant caches across file components. Some
+  ;; cached leaves retain REFS into finished IR, keeping entire components
+  ;; alive. Releasing this optional coalescing cache between generated helpers
+  ;; bounds that retention. Preserve the NIL leaf: ARM64 needs it
+  ;; for a wired TN. Do not interfere with explicitly requested block compile.
+  #+(and sbcl arm64)
+  (let ((namespace (find-symbol "*IR1-NAMESPACE*" :sb-c))
+        (constants (find-symbol "SIMILAR-CONSTANTS" :sb-c))
+        (eql-constants (find-symbol "EQL-CONSTANTS" :sb-c))
+        (refs (find-symbol "LEAF-REFS" :sb-c))
+        (block-mode (find-symbol "*BLOCK-COMPILE-ARGUMENT*" :sb-c)))
+    (when (and namespace (boundp namespace) (symbol-value namespace)
+               constants (fboundp constants) eql-constants (fboundp eql-constants)
+               refs (fboundp (list 'setf refs))
+               (or (null block-mode) (not (boundp block-mode))
+                   (null (symbol-value block-mode))))
+      (let* ((table (funcall eql-constants (symbol-value namespace)))
+             (nil-leaf (gethash nil table)))
+        (clrhash table)
+        (when nil-leaf
+          (funcall (fdefinition (list 'setf refs)) nil nil-leaf)
+          (setf (gethash nil table) nil-leaf)))
+      (clrhash (funcall constants (symbol-value namespace)))))
+  (values))
+
+(defmacro finish-rule-compilation (&environment environment)
+  (declare (ignorable environment))
+  ;; Run in the file compiler's namespace. EVAL-WHEN may compile its body in
+  ;; a fresh namespace, which would leave the file-wide cache untouched.
+  #+(and sbcl arm64)
+  (let ((lambda-accessor (find-symbol "LEXENV-LAMBDA" :sb-c)))
+    (when (and *compile-file-pathname* environment lambda-accessor (fboundp lambda-accessor)
+               (null (funcall lambda-accessor environment)))
+      (release-rule-compiler-constants)))
+  nil)
+
 (defun parser-rule-runner-forms (grammar build-tree-p)
-  "Return independent rule lambda forms and their dispatch names."
+  "Return rule lambda/constructor forms and their dispatch names."
   (let ((rules nil)
         (rule-indices (make-hash-table :test 'eq))
         (forms (make-array (hash-table-count (parser-starts grammar)))))
@@ -649,7 +739,11 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                            (make-symbol (format nil "PARSE-~A" name)))
                      rules))
              (parser-starts grammar))
-    (labels ((rule-call (edge)
+    (labels ((membership-form (tokens)
+               `(,(if (> (length tokens) 64) 'token-set-member-p 'member)
+                 (token-key (aref tokens position)) ',tokens
+                 ,@(unless (> (length tokens) 64) '(:test #'equal))))
+             (rule-call (edge)
                `(let ((*prediction-precedence* (state-call-precedence
                                           (aref (parser-states grammar) state-id))))
                   (funcall (the function
@@ -676,7 +770,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                        ,@(when (member +end-of-input+ (transition-value edge))
                            `(((= position (length tokens)) (setf state-id ,target))))
                        ((and (< position (length tokens))
-                             (member (token-key (aref tokens position)) ',(remove +end-of-input+ (transition-value edge)) :test #'equal))
+                             ,(membership-form (remove +end-of-input+ (transition-value edge))))
                         ,@(when build-tree-p
                             `((push (aref tokens position) children) (incf logical-position)))
                         (setf state-id ,target position (input-next-position input position)))
@@ -697,9 +791,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                          (return-from ,function-name nil)))
                    (:not-token
                     `(if (and (< position (length tokens))
-                              (not (member (token-key (aref tokens position))
-                                           ',(transition-value edge)
-                                           :test #'equal)))
+                              (not ,(membership-form (transition-value edge))))
                          (progn
                            ,@(when build-tree-p
                                `((push (aref tokens position) children)
@@ -720,7 +812,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                            (setf state-id ,target)))))))
              (choice-form (id state)
                (if (state-direct-lookahead state)
-                   (direct-choice-form grammar (state-direct-lookahead state))
+                   (direct-choice-form grammar (state-direct-lookahead state) id)
                    `(predict grammar ,id stack input position)))
              (state-form (id function-name)
                (let* ((state (aref (parser-states grammar) id))
@@ -740,7 +832,46 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                                       collect `(,index
                                                 ,(edge-form edge function-name)))
                               (otherwise (return-from ,function-name nil)))))))))
-      (loop for (name first-state function-name) in rules do
+      (loop for (name first-state function-name) in rules
+            for states = (compiled-rule-states grammar first-state) do
+        ;; Large state machines also need separate compiler components. Rule
+        ;; calls still go through RUNNERS; chunks exchange cursor/tree state
+        ;; through arguments and multiple values, never mutually local LABELS.
+        (when (> (length states) 128)
+          (let ((chunks (make-array (1+ (ash (reduce #'max states) -6))
+                                    :initial-element nil)))
+            (dolist (id states) (push id (svref chunks (ash id -6))))
+            (setf (svref forms (gethash name rule-indices))
+                  `(make-chunked-rule-runner
+                    (vector
+                     ,@(loop for ids across chunks for chunk from 0 collect
+                         (when ids
+                           `(lambda (grammar run runners stack state-id
+                                     start-position children label labels)
+                              (declare (optimize (speed 3) (safety 1) (debug 0)
+                                                 (space 0) (compilation-speed 0))
+                                       (type parser grammar) (type parser-run-state run)
+                                       (type simple-vector runners) (type fixnum state-id)
+                                       (ignorable grammar run runners stack start-position
+                                                  children label labels))
+                              (symbol-macrolet ((input (parser-run-state-input run))
+                                                (tokens (parser-run-state-tokens run))
+                                                (position (parser-run-state-position run))
+                                                (logical-position (parser-run-state-logical-position run)))
+                                (block ,function-name
+                                  (loop
+                                    (unless (= (ash state-id -6) ,chunk)
+                                      (return (values nil state-id children label labels)))
+                                    ,@(when build-tree-p
+                                        `((multiple-value-setq (children label labels)
+                                            (apply-atn-events
+                                             (state-events (aref (parser-states grammar) state-id))
+                                             :node ',name children start-position logical-position label labels))))
+                                    (ecase state-id
+                                      ,@(loop for id in (reverse ids)
+                                              collect (state-form id function-name))))))))))
+                    ,first-state))))
+        (unless (> (length states) 128)
         (setf (svref forms (gethash name rule-indices))
               `(lambda (grammar run runners stack)
                   #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
@@ -767,9 +898,8 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                                    (state-events (aref (parser-states grammar) state-id))
                                    :node ',name children start-position logical-position label labels))))
                           (ecase state-id
-                            ,@(loop for id in
-                                    (compiled-rule-states grammar first-state)
-                                    collect (state-form id function-name))))))))))
+                            ,@(loop for id in states
+                                    collect (state-form id function-name)))))))))))
       (values (coerce forms 'list) (mapcar #'first (reverse rules))))))
 
 (defun make-parser-runner (runners names)
@@ -793,13 +923,30 @@ Caller-specific caches and custom full-context start hooks are unsupported."
              result)))))
 
 (defun parser-runner-form (grammar build-tree-p)
-  "Emit independent rule functions for COMPILE-FILE without runtime compilation."
+  "Return a runner constructor and separate top-level function definitions.
+COMPILE-FILE must process the definitions at top level: embedding all lambdas
+in the constructor retains a whole grammar's compiler IR in one component."
   (multiple-value-bind (forms names) (parser-rule-runner-forms grammar build-tree-p)
-    `(make-parser-runner (vector ,@forms) ',names)))
+    (let ((definitions nil))
+      (labels ((function-form (form)
+                 (let ((name (gensym "PARSE-RULE-")))
+                   (push (copy-tree `(defun ,name ,@(rest form))) definitions)
+                   #+(and sbcl arm64)
+                   (push '(finish-rule-compilation) definitions)
+                   name))
+               (rule-form (form)
+                 (if (eq (first form) 'make-chunked-rule-runner)
+                     (cons (third form)
+                           (mapcar (lambda (chunk) (when chunk (function-form chunk)))
+                                   (rest (second form))))
+                     (function-form form))))
+        (let ((constructor `(make-parser-runner
+                             (load-rule-runners ',(mapcar #'rule-form forms)) ',names)))
+          (values constructor (nreverse definitions)))))))
 
 (defun compile-parser-runner (grammar build-tree-p)
   (multiple-value-bind (forms names) (parser-rule-runner-forms grammar build-tree-p)
-    (make-parser-runner (map 'vector (lambda (form) (compile nil form)) forms)
+    (make-parser-runner (map 'vector #'compile-rule-runner-form forms)
                        names)))
 
 (defun possible-tokens (grammar state stack)

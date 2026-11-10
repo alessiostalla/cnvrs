@@ -298,7 +298,7 @@
 (defun file-compiled-definition-form (definition lexer-form cache-form
                                        tree-form strategy-form metadata-form
                                        rules-only)
-  "Emit a load-time constructor from a compile-time-resolved definition."
+  "Return a load-time constructor and top-level helper definitions."
   (let ((lexer-input lexer-form)
         (cache-input cache-form)
         (tree-input tree-form)
@@ -331,6 +331,7 @@
              (when prepared-lexer
                `(thawed-lexer ',(frozen-lexer prepared-lexer)
                               ,cache-form ,metadata-form)))
+           (runner-definitions nil)
            (parser-constructor
              (when prepared-parser
                `(thawed-parser ',(frozen-parser prepared-parser)
@@ -340,9 +341,14 @@
                                ,metadata-form
                                ,@(if (parser-semantic-rules prepared-parser)
                                      '(nil nil)
-                                     (list (parser-runner-form prepared-parser nil)
-                                           (parser-runner-form prepared-parser t)))))))
-      `(let* ((,lexer-variable ,lexer-input)
+                                     (loop for tree-p in '(nil t) collect
+                                       (multiple-value-bind (constructor definitions)
+                                           (parser-runner-form prepared-parser tree-p)
+                                         (setf runner-definitions
+                                               (nconc runner-definitions definitions))
+                                         constructor)))))))
+      (values
+       `(let* ((,lexer-variable ,lexer-input)
               (,cache-variable ,cache-input)
               (,tree-variable ,tree-input)
               (,strategy-variable ,strategy-input)
@@ -372,7 +378,8 @@
              `((setf (parser-definition-compiled definition)
                      ,(if (eq kind :lexer)
                           lexer-constructor parser-constructor))))
-         definition)))))
+         definition)
+       runner-definitions)))))
 
 (defun lex (parser source &key recover)
   "Run the lexer of a lexer or combined grammar on SOURCE."
@@ -507,13 +514,17 @@ definition without compiling it at definition time."
                                 (eval (getf options :parser-package)))
               :lexer-package (when (plist-key-p options :lexer-package)
                                (eval (getf options :lexer-package)))))
+           (runner-definitions nil)
            (initializer
-             (file-compiled-definition-form
-              definition (getf options :lexer)
-              (getf options :cache-backend :hash-table)
-              (getf options :tree-builder :node)
-              (getf options :full-context-strategy :recompute)
-              (getf options :metadata) rules-only)))
+             (multiple-value-bind (constructor definitions)
+                 (file-compiled-definition-form
+                  definition (getf options :lexer)
+                  (getf options :cache-backend :hash-table)
+                  (getf options :tree-builder :node)
+                  (getf options :full-context-strategy :recompute)
+                  (getf options :metadata) rules-only)
+               (setf runner-definitions definitions)
+               constructor)))
       `(progn
          (eval-when (:compile-toplevel)
            (setf (symbol-value ',name)
@@ -529,6 +540,7 @@ definition without compiling it at definition time."
                                   ',(package-name
                                      (parser-definition-lexer-package
                                       definition))))))
+         ,@runner-definitions
          (defparameter ,name ,initializer)))))
 
 (defmacro use (&rest arguments)
