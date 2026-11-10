@@ -1,5 +1,7 @@
 # T-SQL compiler-resource investigation
 
+[Latest paired Java performance comparison](compact.md).
+
 **Fixed:** the unchanged T-SQL grammar now compiles with native ARM64 SBCL
 2.4.0 using a **2 GB heap and the default control stack**. Its generated runners
 also compile to a FASL and load successfully under those limits. Four upstream

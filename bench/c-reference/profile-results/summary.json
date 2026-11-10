@@ -1,0 +1,2469 @@
+{
+  "cpu-none": {
+    "samples": 2806,
+    "unattributed_samples": 0,
+    "rows": [
+      {
+        "samples": 507,
+        "self_percent": 18.1,
+        "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+      },
+      {
+        "samples": 206,
+        "self_percent": 7.3,
+        "function": "foreign function __bzero"
+      },
+      {
+        "samples": 178,
+        "self_percent": 6.3,
+        "function": "SB-IMPL::GETHASH/EQL"
+      },
+      {
+        "samples": 127,
+        "self_percent": 4.5,
+        "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+      },
+      {
+        "samples": 97,
+        "self_percent": 3.5,
+        "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+      },
+      {
+        "samples": 83,
+        "self_percent": 3.0,
+        "function": "SB-IMPL::PUTHASH/EQL"
+      },
+      {
+        "samples": 74,
+        "self_percent": 2.6,
+        "function": "foreign function __pthread_sigmask"
+      },
+      {
+        "samples": 69,
+        "self_percent": 2.5,
+        "function": "SB-IMPL::GROW-HASH-TABLE"
+      },
+      {
+        "samples": 68,
+        "self_percent": 2.4,
+        "function": "CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT"
+      },
+      {
+        "samples": 67,
+        "self_percent": 2.4,
+        "function": "SB-IMPL::REHASH"
+      },
+      {
+        "samples": 58,
+        "self_percent": 2.1,
+        "function": "(FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE)"
+      },
+      {
+        "samples": 55,
+        "self_percent": 2.0,
+        "function": "CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE"
+      },
+      {
+        "samples": 51,
+        "self_percent": 1.8,
+        "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+      },
+      {
+        "samples": 51,
+        "self_percent": 1.8,
+        "function": "CNVRS/RUNTIME:SINGLETON-CONTEXT"
+      },
+      {
+        "samples": 49,
+        "self_percent": 1.7,
+        "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 44,
+        "self_percent": 1.6,
+        "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+      },
+      {
+        "samples": 44,
+        "self_percent": 1.6,
+        "function": "(FLET \"WITHOUT-INTERRUPTS-BODY-1\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 44,
+        "self_percent": 1.6,
+        "function": "ALLOCATE-VECTOR-ON-HEAP"
+      },
+      {
+        "samples": 37,
+        "self_percent": 1.3,
+        "function": "foreign function __psynch_cvwait"
+      },
+      {
+        "samples": 36,
+        "self_percent": 1.3,
+        "function": "CNVRS/RUNTIME::EXEC-ATN"
+      },
+      {
+        "samples": 36,
+        "self_percent": 1.3,
+        "function": "SB-THREAD:GRAB-MUTEX"
+      },
+      {
+        "samples": 33,
+        "self_percent": 1.2,
+        "function": "SB-IMPL::GETHASH3"
+      },
+      {
+        "samples": 33,
+        "self_percent": 1.2,
+        "function": "RETURN-MULTIPLE"
+      },
+      {
+        "samples": 29,
+        "self_percent": 1.0,
+        "function": "SB-THREAD::CALL-WITH-MUTEX"
+      },
+      {
+        "samples": 28,
+        "self_percent": 1.0,
+        "function": "CNVRS/RUNTIME::CONTEXT-STRUCTURALLY-EQUAL"
+      },
+      {
+        "samples": 27,
+        "self_percent": 1.0,
+        "function": "CNVRS::RUNTIME-ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 24,
+        "self_percent": 0.9,
+        "function": "VECTOR-PUSH-EXTEND"
+      },
+      {
+        "samples": 24,
+        "self_percent": 0.9,
+        "function": "SB-IMPL::GETHASH/EQUAL"
+      },
+      {
+        "samples": 19,
+        "self_percent": 0.7,
+        "function": "SB-VM::EXTEND-VECTOR"
+      },
+      {
+        "samples": 18,
+        "self_percent": 0.6,
+        "function": "SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES"
+      },
+      {
+        "samples": 18,
+        "self_percent": 0.6,
+        "function": "CLOSURE-TRAMP"
+      },
+      {
+        "samples": 18,
+        "self_percent": 0.6,
+        "function": "SB-THREAD:RELEASE-MUTEX"
+      },
+      {
+        "samples": 17,
+        "self_percent": 0.6,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.6,
+        "function": "CNVRS::PREDICTION-TOKEN-INPUT"
+      },
+      {
+        "samples": 15,
+        "self_percent": 0.5,
+        "function": "SB-KERNEL::FIXNUM-GCD"
+      },
+      {
+        "samples": 15,
+        "self_percent": 0.5,
+        "function": "(LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2.) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 14,
+        "self_percent": 0.5,
+        "function": "CNVRS/RUNTIME::STOP-CONFIG-P"
+      },
+      {
+        "samples": 14,
+        "self_percent": 0.5,
+        "function": "SB-KERNEL:TWO-ARG--"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.5,
+        "function": "(LABELS SB-IMPL::EQUAL-AUX :IN EQUAL)"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.5,
+        "function": "SB-C::CHECK-DS-LIST"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.5,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-REF"
+      },
+      {
+        "samples": 12,
+        "self_percent": 0.4,
+        "function": "CNVRS/RUNTIME::MERGE-CACHE-GET"
+      },
+      {
+        "samples": 12,
+        "self_percent": 0.4,
+        "function": "SB-KERNEL:%PUTHASH"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.4,
+        "function": "SB-IMPL::EQUAL-HASH"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.4,
+        "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-REF T)"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.4,
+        "function": "SB-KERNEL:%SINGLE-FLOAT"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.3,
+        "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.3,
+        "function": "CNVRS/RUNTIME:MERGE-CONTEXTS"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.3,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-REF"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.3,
+        "function": "SB-KERNEL:VECTOR-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.3,
+        "function": "SB-IMPL::GETHASH/EQ"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "SB-KERNEL:%MEMBER-TEST"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "SB-KERNEL::INTEGER-/-INTEGER"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "CNVRS/RUNTIME::GET-EXISTING-TARGET-STATE"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "SB-KERNEL:%WITH-ARRAY-DATA"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "SB-UNIX::WITH-DEFERRABLE-SIGNALS-UNBLOCKED"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "(SB-PCL::FAST-METHOD CNVRS:CACHE-GET-OR-COMPUTE (CNVRS::HASH-CACHE T T))"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "CNVRS/RUNTIME::CONTEXT-NODE"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::KEY) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "SB-THREAD::%TRY-MUTEX"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "SB-KERNEL:TWO-ARG-<"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "(FLET \"CLEANUP-FUN-4\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "SB-KERNEL:UB64-BASH-FILL"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.2,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-SET"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "CNVRS::PREDICT"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME:UNIQUE-ALT"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "SB-IMPL::%ALLOC-HASH-TABLE"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "SB-IMPL::%MAKE-HASH-TABLE"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME::MERGE-CACHE-PUT"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "REPLACE"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME::GET-EXISTING-TARGET-STATE)"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:%UNARY-TRUNCATE"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(FLET \"CLEANUP-FUN-7\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SYMBOL-FUNCTION"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SB-VM::ALLOCATE-VECTOR-WITH-WIDETAG"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(FLET SB-IMPL::BODY :IN SB-IMPL::PUTHASH/WEAK)"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-SET"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "CNVRS::ENSURE-PARSER-RUNTIME"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "HASH-TABLE-COUNT"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:VECTOR-T-P"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-SET T)"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (SB-PCL::.ARG0.) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME:ADAPTIVE-PREDICT)"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "LENGTH"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SB-IMPL::MAKE-HASH-TABLE-USING-DEFAULTS"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SXHASH"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LABELS SB-IMPL::SXHASH-RECURSE :IN SXHASH)"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:%MEMBER-EQ"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-EXT:CALL-WITH-TIMING"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS:PARSE"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER)"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS::FLAT-CACHE-KEY-P"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(FLET \"CLEANUP-FUN-0\" :IN CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT)"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::MERGE-ROOT"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::CONTEXT-HAS-EMPTY-PATH-P"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "EQUAL"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "foreign function pthread_mutex_unlock"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-SET/CHECK-BOUNDS"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "foreign function gc_alloc_new_region"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "RUN"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(FLET SB-UNIX::BODY :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-KERNEL:TWO-ARG-/"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-KERNEL:TWO-ARG->="
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::RUNTIME-TRACE"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-IMPL::LIST-NREVERSE"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      }
+    ],
+    "real_seconds": 8.158,
+    "gc_seconds": 0.102,
+    "bytes": 8048530608
+  },
+  "alloc-none": {
+    "samples": 37366,
+    "unattributed_samples": 0,
+    "rows": [
+      {
+        "samples": 14992,
+        "self_percent": 40.1,
+        "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+      },
+      {
+        "samples": 12945,
+        "self_percent": 34.6,
+        "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+      },
+      {
+        "samples": 2715,
+        "self_percent": 7.3,
+        "function": "VECTOR-PUSH-EXTEND"
+      },
+      {
+        "samples": 894,
+        "self_percent": 2.4,
+        "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+      },
+      {
+        "samples": 740,
+        "self_percent": 2.0,
+        "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 600,
+        "self_percent": 1.6,
+        "function": "SB-IMPL::GROW-HASH-TABLE"
+      },
+      {
+        "samples": 598,
+        "self_percent": 1.6,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 468,
+        "self_percent": 1.3,
+        "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+      },
+      {
+        "samples": 367,
+        "self_percent": 1.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 335,
+        "self_percent": 0.9,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 309,
+        "self_percent": 0.8,
+        "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+      },
+      {
+        "samples": 306,
+        "self_percent": 0.8,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 301,
+        "self_percent": 0.8,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 297,
+        "self_percent": 0.8,
+        "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET"
+      },
+      {
+        "samples": 272,
+        "self_percent": 0.7,
+        "function": "CNVRS::PREDICT"
+      },
+      {
+        "samples": 82,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 70,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 68,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 64,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 64,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 64,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 63,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 58,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 58,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 56,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 56,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 55,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 52,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 47,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 39,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 28,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 25,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 23,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 22,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 22,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 22,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:SUB-GC"
+      },
+      {
+        "samples": 19,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 18,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 17,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 15,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 14,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 14,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+      },
+      {
+        "samples": 11,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER)"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function collect_backtrace"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "SB-SPROF::UNAVAILABLE-FRAMES"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function gc_alloc_new_region"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "Unknown fn 2"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function component_ptr_from_pc"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function copy_instance"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function search_all_gc_spaces"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function debug_function_from_pc"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function page_table_pages"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function lisp_frame_previous"
+      }
+    ],
+    "real_seconds": 2.372,
+    "gc_seconds": 0.029,
+    "bytes": 2414665760
+  },
+  "cpu-tree": {
+    "samples": 3607,
+    "unattributed_samples": 0,
+    "rows": [
+      {
+        "samples": 677,
+        "self_percent": 18.8,
+        "function": "foreign function __bzero"
+      },
+      {
+        "samples": 364,
+        "self_percent": 10.1,
+        "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+      },
+      {
+        "samples": 255,
+        "self_percent": 7.1,
+        "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+      },
+      {
+        "samples": 152,
+        "self_percent": 4.2,
+        "function": "SB-IMPL::GETHASH/EQL"
+      },
+      {
+        "samples": 135,
+        "self_percent": 3.7,
+        "function": "ALLOCATE-VECTOR-ON-HEAP"
+      },
+      {
+        "samples": 113,
+        "self_percent": 3.1,
+        "function": "(SB-PCL::FAST-METHOD CNVRS:MAKE-PARSE-NODE ((EQL :NODE) T T T T))"
+      },
+      {
+        "samples": 105,
+        "self_percent": 2.9,
+        "function": "(FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE)"
+      },
+      {
+        "samples": 94,
+        "self_percent": 2.6,
+        "function": "SB-IMPL::REHASH"
+      },
+      {
+        "samples": 93,
+        "self_percent": 2.6,
+        "function": "CNVRS/RUNTIME:SINGLETON-CONTEXT"
+      },
+      {
+        "samples": 89,
+        "self_percent": 2.5,
+        "function": "foreign function __pthread_sigmask"
+      },
+      {
+        "samples": 74,
+        "self_percent": 2.1,
+        "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+      },
+      {
+        "samples": 67,
+        "self_percent": 1.9,
+        "function": "CNVRS::RUNTIME-ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 58,
+        "self_percent": 1.6,
+        "function": "SB-IMPL::PUTHASH/EQL"
+      },
+      {
+        "samples": 55,
+        "self_percent": 1.5,
+        "function": "CNVRS::APPLY-ATN-EVENTS"
+      },
+      {
+        "samples": 52,
+        "self_percent": 1.4,
+        "function": "SB-IMPL::GROW-HASH-TABLE"
+      },
+      {
+        "samples": 42,
+        "self_percent": 1.2,
+        "function": "CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT"
+      },
+      {
+        "samples": 41,
+        "self_percent": 1.1,
+        "function": "SB-IMPL::GETHASH3"
+      },
+      {
+        "samples": 40,
+        "self_percent": 1.1,
+        "function": "foreign function __psynch_cvwait"
+      },
+      {
+        "samples": 40,
+        "self_percent": 1.1,
+        "function": "(FLET \"WITHOUT-INTERRUPTS-BODY-1\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 34,
+        "self_percent": 0.9,
+        "function": "CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE"
+      },
+      {
+        "samples": 33,
+        "self_percent": 0.9,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 33,
+        "self_percent": 0.9,
+        "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 33,
+        "self_percent": 0.9,
+        "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+      },
+      {
+        "samples": 28,
+        "self_percent": 0.8,
+        "function": "SB-IMPL::%ALLOC-HASH-TABLE"
+      },
+      {
+        "samples": 26,
+        "self_percent": 0.7,
+        "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+      },
+      {
+        "samples": 25,
+        "self_percent": 0.7,
+        "function": "SB-THREAD::CALL-WITH-MUTEX"
+      },
+      {
+        "samples": 23,
+        "self_percent": 0.6,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+      },
+      {
+        "samples": 21,
+        "self_percent": 0.6,
+        "function": "SB-KERNEL:VECTOR-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+      },
+      {
+        "samples": 20,
+        "self_percent": 0.6,
+        "function": "VECTOR-PUSH-EXTEND"
+      },
+      {
+        "samples": 20,
+        "self_percent": 0.6,
+        "function": "(LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2.) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 20,
+        "self_percent": 0.6,
+        "function": "CNVRS/RUNTIME::EXEC-ATN"
+      },
+      {
+        "samples": 19,
+        "self_percent": 0.5,
+        "function": "SB-THREAD:RELEASE-MUTEX"
+      },
+      {
+        "samples": 19,
+        "self_percent": 0.5,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 19,
+        "self_percent": 0.5,
+        "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-REF T)"
+      },
+      {
+        "samples": 18,
+        "self_percent": 0.5,
+        "function": "CNVRS::PREDICTION-TOKEN-INPUT"
+      },
+      {
+        "samples": 17,
+        "self_percent": 0.5,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.4,
+        "function": "SB-IMPL::LIST-NREVERSE"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.4,
+        "function": "SB-VM::EXTEND-VECTOR"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.4,
+        "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-SET T)"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 15,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 15,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 15,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 14,
+        "self_percent": 0.4,
+        "function": "SB-THREAD:GRAB-MUTEX"
+      },
+      {
+        "samples": 14,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 14,
+        "self_percent": 0.4,
+        "function": "RETURN-MULTIPLE"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.4,
+        "function": "SB-KERNEL:TWO-ARG--"
+      },
+      {
+        "samples": 12,
+        "self_percent": 0.3,
+        "function": "SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES"
+      },
+      {
+        "samples": 12,
+        "self_percent": 0.3,
+        "function": "CLOSURE-TRAMP"
+      },
+      {
+        "samples": 11,
+        "self_percent": 0.3,
+        "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+      },
+      {
+        "samples": 11,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 11,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 11,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 11,
+        "self_percent": 0.3,
+        "function": "(LABELS SB-IMPL::EQUAL-AUX :IN EQUAL)"
+      },
+      {
+        "samples": 11,
+        "self_percent": 0.3,
+        "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.3,
+        "function": "SB-KERNEL:%PUTHASH"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.3,
+        "function": "CNVRS/RUNTIME::CONTEXT-STRUCTURALLY-EQUAL"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2. SB-PCL::.ARG3. SB-PCL::.ARG4.) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.3,
+        "function": "SB-KERNEL:%MEMBER-TEST"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.2,
+        "function": "CNVRS::MAKE-LABELED-PARSE-NODE"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.2,
+        "function": "SB-UNIX::WITH-DEFERRABLE-SIGNALS-UNBLOCKED"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.2,
+        "function": "SB-IMPL::EQUAL-HASH"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.2,
+        "function": "SB-KERNEL::INTEGER-/-INTEGER"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "CNVRS/RUNTIME::STOP-CONFIG-P"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "SB-C::CHECK-DS-LIST"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "SB-IMPL::GETHASH/EQUAL"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "SB-IMPL::GETHASH/EQ"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.2,
+        "function": "SB-KERNEL:%SINGLE-FLOAT"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "CNVRS/RUNTIME::MERGE-CACHE-GET"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.2,
+        "function": "CNVRS/RUNTIME::RUNTIME-TRACE"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::KEY) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL::FIXNUM-GCD"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME:UNIQUE-ALT"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:VECTOR-T-P"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME::GET-EXISTING-TARGET-STATE"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "(FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME:ADAPTIVE-PREDICT)"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-SET"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-REF"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:%MEMBER-EQ"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "SB-IMPL::MAKE-HASH-TABLE-USING-DEFAULTS"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "CNVRS::PREDICT"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME:MERGE-CONTEXTS"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-REF"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "function": "foreign function listify_rest_arg"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME::MERGE-CACHE-PUT"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "SB-IMPL::%MAKE-HASH-TABLE"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "CNVRS::ENSURE-PARSER-RUNTIME"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "NREVERSE"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME::CONTEXT-NODE"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LABELS SB-IMPL::SXHASH-RECURSE :IN SXHASH)"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "(FLET \"CLEANUP-FUN-0\" :IN CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT)"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.1,
+        "function": "SB-THREAD::%TRY-MUTEX"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "HASH-TABLE-SIZE"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SYMBOL-FUNCTION"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:UB64-BASH-FILL"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(FLET \"CLEANUP-FUN-4\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "REPLACE"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "CNVRS/RUNTIME::MERGE-ROOT"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "CNVRS::FLAT-CACHE-KEY-P"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:TWO-ARG-/"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-FORMAT::%FORMAT"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-KERNEL:TWO-ARG->"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SXHASH"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-SET/CHECK-BOUNDS"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "FUNCALLABLE-INSTANCE-TRAMP"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "foreign function gc_close_region"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(FLET \"CLEANUP-FUN-7\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "foreign function add_new_area"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-VM::ALLOCATE-VECTOR-WITH-WIDETAG"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "foreign function gc_find_freeish_pages"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "LENGTH"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "SB-KERNEL:%WITH-ARRAY-DATA"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS::INPUT-START-POSITION"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(FLET SB-UNIX::BODY :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA NIL :IN #:DROP-THRU-TAG-1)"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "ALLOC-TRAMP"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      }
+    ],
+    "real_seconds": 9.214,
+    "gc_seconds": 0.307,
+    "bytes": 9558684352
+  },
+  "alloc-tree": {
+    "samples": 44370,
+    "unattributed_samples": 0,
+    "rows": [
+      {
+        "samples": 14418,
+        "self_percent": 32.5,
+        "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+      },
+      {
+        "samples": 13513,
+        "self_percent": 30.5,
+        "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+      },
+      {
+        "samples": 2428,
+        "self_percent": 5.5,
+        "function": "VECTOR-PUSH-EXTEND"
+      },
+      {
+        "samples": 978,
+        "self_percent": 2.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 906,
+        "self_percent": 2.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 883,
+        "self_percent": 2.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 829,
+        "self_percent": 1.9,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 726,
+        "self_percent": 1.6,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 721,
+        "self_percent": 1.6,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 719,
+        "self_percent": 1.6,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 692,
+        "self_percent": 1.6,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 595,
+        "self_percent": 1.3,
+        "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+      },
+      {
+        "samples": 595,
+        "self_percent": 1.3,
+        "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+      },
+      {
+        "samples": 593,
+        "self_percent": 1.3,
+        "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET"
+      },
+      {
+        "samples": 443,
+        "self_percent": 1.0,
+        "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+      },
+      {
+        "samples": 439,
+        "self_percent": 1.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 429,
+        "self_percent": 1.0,
+        "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 420,
+        "self_percent": 0.9,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 411,
+        "self_percent": 0.9,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 409,
+        "self_percent": 0.9,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 336,
+        "self_percent": 0.8,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 323,
+        "self_percent": 0.7,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 299,
+        "self_percent": 0.7,
+        "function": "SB-IMPL::GROW-HASH-TABLE"
+      },
+      {
+        "samples": 296,
+        "self_percent": 0.7,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 268,
+        "self_percent": 0.6,
+        "function": "CNVRS::PREDICT"
+      },
+      {
+        "samples": 154,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 150,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 145,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 144,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 132,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 127,
+        "self_percent": 0.3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 93,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 78,
+        "self_percent": 0.2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 66,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 64,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 61,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 56,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 53,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 52,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 44,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 33,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 31,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 26,
+        "self_percent": 0.1,
+        "function": "SB-KERNEL:SUB-GC"
+      },
+      {
+        "samples": 25,
+        "self_percent": 0.1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 20,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 18,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 17,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER)"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 12,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "function": "CNVRS::APPLY-ATN-EVENTS"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "CNVRS/RUNTIME::EXEC-ATN"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp\")"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "SB-SPROF::UNAVAILABLE-FRAMES"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function allocator_record_backtrace"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function collect_backtrace"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "Unknown fn 2"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function page_table_pages"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function component_ptr_from_pc"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function search_all_gc_spaces"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function lisp_frame_previous"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function debug_function_from_pc"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function page_table"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function scav_list_pointer"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function gc_alloc_new_region"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "function": "foreign function copy_instance"
+      }
+    ],
+    "real_seconds": 2.833,
+    "gc_seconds": 0.09,
+    "bytes": 2867633200
+  },
+  "counts": {
+    "ADAPTIVE": 7166,
+    "BUSY-ADD": 0,
+    "BUSY-INSERT": 0,
+    "CLOSURE-CHECK": 74732,
+    "CLOSURE-WORK": 72356,
+    "COMBINE-PARENTS": 36,
+    "COMPACT-GROUPS": 219,
+    "CONFIG-ADD": 28574,
+    "CONFIG-HIT": 4177,
+    "CONFIG-INSERT": 24397,
+    "CONFIG-SET-SIZE-1": 50,
+    "CONFIG-SET-SIZE-102": 2,
+    "CONFIG-SET-SIZE-103": 2,
+    "CONFIG-SET-SIZE-134": 34,
+    "CONFIG-SET-SIZE-135": 3,
+    "CONFIG-SET-SIZE-136": 5,
+    "CONFIG-SET-SIZE-16": 6,
+    "CONFIG-SET-SIZE-2": 125,
+    "CONFIG-SET-SIZE-26": 4,
+    "CONFIG-SET-SIZE-29": 4,
+    "CONFIG-SET-SIZE-3": 43,
+    "CONFIG-SET-SIZE-30": 4,
+    "CONFIG-SET-SIZE-37": 31,
+    "CONFIG-SET-SIZE-38": 8,
+    "CONFIG-SET-SIZE-4": 49,
+    "CONFIG-SET-SIZE-40": 4,
+    "CONFIG-SET-SIZE-46": 2,
+    "CONFIG-SET-SIZE-49": 31,
+    "CONFIG-SET-SIZE-5": 8,
+    "CONFIG-SET-SIZE-57": 4,
+    "CONFIG-SET-SIZE-60": 32,
+    "CONFIG-SET-SIZE-62": 14,
+    "CONFIG-SET-SIZE-66": 4,
+    "CONFIG-SET-SIZE-68": 50,
+    "CONFIG-SET-SIZE-69": 1,
+    "CONFIG-SET-SIZE-7": 6,
+    "CONFIG-SET-SIZE-70": 1,
+    "CONFIG-SET-SIZE-76": 33,
+    "CONFIG-SET-SIZE-77": 2,
+    "CONFIG-SET-SIZE-78": 22,
+    "CONFIG-SET-SIZE-87": 32,
+    "CONFIG-SETS": 616,
+    "EPSILON": 99402,
+    "FALLBACK": 128,
+    "FULL-REACH": 269,
+    "FULL-START": 128,
+    "MERGE": 5889,
+    "MERGE-CACHE-GET": 5889,
+    "MERGE-CACHE-HIT": 2775,
+    "PARENTS-SIZE-2": 36,
+    "REACH": 269,
+    "REACH-INPUT": 15537,
+    "REACH-OUTPUT": 16572,
+    "SHARED-CONTEXT-CACHE-GET": 0,
+    "START": 128,
+    "TOKEN-INPUT-GET": 7166
+  },
+  "java_counts": {
+    "ADAPTIVE": 7166,
+    "CLOSURE-CHECK": 74732,
+    "CLOSURE-WORK": 72356,
+    "EPSILON": 99402,
+    "FALLBACK": 128,
+    "FULL-REACH": 269,
+    "FULL-START": 128,
+    "REACH": 269,
+    "REACH-INPUT": 15537,
+    "REACH-OUTPUT": 16572,
+    "START": 128
+  },
+  "ordered_predictions": 7166,
+  "decisions": [
+    {
+      "decision": 78,
+      "calls": 98,
+      "fallbacks": 32,
+      "closures": 26274,
+      "rule": "PARAMETERDECLARATION"
+    },
+    {
+      "decision": 31,
+      "calls": 201,
+      "fallbacks": 31,
+      "closures": 21004,
+      "rule": "DECLARATIONSPECIFIERS"
+    },
+    {
+      "decision": 118,
+      "calls": 130,
+      "fallbacks": 51,
+      "closures": 13446,
+      "rule": "SELECTIONSTATEMENT"
+    },
+    {
+      "decision": 112,
+      "calls": 4,
+      "fallbacks": 4,
+      "closures": 5886,
+      "rule": "LABELEDSTATEMENT"
+    },
+    {
+      "decision": 116,
+      "calls": 368,
+      "fallbacks": 4,
+      "closures": 4908,
+      "rule": "BLOCKITEM"
+    },
+    {
+      "decision": 128,
+      "calls": 32,
+      "fallbacks": 6,
+      "closures": 3214,
+      "rule": "JUMPSTATEMENT"
+    },
+    {
+      "decision": 131,
+      "calls": 78,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXTERNALDECLARATION"
+    },
+    {
+      "decision": 33,
+      "calls": 256,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DECLARATIONSPECIFIER"
+    },
+    {
+      "decision": 55,
+      "calls": 140,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DIRECTDECLARATOR"
+    },
+    {
+      "decision": 62,
+      "calls": 214,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DIRECTDECLARATOR"
+    },
+    {
+      "decision": 61,
+      "calls": 74,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DIRECTDECLARATOR"
+    },
+    {
+      "decision": 76,
+      "calls": 98,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "PARAMETERLIST"
+    },
+    {
+      "decision": 54,
+      "calls": 140,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DECLARATOR"
+    },
+    {
+      "decision": 132,
+      "calls": 72,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "FUNCTIONDEFINITION"
+    },
+    {
+      "decision": 27,
+      "calls": 880,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "ASSIGNMENTEXPRESSION"
+    },
+    {
+      "decision": 15,
+      "calls": 900,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "CASTEXPRESSION"
+    },
+    {
+      "decision": 12,
+      "calls": 960,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "UNARYEXPRESSION"
+    },
+    {
+      "decision": 7,
+      "calls": 952,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "POSTFIXEXPRESSION"
+    },
+    {
+      "decision": 2,
+      "calls": 952,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "PRIMARYEXPRESSION"
+    },
+    {
+      "decision": 111,
+      "calls": 578,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "STATEMENT"
+    },
+    {
+      "decision": 122,
+      "calls": 39,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "FORCONDITION"
+    }
+  ]
+}

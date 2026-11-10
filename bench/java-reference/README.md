@@ -1,5 +1,8 @@
 # IRI and Java 8 versus ANTLR Java
 
+The [latest Java 8 and C11 comparison](compact.md) repeats the paired benchmarks
+after compact conflict grouping and temporary-table reuse.
+
 The [C11 comparison](../c-reference/README.md) adds a full non-Java grammar
 and two upstream workloads. The [T-SQL compiler investigation](../tsql/README.md)
 resolves the compilation limit encountered while extending that comparison.

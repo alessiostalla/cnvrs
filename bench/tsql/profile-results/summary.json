@@ -1,0 +1,1920 @@
+{
+  "cpu": {
+    "samples": 6910,
+    "unattributed_samples": 1,
+    "rows": [
+      {
+        "samples": 1902,
+        "self_percent": 27.5,
+        "total_samples": 1902,
+        "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+      },
+      {
+        "samples": 822,
+        "self_percent": 11.9,
+        "total_samples": 822,
+        "function": "SB-IMPL::GETHASH/EQL"
+      },
+      {
+        "samples": 433,
+        "self_percent": 6.3,
+        "total_samples": 433,
+        "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+      },
+      {
+        "samples": 344,
+        "self_percent": 5.0,
+        "total_samples": 344,
+        "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+      },
+      {
+        "samples": 294,
+        "self_percent": 4.3,
+        "total_samples": 294,
+        "function": "SB-IMPL::PUTHASH/EQL"
+      },
+      {
+        "samples": 258,
+        "self_percent": 3.7,
+        "total_samples": 258,
+        "function": "CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE"
+      },
+      {
+        "samples": 234,
+        "self_percent": 3.4,
+        "total_samples": 234,
+        "function": "foreign function __bzero"
+      },
+      {
+        "samples": 230,
+        "self_percent": 3.3,
+        "total_samples": 230,
+        "function": "CNVRS/RUNTIME::CONTEXT-STRUCTURALLY-EQUAL"
+      },
+      {
+        "samples": 212,
+        "self_percent": 3.1,
+        "total_samples": 212,
+        "function": "CNVRS/RUNTIME:SINGLETON-CONTEXT"
+      },
+      {
+        "samples": 210,
+        "self_percent": 3.0,
+        "total_samples": 210,
+        "function": "CNVRS/RUNTIME:CONFLICTING-ALT-SUBSETS"
+      },
+      {
+        "samples": 193,
+        "self_percent": 2.8,
+        "total_samples": 193,
+        "function": "SB-IMPL::GROW-HASH-TABLE"
+      },
+      {
+        "samples": 168,
+        "self_percent": 2.4,
+        "total_samples": 168,
+        "function": "SB-IMPL::REHASH"
+      },
+      {
+        "samples": 136,
+        "self_percent": 2.0,
+        "total_samples": 136,
+        "function": "foreign function __pthread_sigmask"
+      },
+      {
+        "samples": 126,
+        "self_percent": 1.8,
+        "total_samples": 126,
+        "function": "(FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE)"
+      },
+      {
+        "samples": 98,
+        "self_percent": 1.4,
+        "total_samples": 98,
+        "function": "SB-IMPL::GETHASH3"
+      },
+      {
+        "samples": 97,
+        "self_percent": 1.4,
+        "total_samples": 97,
+        "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+      },
+      {
+        "samples": 85,
+        "self_percent": 1.2,
+        "total_samples": 85,
+        "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+      },
+      {
+        "samples": 77,
+        "self_percent": 1.1,
+        "total_samples": 77,
+        "function": "ALLOCATE-VECTOR-ON-HEAP"
+      },
+      {
+        "samples": 69,
+        "self_percent": 1.0,
+        "total_samples": 69,
+        "function": "CNVRS/RUNTIME::MERGE-ARRAYS"
+      },
+      {
+        "samples": 66,
+        "self_percent": 1.0,
+        "total_samples": 66,
+        "function": "CNVRS/RUNTIME:MERGE-CONTEXTS"
+      },
+      {
+        "samples": 63,
+        "self_percent": 0.9,
+        "total_samples": 63,
+        "function": "SB-KERNEL:%MEMBER-EQ"
+      },
+      {
+        "samples": 54,
+        "self_percent": 0.8,
+        "total_samples": 54,
+        "function": "foreign function __psynch_cvwait"
+      },
+      {
+        "samples": 47,
+        "self_percent": 0.7,
+        "total_samples": 47,
+        "function": "CNVRS/RUNTIME::COMBINE-COMMON-PARENTS"
+      },
+      {
+        "samples": 43,
+        "self_percent": 0.6,
+        "total_samples": 43,
+        "function": "CNVRS/RUNTIME::STOP-CONFIG-P"
+      },
+      {
+        "samples": 41,
+        "self_percent": 0.6,
+        "total_samples": 41,
+        "function": "REDUCE"
+      },
+      {
+        "samples": 40,
+        "self_percent": 0.6,
+        "total_samples": 40,
+        "function": "CNVRS/RUNTIME::MERGE-CACHE-GET"
+      },
+      {
+        "samples": 32,
+        "self_percent": 0.5,
+        "total_samples": 32,
+        "function": "CNVRS/RUNTIME::CONTEXT-NODE"
+      },
+      {
+        "samples": 31,
+        "self_percent": 0.4,
+        "total_samples": 31,
+        "function": "SB-KERNEL:%PUTHASH"
+      },
+      {
+        "samples": 28,
+        "self_percent": 0.4,
+        "total_samples": 28,
+        "function": "VECTOR-PUSH-EXTEND"
+      },
+      {
+        "samples": 27,
+        "self_percent": 0.4,
+        "total_samples": 27,
+        "function": "SB-VM::EXTEND-VECTOR"
+      },
+      {
+        "samples": 25,
+        "self_percent": 0.4,
+        "total_samples": 25,
+        "function": "SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES"
+      },
+      {
+        "samples": 21,
+        "self_percent": 0.3,
+        "total_samples": 21,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-SET"
+      },
+      {
+        "samples": 21,
+        "self_percent": 0.3,
+        "total_samples": 21,
+        "function": "SB-KERNEL:HAIRY-DATA-VECTOR-REF"
+      },
+      {
+        "samples": 20,
+        "self_percent": 0.3,
+        "total_samples": 20,
+        "function": "SB-KERNEL:%ADJOIN-EQ"
+      },
+      {
+        "samples": 19,
+        "self_percent": 0.3,
+        "total_samples": 19,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-REF"
+      },
+      {
+        "samples": 18,
+        "self_percent": 0.3,
+        "total_samples": 18,
+        "function": "CNVRS/RUNTIME:UNIQUE-ALT"
+      },
+      {
+        "samples": 16,
+        "self_percent": 0.2,
+        "total_samples": 16,
+        "function": "SB-KERNEL::FIXNUM-GCD"
+      },
+      {
+        "samples": 13,
+        "self_percent": 0.2,
+        "total_samples": 13,
+        "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-REF T)"
+      },
+      {
+        "samples": 12,
+        "self_percent": 0.2,
+        "total_samples": 12,
+        "function": "(LABELS SB-IMPL::RECUR :IN SB-IMPL::STABLE-SORT-LIST)"
+      },
+      {
+        "samples": 12,
+        "self_percent": 0.2,
+        "total_samples": 12,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-SET"
+      },
+      {
+        "samples": 10,
+        "self_percent": 0.1,
+        "total_samples": 10,
+        "function": "(LAMBDA (CNVRS::KEY) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.1,
+        "total_samples": 9,
+        "function": "CNVRS/RUNTIME::MERGE-CACHE-PUT"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.1,
+        "total_samples": 9,
+        "function": "CNVRS/RUNTIME::EXEC-ATN"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.1,
+        "total_samples": 9,
+        "function": "SB-THREAD:GRAB-MUTEX"
+      },
+      {
+        "samples": 8,
+        "self_percent": 0.1,
+        "total_samples": 8,
+        "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.1,
+        "total_samples": 7,
+        "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.1,
+        "total_samples": 7,
+        "function": "SB-KERNEL::INTEGER-/-INTEGER"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.1,
+        "total_samples": 7,
+        "function": "SB-KERNEL:TWO-ARG-<"
+      },
+      {
+        "samples": 7,
+        "self_percent": 0.1,
+        "total_samples": 7,
+        "function": "(LABELS SB-IMPL::EQUAL-AUX :IN EQUAL)"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "SB-IMPL::%ALLOC-HASH-TABLE"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "CNVRS/RUNTIME:SINGLE-VIABLE-ALT"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "SB-THREAD::CALL-WITH-MUTEX"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "(FLET \"WITHOUT-INTERRUPTS-BODY-1\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "SB-KERNEL:VECTOR-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "CNVRS::PREDICT"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "(FLET SB-IMPL::BODY :IN SB-IMPL::PUTHASH/WEAK)"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.1,
+        "total_samples": 6,
+        "function": "EQUAL"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "total_samples": 5,
+        "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "total_samples": 5,
+        "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-SET T)"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "total_samples": 5,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN CNVRS::MAKE-CHUNKED-RULE-RUNNER)"
+      },
+      {
+        "samples": 5,
+        "self_percent": 0.1,
+        "total_samples": 5,
+        "function": "SB-KERNEL:%COERCE-CALLABLE-TO-FUN"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "total_samples": 4,
+        "function": "HASH-TABLE-COUNT"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "total_samples": 4,
+        "function": "SB-THREAD:RELEASE-MUTEX"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.1,
+        "total_samples": 4,
+        "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "SB-UNIX::WITH-DEFERRABLE-SIGNALS-UNBLOCKED"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "CNVRS/RUNTIME::MERGE-ROOT"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "MIN"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "SB-IMPL::%MAKE-HASH-TABLE"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "SB-KERNEL:%MEMBER-TEST"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "SB-IMPL::GETHASH/EQUAL"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "SB-KERNEL:TWO-ARG-="
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "SB-KERNEL:TWO-ARG-/"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "SB-C::CHECK-DS-LIST"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(FLET SB-UNIX::BODY :IN SB-THREAD::CALL-WITH-MUTEX)"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "foreign function gc_alloc_new_region"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "SYMBOL-FUNCTION"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME:ADAPTIVE-PREDICT)"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "CNVRS:PARSE"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "SB-KERNEL:TWO-ARG->"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "CNVRS/RUNTIME::CONTEXT-CACHE-GET"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "SB-KERNEL:%SINGLE-FLOAT"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "CNVRS::DIRECT-CHOICE-INDEX"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "CLOSURE-TRAMP"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS:STATE-ID CNVRS::START-POSITION CNVRS::CHILDREN CNVRS:LABEL LABELS) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "SB-KERNEL:TWO-ARG-*"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "foreign function alloc"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "HASH-TABLE-SIZE"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "SB-EXT:CALL-WITH-TIMING"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "SB-KERNEL:TWO-ARG-+"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "SB-VM::ALLOCATE-VECTOR-WITH-WIDETAG"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2.) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "foreign function page_address"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "CNVRS/RUNTIME::GET-EXISTING-TARGET-STATE"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "foreign function lisp_alloc"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "foreign function add_new_area"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "foreign function gc_find_freeish_pages"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "CNVRS/RUNTIME::EVALUATE-PREDICTIONS"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "NTHCDR"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS:STATE-ID CNVRS::START-POSITION CNVRS::CHILDREN CNVRS:LABEL LABELS) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS:STATE-ID CNVRS::START-POSITION CNVRS::CHILDREN CNVRS:LABEL LABELS) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "CNVRS::RUNTIME-ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "CNVRS/RUNTIME::SEMANTIC-EVAL"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "foreign function pthread_mutex_lock"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LABELS SB-IMPL::SXHASH-RECURSE :IN SXHASH)"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "SXHASH"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "SB-IMPL::MAKE-HASH-TABLE-USING-DEFAULTS"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "ALLOC-TRAMP"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(SB-PCL::FAST-METHOD CNVRS:CACHE-GET-OR-COMPUTE (CNVRS::HASH-CACHE T T))"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(FLET \"CLEANUP-FUN-7\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+      }
+    ],
+    "real_seconds": 15.54,
+    "gc_seconds": 0.449,
+    "allocated_bytes": 14609027552
+  },
+  "alloc": {
+    "samples": 112958,
+    "unattributed_samples": 0,
+    "rows": [
+      {
+        "samples": 45828,
+        "self_percent": 40.6,
+        "total_samples": 49899,
+        "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+      },
+      {
+        "samples": 37547,
+        "self_percent": 33.2,
+        "total_samples": 41543,
+        "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+      },
+      {
+        "samples": 12590,
+        "self_percent": 11.1,
+        "total_samples": 15458,
+        "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+      },
+      {
+        "samples": 8842,
+        "self_percent": 7.8,
+        "total_samples": 9757,
+        "function": "VECTOR-PUSH-EXTEND"
+      },
+      {
+        "samples": 3407,
+        "self_percent": 3.0,
+        "total_samples": 4111,
+        "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+      },
+      {
+        "samples": 2110,
+        "self_percent": 1.9,
+        "total_samples": 2371,
+        "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+      },
+      {
+        "samples": 684,
+        "self_percent": 0.6,
+        "total_samples": 812,
+        "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET"
+      },
+      {
+        "samples": 582,
+        "self_percent": 0.5,
+        "total_samples": 700,
+        "function": "CNVRS/RUNTIME::MERGE-ARRAYS"
+      },
+      {
+        "samples": 345,
+        "self_percent": 0.3,
+        "total_samples": 579,
+        "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+      },
+      {
+        "samples": 243,
+        "self_percent": 0.2,
+        "total_samples": 389,
+        "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+      },
+      {
+        "samples": 237,
+        "self_percent": 0.2,
+        "total_samples": 237,
+        "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+      },
+      {
+        "samples": 218,
+        "self_percent": 0.2,
+        "total_samples": 273,
+        "function": "SB-IMPL::GROW-HASH-TABLE"
+      },
+      {
+        "samples": 68,
+        "self_percent": 0.1,
+        "total_samples": 80,
+        "function": "SB-KERNEL:SUB-GC"
+      },
+      {
+        "samples": 57,
+        "self_percent": 0.1,
+        "total_samples": 82,
+        "function": "SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES"
+      },
+      {
+        "samples": 35,
+        "self_percent": 0.0,
+        "total_samples": 35,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 30,
+        "self_percent": 0.0,
+        "total_samples": 59,
+        "function": "CNVRS/RUNTIME::EXEC-ATN"
+      },
+      {
+        "samples": 29,
+        "self_percent": 0.0,
+        "total_samples": 57,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 28,
+        "self_percent": 0.0,
+        "total_samples": 28,
+        "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+      },
+      {
+        "samples": 25,
+        "self_percent": 0.0,
+        "total_samples": 26,
+        "function": "CNVRS::PREDICT"
+      },
+      {
+        "samples": 9,
+        "self_percent": 0.0,
+        "total_samples": 12,
+        "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+      },
+      {
+        "samples": 6,
+        "self_percent": 0.0,
+        "total_samples": 8,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER)"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "total_samples": 5,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "total_samples": 4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "total_samples": 4,
+        "function": "CNVRS:PARSE"
+      },
+      {
+        "samples": 4,
+        "self_percent": 0.0,
+        "total_samples": 4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 3,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 3,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "SB-LOCKLESS:SO-INSERT"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 2,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 4,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 2,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "CNVRS/RUNTIME::COMBINE-COMMON-PARENTS"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 1,
+        "self_percent": 0.0,
+        "total_samples": 1,
+        "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN \"/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp\")"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 9774,
+        "function": "foreign function collect_backtrace"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 8520,
+        "function": "SB-SPROF::UNAVAILABLE-FRAMES"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 5372,
+        "function": "foreign function search_all_gc_spaces"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 4484,
+        "function": "Unknown fn 2"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 4296,
+        "function": "foreign function page_table_pages"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 4077,
+        "function": "foreign function component_ptr_from_pc"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 3020,
+        "function": "foreign function debug_function_from_pc"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 2100,
+        "function": "foreign function page_table"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 1027,
+        "function": "foreign function lisp_frame_previous"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 820,
+        "function": "foreign function gc_alloc_new_region"
+      },
+      {
+        "samples": 0,
+        "self_percent": 0.0,
+        "total_samples": 724,
+        "function": "foreign function scav_instance_pointer"
+      }
+    ],
+    "real_seconds": 8.003,
+    "gc_seconds": 0.248,
+    "allocated_bytes": 7304340448
+  },
+  "counts": {
+    "ADAPTIVE": 5297,
+    "BUSY-ADD": 0,
+    "BUSY-INSERT": 0,
+    "CLOSURE-CHECK": 3340043,
+    "CLOSURE-WORK": 3329034,
+    "COMBINE-PARENTS": 41870,
+    "CONFIG-ADD": 1279902,
+    "CONFLICT-BYTES": 62189872,
+    "CONFLICT-GROUPS": 1328,
+    "CONFLICT-UNIQUE-ALT": 127,
+    "CONTEXT-CACHE-GET": 10948,
+    "EPSILON": 4595794,
+    "FALLBACK": 529,
+    "FULL-REACH": 1328,
+    "FULL-START": 529,
+    "MERGE": 794269,
+    "MERGE-CACHE-GET": 353708,
+    "MERGE-CACHE-HIT": 263386,
+    "PARENTS-SIZE-10": 304,
+    "PARENTS-SIZE-11": 4024,
+    "PARENTS-SIZE-12": 2349,
+    "PARENTS-SIZE-13": 92,
+    "PARENTS-SIZE-14": 92,
+    "PARENTS-SIZE-15": 92,
+    "PARENTS-SIZE-16": 92,
+    "PARENTS-SIZE-17": 644,
+    "PARENTS-SIZE-2": 1751,
+    "PARENTS-SIZE-3": 8380,
+    "PARENTS-SIZE-4": 7143,
+    "PARENTS-SIZE-5": 5337,
+    "PARENTS-SIZE-6": 10470,
+    "PARENTS-SIZE-7": 492,
+    "PARENTS-SIZE-8": 304,
+    "PARENTS-SIZE-9": 304,
+    "REACH": 1328,
+    "REACH-INPUT": 360187,
+    "REACH-OUTPUT": 404107,
+    "SHARED-CONTEXT-CACHE-GET": 0,
+    "START": 529
+  },
+  "decisions": [
+    {
+      "decision": 6,
+      "calls": 246,
+      "fallbacks": 123,
+      "closures": 827723,
+      "rule": "BATCH"
+    },
+    {
+      "decision": 1526,
+      "calls": 105,
+      "fallbacks": 33,
+      "closures": 672197,
+      "rule": "QUERY_EXPRESSION"
+    },
+    {
+      "decision": 813,
+      "calls": 104,
+      "fallbacks": 67,
+      "closures": 460424,
+      "rule": "SELECT_STATEMENT"
+    },
+    {
+      "decision": 12,
+      "calls": 66,
+      "fallbacks": 63,
+      "closures": 323946,
+      "rule": "SQL_CLAUSES"
+    },
+    {
+      "decision": 1776,
+      "calls": 186,
+      "fallbacks": 98,
+      "closures": 323046,
+      "rule": "FULL_TABLE_NAME"
+    },
+    {
+      "decision": 1635,
+      "calls": 40,
+      "fallbacks": 28,
+      "closures": 139135,
+      "rule": "FUNCTION_CALL"
+    },
+    {
+      "decision": 802,
+      "calls": 5,
+      "fallbacks": 5,
+      "closures": 125040,
+      "rule": "INSERT_STATEMENT_VALUE"
+    },
+    {
+      "decision": 4,
+      "calls": 171,
+      "fallbacks": 48,
+      "closures": 112697,
+      "rule": "BATCH"
+    },
+    {
+      "decision": 1114,
+      "calls": 9,
+      "fallbacks": 9,
+      "closures": 93096,
+      "rule": "DROP_TABLE"
+    },
+    {
+      "decision": 1597,
+      "calls": 111,
+      "fallbacks": 5,
+      "closures": 42422,
+      "rule": "TABLE_SOURCE_ITEM"
+    },
+    {
+      "decision": 801,
+      "calls": 5,
+      "fallbacks": 5,
+      "closures": 34340,
+      "rule": "INSERT_STATEMENT"
+    },
+    {
+      "decision": 1594,
+      "calls": 104,
+      "fallbacks": 1,
+      "closures": 30687,
+      "rule": "TABLE_SOURCES"
+    },
+    {
+      "decision": 1778,
+      "calls": 27,
+      "fallbacks": 8,
+      "closures": 28832,
+      "rule": "TABLE_NAME"
+    },
+    {
+      "decision": 1130,
+      "calls": 4,
+      "fallbacks": 2,
+      "closures": 24438,
+      "rule": "DECLARE_STATEMENT"
+    },
+    {
+      "decision": 1126,
+      "calls": 2,
+      "fallbacks": 2,
+      "closures": 20822,
+      "rule": "DECLARE_STATEMENT"
+    },
+    {
+      "decision": 1592,
+      "calls": 208,
+      "fallbacks": 1,
+      "closures": 15598,
+      "rule": "SELECT_LIST_ELEM"
+    },
+    {
+      "decision": 1040,
+      "calls": 2,
+      "fallbacks": 2,
+      "closures": 13736,
+      "rule": "ALTER_DATABASE"
+    },
+    {
+      "decision": 1258,
+      "calls": 2,
+      "fallbacks": 2,
+      "closures": 13736,
+      "rule": "EXECUTE_STATEMENT"
+    },
+    {
+      "decision": 1589,
+      "calls": 161,
+      "fallbacks": 1,
+      "closures": 7258,
+      "rule": "EXPRESSION_ELEM"
+    },
+    {
+      "decision": 1485,
+      "calls": 1,
+      "fallbacks": 1,
+      "closures": 6874,
+      "rule": "SET_SPECIAL"
+    },
+    {
+      "decision": 993,
+      "calls": 1,
+      "fallbacks": 1,
+      "closures": 6868,
+      "rule": "CREATE_TABLE"
+    },
+    {
+      "decision": 1495,
+      "calls": 487,
+      "fallbacks": 1,
+      "closures": 4566,
+      "rule": "EXPRESSION"
+    },
+    {
+      "decision": 1493,
+      "calls": 1,
+      "fallbacks": 1,
+      "closures": 3636,
+      "rule": "SET_SPECIAL"
+    },
+    {
+      "decision": 1270,
+      "calls": 6,
+      "fallbacks": 2,
+      "closures": 3460,
+      "rule": "EXECUTE_STATEMENT_ARG"
+    },
+    {
+      "decision": 812,
+      "calls": 104,
+      "fallbacks": 2,
+      "closures": 3456,
+      "rule": "SELECT_STATEMENT"
+    },
+    {
+      "decision": 1527,
+      "calls": 115,
+      "fallbacks": 1,
+      "closures": 1756,
+      "rule": "QUERY_EXPRESSION"
+    },
+    {
+      "decision": 1498,
+      "calls": 500,
+      "fallbacks": 13,
+      "closures": 234,
+      "rule": "EXPRESSION"
+    },
+    {
+      "decision": 1628,
+      "calls": 5,
+      "fallbacks": 4,
+      "closures": 20,
+      "rule": "FULL_COLUMN_NAME_LIST"
+    },
+    {
+      "decision": 2,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TSQL_FILE"
+    },
+    {
+      "decision": 8,
+      "calls": 123,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "BATCH"
+    },
+    {
+      "decision": 3,
+      "calls": 123,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "BATCH"
+    },
+    {
+      "decision": 5,
+      "calls": 123,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "BATCH"
+    },
+    {
+      "decision": 16,
+      "calls": 180,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SQL_CLAUSES"
+    },
+    {
+      "decision": 58,
+      "calls": 66,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "ANOTHER_STATEMENT"
+    },
+    {
+      "decision": 17,
+      "calls": 93,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DML_CLAUSE"
+    },
+    {
+      "decision": 1584,
+      "calls": 33,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "ASTERISK"
+    },
+    {
+      "decision": 1611,
+      "calls": 127,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_SOURCE_ITEM"
+    },
+    {
+      "decision": 1598,
+      "calls": 111,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_SOURCE_ITEM"
+    },
+    {
+      "decision": 1596,
+      "calls": 146,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_SOURCE"
+    },
+    {
+      "decision": 1791,
+      "calls": 302,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "FULL_COLUMN_NAME"
+    },
+    {
+      "decision": 1551,
+      "calls": 35,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SELECT_ORDER_BY_CLAUSE"
+    },
+    {
+      "decision": 811,
+      "calls": 104,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SELECT_STATEMENT"
+    },
+    {
+      "decision": 10,
+      "calls": 93,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SQL_CLAUSES"
+    },
+    {
+      "decision": 1779,
+      "calls": 27,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_NAME"
+    },
+    {
+      "decision": 1590,
+      "calls": 169,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXPRESSION_ELEM"
+    },
+    {
+      "decision": 1517,
+      "calls": 71,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SEARCH_CONDITION"
+    },
+    {
+      "decision": 1525,
+      "calls": 71,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "PREDICATE"
+    },
+    {
+      "decision": 1838,
+      "calls": 45,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "COMPARISON_OPERATOR"
+    },
+    {
+      "decision": 1519,
+      "calls": 75,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SEARCH_CONDITION"
+    },
+    {
+      "decision": 1518,
+      "calls": 4,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SEARCH_CONDITION"
+    },
+    {
+      "decision": 1790,
+      "calls": 70,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "FULL_COLUMN_NAME"
+    },
+    {
+      "decision": 1588,
+      "calls": 3,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "UDT_ELEM"
+    },
+    {
+      "decision": 1586,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "UDT_ELEM"
+    },
+    {
+      "decision": 1275,
+      "calls": 6,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXECUTE_VAR_STRING"
+    },
+    {
+      "decision": 1587,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "UDT_ELEM"
+    },
+    {
+      "decision": 1585,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "UDT_ELEM"
+    },
+    {
+      "decision": 1623,
+      "calls": 19,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "JOIN_PART"
+    },
+    {
+      "decision": 1506,
+      "calls": 9,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "BRACKET_EXPRESSION"
+    },
+    {
+      "decision": 1497,
+      "calls": 13,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXPRESSION"
+    },
+    {
+      "decision": 20,
+      "calls": 9,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "CFL_STATEMENT"
+    },
+    {
+      "decision": 1707,
+      "calls": 19,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "BUILT_IN_FUNCTIONS"
+    },
+    {
+      "decision": 18,
+      "calls": 12,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DDL_CLAUSE"
+    },
+    {
+      "decision": 13,
+      "calls": 12,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SQL_CLAUSES"
+    },
+    {
+      "decision": 31,
+      "calls": 9,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "IF_STATEMENT"
+    },
+    {
+      "decision": 32,
+      "calls": 9,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "IF_STATEMENT"
+    },
+    {
+      "decision": 11,
+      "calls": 9,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SQL_CLAUSES"
+    },
+    {
+      "decision": 1524,
+      "calls": 4,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "PREDICATE"
+    },
+    {
+      "decision": 1039,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "ALTER_DATABASE"
+    },
+    {
+      "decision": 1054,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DATABASE_OPTIONSPEC"
+    },
+    {
+      "decision": 1038,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "ALTER_DATABASE"
+    },
+    {
+      "decision": 1522,
+      "calls": 11,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "PREDICATE"
+    },
+    {
+      "decision": 1542,
+      "calls": 13,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "QUERY_SPECIFICATION"
+    },
+    {
+      "decision": 1734,
+      "calls": 20,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "AGGREGATE_WINDOWED_FUNCTION"
+    },
+    {
+      "decision": 1736,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "AGGREGATE_WINDOWED_FUNCTION"
+    },
+    {
+      "decision": 1725,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_HINT"
+    },
+    {
+      "decision": 1578,
+      "calls": 3,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "OPTION"
+    },
+    {
+      "decision": 1545,
+      "calls": 16,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TOP_CLAUSE"
+    },
+    {
+      "decision": 1829,
+      "calls": 21,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DATA_TYPE"
+    },
+    {
+      "decision": 1338,
+      "calls": 3,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SET_STATEMENT"
+    },
+    {
+      "decision": 1652,
+      "calls": 7,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "BUILT_IN_FUNCTIONS"
+    },
+    {
+      "decision": 1633,
+      "calls": 8,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "DERIVED_TABLE"
+    },
+    {
+      "decision": 1601,
+      "calls": 8,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_SOURCE_ITEM"
+    },
+    {
+      "decision": 1600,
+      "calls": 8,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_SOURCE_ITEM"
+    },
+    {
+      "decision": 1802,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SCALAR_FUNCTION_NAME"
+    },
+    {
+      "decision": 1788,
+      "calls": 3,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "FUNC_PROC_NAME_SERVER_DATABASE_SCHEMA"
+    },
+    {
+      "decision": 1784,
+      "calls": 3,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "FUNC_PROC_NAME_DATABASE_SCHEMA"
+    },
+    {
+      "decision": 1781,
+      "calls": 3,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "FUNC_PROC_NAME_SCHEMA"
+    },
+    {
+      "decision": 1610,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "TABLE_SOURCE_ITEM"
+    },
+    {
+      "decision": 1418,
+      "calls": 6,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "COLUMN_DEF_TABLE_CONSTRAINT"
+    },
+    {
+      "decision": 1421,
+      "calls": 6,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "COLUMN_DEFINITION"
+    },
+    {
+      "decision": 1422,
+      "calls": 6,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "COLUMN_DEFINITION"
+    },
+    {
+      "decision": 1417,
+      "calls": 6,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "COLUMN_DEF_TABLE_CONSTRAINTS"
+    },
+    {
+      "decision": 987,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "CREATE_TABLE"
+    },
+    {
+      "decision": 989,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "CREATE_TABLE"
+    },
+    {
+      "decision": 990,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "CREATE_TABLE"
+    },
+    {
+      "decision": 991,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "CREATE_TABLE"
+    },
+    {
+      "decision": 992,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "CREATE_TABLE"
+    },
+    {
+      "decision": 797,
+      "calls": 5,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "INSERT_STATEMENT"
+    },
+    {
+      "decision": 1262,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXECUTE_BODY"
+    },
+    {
+      "decision": 1264,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXECUTE_BODY"
+    },
+    {
+      "decision": 1272,
+      "calls": 4,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXECUTE_STATEMENT_ARG"
+    },
+    {
+      "decision": 1273,
+      "calls": 4,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "EXECUTE_PARAMETER"
+    },
+    {
+      "decision": 1613,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "OPEN_XML"
+    },
+    {
+      "decision": 1614,
+      "calls": 2,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "OPEN_XML"
+    },
+    {
+      "decision": 1723,
+      "calls": 1,
+      "fallbacks": 0,
+      "closures": 0,
+      "rule": "SYBASE_LEGACY_HINTS"
+    }
+  ],
+  "chunks": [
+    {
+      "rule": "BUILT_IN_FUNCTIONS",
+      "calls": 95,
+      "continuations": 76
+    },
+    {
+      "rule": "DDL_CLAUSE",
+      "calls": 42,
+      "continuations": 30
+    }
+  ]
+}

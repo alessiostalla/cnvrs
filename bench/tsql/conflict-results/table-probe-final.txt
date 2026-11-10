@@ -1,0 +1,22 @@
+FIXTURES 1201 CONFIGS 403935
+Evaluation took:
+  0.502 seconds of real time
+  0.500118 seconds of total run time (0.498968 user, 0.001150 system)
+  99.60% CPU
+  0 bytes consed
+  
+VARIANT RAW-UPDATE
+Evaluation took:
+  0.505 seconds of real time
+  0.504464 seconds of total run time (0.503325 user, 0.001139 system)
+  99.80% CPU
+  0 bytes consed
+  
+VARIANT SXHASH
+Evaluation took:
+  0.073 seconds of real time
+  0.073556 seconds of total run time (0.072868 user, 0.000688 system)
+  101.37% CPU
+  0 bytes consed
+  
+VARIANT FINISH

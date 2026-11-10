@@ -346,12 +346,13 @@
              (reach (compute-reach-set *simulator* previous token t)))
         (unless reach
           (return (or (alt-that-finished-decision-entry-rule previous) (no-alt dfa previous position))))
-        (let* ((subsets (conflicting-alt-subsets reach)) (unique (unique-alt reach))
+        (let* ((unique (unique-alt reach))
                (answer (or unique
                            (if (eq (simulator-mode *simulator*) :ll-exact-ambig-detection)
-                               (and (every #'cdr subsets) (every (lambda (s) (equal s (first subsets))) subsets)
-                                    (single-viable-alt subsets))
-                               (single-viable-alt subsets)))))
+                               (let ((subsets (conflicting-alt-subsets reach)))
+                                 (and (every #'cdr subsets) (every (lambda (s) (equal s (first subsets))) subsets)
+                                      (single-viable-alt subsets)))
+                               (config-set-single-viable-alt reach *conflict-workspace*)))))
           (when answer
             (runtime-trace (if unique :context-sensitivity :ambiguity) :decision (dfa-decision dfa)
                            :start *start-index* :stop position :alternative answer)
@@ -396,6 +397,7 @@ OUTER-CONTEXT is a nearest-first caller follow-state list or a prediction contex
   (declare (type parser-atn-simulator simulator) (type (vector t) tokens)
            (type fixnum decision position precedence))
   (let* ((*simulator* simulator) (*input* tokens) (*start-index* position)
+         (*conflict-workspace* (or *conflict-workspace* (make-conflict-workspace)))
          (*outer-context* (or outer-context (empty-prediction-context))) (*precedence* precedence)
          (*merge-cache* nil)
          (*current-dfa* (aref (simulator-decision-dfas simulator) decision))

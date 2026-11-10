@@ -1,0 +1,40 @@
+{
+  "utc": "2026-11-10T10:32:54.555838+00:00",
+  "base_revision": "66ae344aee1da374e2e1e390d14c9e5b3fee484c",
+  "source_sha256": {
+    "src/antlr4-convert.lisp": "4490787400d1805f3aa16952b235afce649a14808a58230d32c91240ef4edaf7",
+    "src/antlr4-package.lisp": "f0294443106d13373cdc09f28458eae2050965ee05a574c9441a76d9cafde45b",
+    "src/antlr4-parser.lisp": "beb595fcd1e7b2350420c44924a4411db268e9907d3f9a19671175487dbc2d81",
+    "src/antlr4.lisp": "472c74c57e735f072110c5b3d7ba0ad10d5642c3973089a9c2915d6912fc0e0c",
+    "src/cache.lisp": "f03fbfabee86065cc1304998ed1ffae27dbecc0b5f2a279f09e04ac2cd17684d",
+    "src/cnvrs.lisp": "b0b7d36662c482fccf7c8211e1c8062368154c1f09fdd6e22c1ae817fac263e0",
+    "src/fasl.lisp": "481c0ea597ab96213fe4273dd37d2f507a2e82f49dbe1f2bdeba85b8471436be",
+    "src/graph.lisp": "dcd5901ab484fb33d2517187b6bf6af7ea8b14cc4e136abe1f3618cc87cc8656",
+    "src/lexer-atn.lisp": "aef9956fe6c41dcbb1d57d42ec5d034b4f7b2c6e0bcff9f9f4b39cf56c9a4da2",
+    "src/lexer-runtime.lisp": "120a4fbd700d83528216b1884fccf1f0d4c3d875982f60d7523d4646cf217422",
+    "src/lexer.lisp": "2f6f26c563026fe2e3d3404ff648292cf31c4a7c77995b8c015318f782c5a394",
+    "src/macros.lisp": "8672fca7c88a848192e42b64a2036d90ca1887516103a3ef2aa3c69c6a3e9477",
+    "src/native-atn.lisp": "fbe9b4ad7a6d1cd15a153be122667fea60c1c3300df84ea0560cd710442dfdf9",
+    "src/package.lisp": "3b1a35769115eab4e9d9561e867688e59e4b9940df839973a5fc6f2245b4ad4e",
+    "src/parser-runtime.lisp": "de82fa74b27f5232d4504dee7845a558425e37d48734769112e817beb1bbbadf",
+    "src/runtime/atn-config.lisp": "f66d9098f9b3f00bdc55e596c8e1b0ac5e5d02fcc08a2668f87fb62b33a04f9b",
+    "src/runtime/lexer-atn-simulator.lisp": "464e8d1d34407df663cd3f22fdcc88de7eb63bbfafadd3610be4b59c3305cfcb",
+    "src/runtime/ll1-analyzer.lisp": "df8cf6438f5990f971987b6ba9065903d348901c05d21aeb4f35acdcb6b7f199",
+    "src/runtime/package.lisp": "d0d2326f0c2927bbf545b5d43e5c60c6eb8796b14b767e13137126c19a99faba",
+    "src/runtime/parser-atn-simulator.lisp": "748e756663c25983bc2e6d8f75565a4136f067110fdbe7e06ae72c6ab750ee4c",
+    "src/runtime/prediction-context.lisp": "e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7",
+    "src/semantic.lisp": "504a3db48b16a714d3d0a43d0a8e9fb564c0997b7b3f04644e8b25e890b1bf45",
+    "src/tokens.lisp": "84dd7d583b94fe8089cb28c03153e47d100ff7c0711903dcc35eae3a260e8785",
+    "src/tree.lisp": "86d92f2b731a4d75fa2d21c1713404691628ebf89726cca68fc450b3bde4c005",
+    "src/unicode-data.lisp": "ee2e643f291fc5e7295747130d51d3e3b6903d3a3b0aa2afbb251dac05a89ce0"
+  },
+  "harness_sha256": {
+    "bench/c-reference/benchmark.lisp": "7fcf32c80748d6822f924106844e03a8770b27bdcb149baa4eca2f339b693987",
+    "bench/c-reference/warm-profile.lisp": "fe905cc9f79a8a7be7e693ecf5879116781faf9ec4cfffad033c110960028f69",
+    "bench/c-reference/operation-probe.lisp": "64ef6dddb215b18f3038af1b39d2aed6bdbe46ee83cc49e51ef0100d55d5d513",
+    "bench/c-reference/Operations.java": "e4400b4282a9423011477a249669c0594f96c33b89920646d5222974d7e83bf0",
+    "bench/c-reference/profile-summary.py": "4a42227150887d63d929491c7b1cc0974ce2e539713d17c2ac48dfa067487e92",
+    "bench/c-reference/C.g4": "aac416eaf3a1bb409342b33eab6fae27837c654ad4c582469714bc77b2c09747",
+    "bench/c-reference/examples/Wmisleading-indentation.pp.c": "fdfc2ab1e8563a455726ab0d6854d49010bca629d01584a978bf825e47022d72"
+  }
+}

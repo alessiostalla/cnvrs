@@ -1,0 +1,520 @@
+T-SQL preparation succeeded.
+WARM SELECT RECOGNITION MODE alloc TOKENS 2949
+Evaluation took:
+  8.003 seconds of real time
+  7.681915 seconds of total run time (7.579309 user, 0.102606 system)
+  [ Real times consist of 0.248 seconds GC time, and 7.755 seconds non-GC time. ]
+  [ Run times consist of 0.231 seconds GC time, and 7.451 seconds non-GC time. ]
+  95.99% CPU
+  7,304,340,448 bytes consed
+  
+
+Number of samples:     112958
+Unique traces:         4684
+Alloc interval:        1 regions (approximately 64 kB)
+Total sampling amount: 112958 regions (approximately 7229312 kB)
+Graph cycles:        0
+Sampled threads:
+   #<THREAD "finalizer" RUNNING {70090B0033}> (48/1048576 bytes, 1 hash buckets)
+   #<THREAD "main thread" RUNNING {70090B0203}> (149872/1048576 bytes, 4191 hash buckets)
+
+                               Callers
+                 Total.     Function
+ Count     %  Count     %      Callees
+------------------------------------------------------------------------
+   618   0.5                   foreign function lisp_frame_previous [47]
+  3804   3.4                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+  4341   3.8                   foreign function collect_backtrace [46]
+  3036   2.7                   foreign function page_table_pages [48]
+  3414   3.0                   foreign function search_all_gc_spaces [49]
+  1623   1.4                   foreign function component_ptr_from_pc [44]
+    52   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+    25   0.0                   SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES [14]
+  1986   1.8                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+  3021   2.7                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+  2058   1.8                   foreign function debug_function_from_pc [50]
+     1   0.0                   foreign function gc_alloc_new_region [45]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [17]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [23]
+    14   0.0                   CNVRS/RUNTIME:COMPUTE-START-STATE [9]
+   285   0.3                   VECTOR-PUSH-EXTEND [4]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [31]
+  2249   2.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   CNVRS::PREDICT [19]
+    59   0.1                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [30]
+   481   0.4                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER) [21]
+    46   0.0                   CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET [7]
+    47   0.0                   CNVRS/RUNTIME:COMPUTE-REACH-SET [10]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [36]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [33]
+   203   0.2                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+  2499   2.2                   Unknown fn 2 [41]
+ 45828  40.6  49899  44.2   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   348   0.3                   VECTOR-PUSH-EXTEND [4]
+  1347   1.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    30   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+     2   0.0                   SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES [14]
+     3   0.0                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+    87   0.1                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+     5   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+  2249   2.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   297   0.3                   foreign function scav_instance_pointer [51]
+   976   0.9                   foreign function page_table_pages [48]
+   862   0.8                   foreign function search_all_gc_spaces [49]
+   576   0.5                   VECTOR-PUSH-EXTEND [4]
+   533   0.5                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   865   0.8                   foreign function debug_function_from_pc [50]
+  1111   1.0                   foreign function component_ptr_from_pc [44]
+   481   0.4                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+   346   0.3                   foreign function lisp_frame_previous [47]
+   189   0.2                   CNVRS/RUNTIME:COMPUTE-START-STATE [9]
+  3018   2.7                   foreign function collect_backtrace [46]
+    40   0.0                   CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET [7]
+    56   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+    25   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [17]
+    97   0.1                   CNVRS/RUNTIME:COMPUTE-REACH-SET [10]
+   877   0.8                   foreign function page_table [43]
+  1347   1.2                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+    29   0.0                   CNVRS/RUNTIME::EXEC-ATN [16]
+    58   0.1                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+   134   0.1                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     3   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE [20]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [36]
+   342   0.3                   foreign function gc_alloc_new_region [45]
+  3649   3.2                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+  1022   0.9                   Unknown fn 2 [41]
+ 37547  33.2  41543  36.8   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   279   0.2                   VECTOR-PUSH-EXTEND [4]
+   533   0.5                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   158   0.1                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+  3021   2.7                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     3   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+     2   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+------------------------------------------------------------------------
+   338   0.3                   foreign function scav_instance_pointer [51]
+    11   0.0                   foreign function component_ptr_from_pc [44]
+   966   0.9                   foreign function page_table [43]
+     1   0.0                   Unknown fn 2 [41]
+     6   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+   352   0.3                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     2   0.0                   CNVRS/RUNTIME:COMPUTE-REACH-SET [10]
+     1   0.0                   foreign function lisp_frame_previous [47]
+   371   0.3                   foreign function gc_alloc_new_region [45]
+     5   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+ 12590  11.1  15458  13.7   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+   372   0.3                   VECTOR-PUSH-EXTEND [4]
+   481   0.4                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+  1986   1.8                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+    21   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     6   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+     2   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+------------------------------------------------------------------------
+   792   0.7                   foreign function component_ptr_from_pc [44]
+   822   0.7                   foreign function search_all_gc_spaces [49]
+   372   0.3                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+   279   0.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    31   0.0                   CNVRS/RUNTIME:COMPUTE-START-STATE [9]
+  1505   1.3                   foreign function collect_backtrace [46]
+   132   0.1                   foreign function page_table_pages [48]
+    89   0.1                   foreign function debug_function_from_pc [50]
+   348   0.3                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+    59   0.1                   foreign function lisp_frame_previous [47]
+     3   0.0                   foreign function page_table [43]
+    76   0.1                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     1   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+    24   0.0                   CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET [7]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [36]
+     1   0.0                   foreign function gc_alloc_new_region [45]
+   121   0.1                   Unknown fn 2 [41]
+   374   0.3                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+  8842   7.8   9757   8.6   VECTOR-PUSH-EXTEND [4]
+   576   0.5                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    28   0.0                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+    26   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+   285   0.3                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    83   0.1                   foreign function scav_instance_pointer [51]
+    31   0.0                   foreign function component_ptr_from_pc [44]
+   246   0.2                   foreign function page_table [43]
+     7   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+    21   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+     1   0.0                   Unknown fn 2 [41]
+     2   0.0                   foreign function collect_backtrace [46]
+   121   0.1                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+   100   0.1                   foreign function gc_alloc_new_region [45]
+  3407   3.0   4111   3.6   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     7   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+    76   0.1                   VECTOR-PUSH-EXTEND [4]
+   134   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   481   0.4                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+     5   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+------------------------------------------------------------------------
+   475   0.4                   foreign function component_ptr_from_pc [44]
+   246   0.2                   foreign function search_all_gc_spaces [49]
+   158   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   144   0.1                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+    63   0.1                   foreign function page_table_pages [48]
+   446   0.4                   foreign function collect_backtrace [46]
+    26   0.0                   VECTOR-PUSH-EXTEND [4]
+     4   0.0                   foreign function debug_function_from_pc [50]
+    87   0.1                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+    28   0.0                   Unknown fn 2 [41]
+  2110   1.9   2371   2.1   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+    56   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   VECTOR-PUSH-EXTEND [4]
+     1   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+   203   0.2                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   382   0.3                   Unknown fn 2 [41]
+   684   0.6    812   0.7   CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET [7]
+    40   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    18   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+    46   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+    24   0.0                   VECTOR-PUSH-EXTEND [4]
+------------------------------------------------------------------------
+    87   0.1                   foreign function page_table_pages [48]
+    28   0.0                   VECTOR-PUSH-EXTEND [4]
+    40   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+    33   0.0                   foreign function collect_backtrace [46]
+    30   0.0                   foreign function component_ptr_from_pc [44]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   foreign function search_all_gc_spaces [49]
+   243   0.2                   Unknown fn 2 [41]
+   582   0.5    700   0.6   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+    58   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    59   0.1                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+------------------------------------------------------------------------
+   337   0.3                   foreign function collect_backtrace [46]
+     1   0.0                   foreign function component_ptr_from_pc [44]
+   345   0.3    579   0.5   CNVRS/RUNTIME:COMPUTE-START-STATE [9]
+    31   0.0                   VECTOR-PUSH-EXTEND [4]
+   189   0.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    14   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   126   0.1                   Unknown fn 2 [41]
+   243   0.2    389   0.3   CNVRS/RUNTIME:COMPUTE-REACH-SET [10]
+    97   0.1                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    47   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     2   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+------------------------------------------------------------------------
+    30   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+    27   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+    54   0.0                   foreign function collect_backtrace [46]
+     2   0.0                   foreign function component_ptr_from_pc [44]
+     3   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+     2   0.0                   foreign function page_table_pages [48]
+   237   0.2    237   0.2   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+------------------------------------------------------------------------
+    28   0.0                   Unknown fn 2 [41]
+    18   0.0                   CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET [7]
+     1   0.0                   foreign function page_table [43]
+     1   0.0                   foreign function collect_backtrace [46]
+     5   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   foreign function debug_function_from_pc [50]
+     2   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     2   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+   218   0.2    273   0.2   SB-IMPL::GROW-HASH-TABLE [12]
+    52   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     3   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+    12   0.0                   SB-KERNEL:SUB-GC [13]
+     3   0.0                   foreign function lisp_frame_previous [47]
+     3   0.0                   foreign function search_all_gc_spaces [49]
+     3   0.0                   foreign function debug_function_from_pc [50]
+     4   0.0                   foreign function collect_backtrace [46]
+     3   0.0                   Unknown fn 2 [41]
+     1   0.0                   foreign function component_ptr_from_pc [44]
+    68   0.1     80   0.1   SB-KERNEL:SUB-GC [13]
+    12   0.0                   SB-KERNEL:SUB-GC [13]
+------------------------------------------------------------------------
+    24   0.0                   foreign function search_all_gc_spaces [49]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+    29   0.0                   foreign function collect_backtrace [46]
+    57   0.1     82   0.1   SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES [14]
+    25   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     2   0.0                   foreign function scav_instance_pointer [51]
+     2   0.0                   foreign function page_table [43]
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     1   0.0                   foreign function gc_alloc_new_region [45]
+    35   0.0     35   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [15]
+------------------------------------------------------------------------
+    16   0.0                   Unknown fn 2 [41]
+    30   0.0     59   0.1   CNVRS/RUNTIME::EXEC-ATN [16]
+    29   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     1   0.0                   foreign function scav_instance_pointer [51]
+     2   0.0                   foreign function page_table [43]
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     1   0.0                   foreign function gc_alloc_new_region [45]
+    29   0.0     57   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [17]
+    25   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    14   0.0                   Unknown fn 2 [41]
+    28   0.0     28   0.0   CNVRS/RUNTIME:CONTEXT-FROM-STACK [18]
+------------------------------------------------------------------------
+     1   0.0                   foreign function scav_instance_pointer [51]
+     1   0.0                   foreign function page_table [43]
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     1   0.0                   foreign function gc_alloc_new_region [45]
+    25   0.0     26   0.0   CNVRS::PREDICT [19]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     4   0.0                   foreign function collect_backtrace [46]
+     9   0.0     12   0.0   CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE [20]
+     3   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     1   0.0                   foreign function scav_instance_pointer [51]
+     6   0.0      8   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER) [21]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     4   0.0      5   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [23]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [45]
+     4   0.0      4   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [22]
+------------------------------------------------------------------------
+     4   0.0      4   0.0   CNVRS:PARSE [24]
+------------------------------------------------------------------------
+     1   0.0                   foreign function page_table [43]
+     4   0.0      4   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [25]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [45]
+     1   0.0                   foreign function page_table [43]
+     3   0.0      3   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [26]
+------------------------------------------------------------------------
+     2   0.0      3   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [30]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     2   0.0      3   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [31]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   SB-LOCKLESS:SO-INSERT [27]
+------------------------------------------------------------------------
+     1   0.0                   foreign function scav_instance_pointer [51]
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [28]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [29]
+------------------------------------------------------------------------
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     1   0.0      4   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [36]
+     1   0.0                   VECTOR-PUSH-EXTEND [4]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     1   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [33]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [32]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME::COMBINE-COMMON-PARENTS [34]
+------------------------------------------------------------------------
+     1   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [42]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [35]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [37]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [38]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [39]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [40]
+------------------------------------------------------------------------
+     0   0.0   9774   8.7   foreign function collect_backtrace [46]
+  4341   3.8                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+  1505   1.3                   VECTOR-PUSH-EXTEND [4]
+  3018   2.7                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   446   0.4                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+     4   0.0                   CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE [20]
+    33   0.0                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+   337   0.3                   CNVRS/RUNTIME:COMPUTE-START-STATE [9]
+    54   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+     1   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+     2   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     4   0.0                   SB-KERNEL:SUB-GC [13]
+    29   0.0                   SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES [14]
+------------------------------------------------------------------------
+     0   0.0   8520   7.5   SB-SPROF::UNAVAILABLE-FRAMES [42]
+  3804   3.4                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   144   0.1                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+    27   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+    40   0.0                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+   352   0.3                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [23]
+   121   0.1                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [36]
+     1   0.0                   CNVRS::PREDICT [19]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [35]
+     1   0.0                   SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES [14]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [33]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [15]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [17]
+     1   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+   374   0.3                   VECTOR-PUSH-EXTEND [4]
+  3649   3.2                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+------------------------------------------------------------------------
+     0   0.0   5372   4.8   foreign function search_all_gc_spaces [49]
+   822   0.7                   VECTOR-PUSH-EXTEND [4]
+   862   0.8                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+  3414   3.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   246   0.2                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+    24   0.0                   SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES [14]
+     3   0.0                   SB-KERNEL:SUB-GC [13]
+     1   0.0                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+------------------------------------------------------------------------
+     0   0.0   4484   4.0   Unknown fn 2 [41]
+    28   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+     1   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+     1   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+   243   0.2                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+    14   0.0                   CNVRS/RUNTIME:CONTEXT-FROM-STACK [18]
+    28   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+   382   0.3                   CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET [7]
+   126   0.1                   CNVRS/RUNTIME:COMPUTE-REACH-SET [10]
+     3   0.0                   SB-KERNEL:SUB-GC [13]
+    16   0.0                   CNVRS/RUNTIME::EXEC-ATN [16]
+   121   0.1                   VECTOR-PUSH-EXTEND [4]
+  1022   0.9                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+  2499   2.2                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     0   0.0   4296   3.8   foreign function page_table_pages [48]
+   976   0.9                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    87   0.1                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+  3036   2.7                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   132   0.1                   VECTOR-PUSH-EXTEND [4]
+    63   0.1                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+     2   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+------------------------------------------------------------------------
+     0   0.0   4077   3.6   foreign function component_ptr_from_pc [44]
+   792   0.7                   VECTOR-PUSH-EXTEND [4]
+   475   0.4                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+  1111   1.0                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    31   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+  1623   1.4                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+    11   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+    30   0.0                   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+     1   0.0                   CNVRS/RUNTIME:COMPUTE-START-STATE [9]
+     2   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [11]
+     1   0.0                   SB-KERNEL:SUB-GC [13]
+------------------------------------------------------------------------
+     0   0.0   3020   2.7   foreign function debug_function_from_pc [50]
+   865   0.8                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    89   0.1                   VECTOR-PUSH-EXTEND [4]
+  2058   1.8                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     3   0.0                   SB-KERNEL:SUB-GC [13]
+     4   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [6]
+     1   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+------------------------------------------------------------------------
+     0   0.0   2100   1.9   foreign function page_table [43]
+   877   0.8                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   966   0.9                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+   246   0.2                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     3   0.0                   VECTOR-PUSH-EXTEND [4]
+     1   0.0                   CNVRS::PREDICT [19]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [15]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [17]
+     1   0.0                   SB-IMPL::GROW-HASH-TABLE [12]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [25]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [26]
+------------------------------------------------------------------------
+     0   0.0   1027   0.9   foreign function lisp_frame_previous [47]
+   618   0.5                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   346   0.3                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+    59   0.1                   VECTOR-PUSH-EXTEND [4]
+     3   0.0                   SB-KERNEL:SUB-GC [13]
+     1   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+------------------------------------------------------------------------
+     0   0.0    820   0.7   foreign function gc_alloc_new_region [45]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   371   0.3                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+   342   0.3                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+   100   0.1                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [15]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [17]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [26]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [22]
+     1   0.0                   VECTOR-PUSH-EXTEND [4]
+     1   0.0                   CNVRS::PREDICT [19]
+------------------------------------------------------------------------
+     0   0.0    724   0.6   foreign function scav_instance_pointer [51]
+   297   0.3                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [2]
+     1   0.0                   CNVRS::PREDICT [19]
+   338   0.3                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [3]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER) [21]
+    83   0.1                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [5]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [15]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [28]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [17]
+------------------------------------------------------------------------
+
+
+           Self        Total        Cumul
+  Nr  Count     %  Count     %  Count     %    Calls  Function
+------------------------------------------------------------------------
+   1  45828  40.6  49899  44.2  45828  40.6        -  CNVRS/RUNTIME::CLOSURE-WORK
+   2  37547  33.2  41543  36.8  83375  73.8        -  (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP")
+   3  12590  11.1  15458  13.7  95965  85.0        -  CNVRS/RUNTIME:ADAPTIVE-PREDICT
+   4   8842   7.8   9757   8.6 104807  92.8        -  VECTOR-PUSH-EXTEND
+   5   3407   3.0   4111   3.6 108214  95.8        -  CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT
+   6   2110   1.9   2371   2.1 110324  97.7        -  CNVRS/RUNTIME:CONFIG-SET-ADD
+   7    684   0.6    812   0.7 111008  98.3        -  CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET
+   8    582   0.5    700   0.6 111590  98.8        -  CNVRS/RUNTIME::MERGE-ARRAYS
+   9    345   0.3    579   0.5 111935  99.1        -  CNVRS/RUNTIME:COMPUTE-START-STATE
+  10    243   0.2    389   0.3 112178  99.3        -  CNVRS/RUNTIME:COMPUTE-REACH-SET
+  11    237   0.2    237   0.2 112415  99.5        -  CNVRS/RUNTIME::MERGE-SINGLETONS
+  12    218   0.2    273   0.2 112633  99.7        -  SB-IMPL::GROW-HASH-TABLE
+  13     68   0.1     80   0.1 112701  99.8        -  SB-KERNEL:SUB-GC
+  14     57   0.1     82   0.1 112758  99.8        -  SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES
+  15     35   0.0     35   0.0 112793  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  16     30   0.0     59   0.1 112823  99.9        -  CNVRS/RUNTIME::EXEC-ATN
+  17     29   0.0     57   0.1 112852  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  18     28   0.0     28   0.0 112880  99.9        -  CNVRS/RUNTIME:CONTEXT-FROM-STACK
+  19     25   0.0     26   0.0 112905 100.0        -  CNVRS::PREDICT
+  20      9   0.0     12   0.0 112914 100.0        -  CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE
+  21      6   0.0      8   0.0 112920 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER)
+  22      4   0.0      5   0.0 112924 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  23      4   0.0      4   0.0 112928 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  24      4   0.0      4   0.0 112932 100.0        -  CNVRS:PARSE
+  25      4   0.0      4   0.0 112936 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  26      3   0.0      3   0.0 112939 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  27      2   0.0      3   0.0 112941 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  28      2   0.0      3   0.0 112943 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  29      2   0.0      2   0.0 112945 100.0        -  SB-LOCKLESS:SO-INSERT
+  30      2   0.0      2   0.0 112947 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  31      2   0.0      2   0.0 112949 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  32      1   0.0      4   0.0 112950 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  33      1   0.0      2   0.0 112951 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  34      1   0.0      1   0.0 112952 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  35      1   0.0      1   0.0 112953 100.0        -  CNVRS/RUNTIME::COMBINE-COMMON-PARENTS
+  36      1   0.0      1   0.0 112954 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  37      1   0.0      1   0.0 112955 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  38      1   0.0      1   0.0 112956 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  39      1   0.0      1   0.0 112957 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  40      1   0.0      1   0.0 112958 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  41      0   0.0   9774   8.7 112958 100.0        -  foreign function collect_backtrace
+  42      0   0.0   8520   7.5 112958 100.0        -  SB-SPROF::UNAVAILABLE-FRAMES
+  43      0   0.0   5372   4.8 112958 100.0        -  foreign function search_all_gc_spaces
+  44      0   0.0   4484   4.0 112958 100.0        -  Unknown fn 2
+  45      0   0.0   4296   3.8 112958 100.0        -  foreign function page_table_pages
+  46      0   0.0   4077   3.6 112958 100.0        -  foreign function component_ptr_from_pc
+  47      0   0.0   3020   2.7 112958 100.0        -  foreign function debug_function_from_pc
+  48      0   0.0   2100   1.9 112958 100.0        -  foreign function page_table
+  49      0   0.0   1027   0.9 112958 100.0        -  foreign function lisp_frame_previous
+  50      0   0.0    820   0.7 112958 100.0        -  foreign function gc_alloc_new_region
+  51      0   0.0    724   0.6 112958 100.0        -  foreign function scav_instance_pointer
+------------------------------------------------------------------------
+          0   0.0                                     elsewhere

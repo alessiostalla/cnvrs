@@ -989,6 +989,7 @@ the restarts at each error site to make a different local repair."
   (unless (or (eq channels :all) (listp channels))
     (error 'type-error :datum channels :expected-type '(or list (eql :all))))
   (let* ((*prediction-input-cache* (make-hash-table :test 'eq))
+         (cnvrs/runtime::*conflict-workspace* (cnvrs/runtime::make-conflict-workspace))
          (build-tree-p (parse-build-tree-p tree-builder))
          (lexed (coerce (if lexer (lex lexer tokens) tokens)
                         'simple-vector))

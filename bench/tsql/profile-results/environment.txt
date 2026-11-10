@@ -1,0 +1,4 @@
+Tue Nov 10 08:59:37 UTC 2026
+66ae344aee1da374e2e1e390d14c9e5b3fee484c
+arm64
+SBCL 2.4.0

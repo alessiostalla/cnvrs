@@ -138,6 +138,67 @@ input remains the traversal source, preserving the reference aliasing rules."
         (when (and answer (/= answer minimum)) (return-from single-viable-alt nil))
         (setf answer minimum)))
     answer))
+
+(defstruct (conflict-workspace (:constructor make-conflict-workspace ()))
+  ;; A workspace belongs to one parse (or one standalone prediction). Groups
+  ;; borrow configurations only for the duration of a single grouping call.
+  (buckets (make-array 0 :element-type 'fixnum) :type (simple-array fixnum (*)))
+  (representatives #() :type simple-vector)
+  (minima (make-array 0 :element-type 'fixnum) :type (simple-array fixnum (*))))
+(defvar *conflict-workspace* nil)
+
+(defun config-set-single-viable-alt (set workspace)
+  "Compute the common minimum alternative without materializing subsets."
+  (declare (type atn-config-set set) (type conflict-workspace workspace))
+  (let* ((items (config-set-items set)) (size (length items))
+         (capacity (max 16 (ash 1 (integer-length (max 0 (1- (* 2 size))))))))
+    (when (< (length (conflict-workspace-buckets workspace)) capacity)
+      (setf (conflict-workspace-buckets workspace)
+            (make-array capacity :element-type 'fixnum :initial-element 0)
+            (conflict-workspace-representatives workspace)
+            (make-array (ash capacity -1) :initial-element nil)
+            (conflict-workspace-minima workspace)
+            (make-array (ash capacity -1) :element-type 'fixnum :initial-element 0)))
+    (let* ((buckets (conflict-workspace-buckets workspace))
+           (representatives (conflict-workspace-representatives workspace))
+           (minima (conflict-workspace-minima workspace))
+           (mask (1- capacity)) (groups 0))
+      (declare (type fixnum mask groups))
+      ;; A large earlier decision must not make every small decision clear the
+      ;; entire high-water allocation. Probe only the active power-of-two span.
+      (fill buckets 0 :end capacity)
+      (unwind-protect
+           (progn
+             (loop for config of-type atn-config across items do
+               (let* ((context (atn-config-context config))
+                      ;; Finalize before masking: Murmur's update alone has
+                      ;; badly clustered low bits on real prediction contexts.
+                      (slot (logand mask (murmur-finish
+                                         (murmur-update (u32 (atn-config-state config))
+                                                        (context-hash context)) 2))))
+                 (declare (type fixnum slot))
+                 (loop for entry fixnum = (aref buckets slot) do
+                   (cond
+                     ((zerop entry)
+                      (setf (aref buckets slot) (1+ groups)
+                            (svref representatives groups) config
+                            (aref minima groups) (atn-config-alt config))
+                      (incf groups) (return))
+                     (t
+                      (let* ((index (1- entry))
+                             (candidate (the atn-config (svref representatives index))))
+                        (when (and (= (atn-config-state config) (atn-config-state candidate))
+                                   (context-equal context (atn-config-context candidate)))
+                          (setf (aref minima index) (min (aref minima index) (atn-config-alt config)))
+                          (return)))))
+                   (setf slot (logand mask (1+ slot))))))
+             (when (plusp groups)
+               (let ((answer (aref minima 0)))
+                 (loop for i fixnum from 1 below groups
+                       unless (= answer (aref minima i)) do (return-from config-set-single-viable-alt nil))
+                 answer)))
+        ;; Never retain configurations or their context DAGs between calls.
+        (fill representatives nil :end groups)))))
 (defun has-sll-conflict-terminating-prediction (atn set &optional (mode :ll))
   (when (all-configs-in-rule-stop-states atn set)
     (return-from has-sll-conflict-terminating-prediction t))

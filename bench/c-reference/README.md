@@ -1,5 +1,10 @@
 # C11 versus ANTLR Java
 
+Historical results below predate compact conflict grouping. See the
+[latest C11 and Java 8 comparison](../java-reference/compact.md) for updated measurements.
+The [warm C11 profile](profile.md) locates remaining costs and matches prediction
+work against Java.
+
 A full C11 grammar provides a second language comparison after the
 [configuration/context lookup optimization](../java-reference/lookup.md).
 It has **1,116 lines, 88 parser rules, 1,113 parser ATN slots, and 135 decisions**.

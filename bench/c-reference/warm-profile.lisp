@@ -1,0 +1,28 @@
+;;; Load benchmark definitions without executing its measurement form.
+(require :asdf)
+(let ((*package* *package*))
+  (with-open-file (s "bench/c-reference/benchmark.lisp")
+    (loop for form = (read s nil) while form
+          until (and (consp form) (eq (first form) 'let*)) do (eval form))))
+(require :sb-sprof)
+(in-package #:c-reference/bench)
+(defparameter *tokens* (cnvrs:lex (cnvrs:ensure-compiled (cnvrs:parser-lexer *benchmark-parser*))
+                                (uiop:read-file-string "bench/c-reference/examples/Wmisleading-indentation.pp.c")))
+(defparameter *entry* 'c-reference/bench/parser::compilationunit)
+(defparameter *mode* (first (uiop:command-line-arguments)))
+(defparameter *tree* (if (search "tree" *mode*) :node :none))
+(defun run ()
+  (setf *sink* (cnvrs:parse *benchmark-parser* *tokens* :lexer nil :rule *entry* :tree-builder *tree*))
+  (when (eq *tree* :node) (assert (= (cnvrs:node-end *sink*) 3658))))
+(let ((input (cnvrs::make-token-input *tokens* '(:default))))
+  (assert (funcall (cnvrs:parser-runner *benchmark-parser*) *benchmark-parser* input *entry* t))
+  (assert (= 3658 (cnvrs:node-end
+                   (funcall (cnvrs:parser-node-runner *benchmark-parser*) *benchmark-parser* input *entry* t)))))
+(dotimes (i 20) (run))
+(sb-ext:gc :full t)
+(format t "WARM C11 MODE ~A TOKENS ~D DEFAULT ~D SIGNATURE ~A KINDS ~A~%"
+        *mode* (length *tokens*) (count :default *tokens* :key #'cnvrs:lexeme-channel)
+        (token-signature *tokens*) (kind-signature *tokens*))
+(sb-sprof:with-profiling (:reset t :mode (if (search "cpu" *mode*) :cpu :alloc)
+                         :sample-interval 0.001 :max-samples 200000 :report :graph)
+  (time (dotimes (i (if (search "cpu" *mode*) 1000 300)) (run))))

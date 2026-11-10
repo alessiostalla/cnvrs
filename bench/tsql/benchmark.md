@@ -1,5 +1,8 @@
 # T-SQL compiled-parser comparison
 
+Historical run before compact conflict grouping. See the
+[latest paired Java comparison](compact.md) for current results.
+
 Fresh paired measurements on 2026-11-10, following the
 [compiler resource fix](README.md). The unchanged upstream T-SQL grammar is
 compiled to native rule runners in CNVRS and generated Java by ANTLR 4.13.2.
@@ -34,6 +37,10 @@ All 24 logs passed token-count, default-channel count, token text/location/chann
 and kind signature checks. Parser topology and trained lexer/parser DFA states,
 lexer edges, and context-cache counts match between runtimes. Full cold,
 allocation, cache and per-process tables are in the [raw summary](benchmark-results/summary.md).
+
+The subsequent [warm recognition profile](profile.md) attributes CPU, allocation,
+prediction operations, and chunk traffic. The [conflict-group optimization](conflict.md)
+records the subsequent implementation and controlled before/after measurements.
 
 ## Method
 
