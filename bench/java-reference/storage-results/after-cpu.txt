@@ -1,0 +1,202 @@
+WARM PROFILE cpu SBCL 2.4.0 TOKENS 505
+Evaluation took:
+  3.970 seconds of real time
+  3.943288 seconds of total run time (3.827016 user, 0.116272 system)
+  [ Real times consist of 0.208 seconds GC time, and 3.762 seconds non-GC time. ]
+  [ Run times consist of 0.204 seconds GC time, and 3.740 seconds non-GC time. ]
+  99.32% CPU
+  5,841,287,104 bytes consed
+  
+
+Number of samples:   1997
+Sample interval:     0.001 seconds
+Total sampling time: 1.9970001 seconds
+Graph cycles:        0
+Sampled threads:
+   #<THREAD "finalizer" RUNNING {7005560033}> (40/1048576 bytes, 1 hash buckets)
+   #<THREAD "main thread" RUNNING {7005560193}> (11104/1048576 bytes, 460 hash buckets)
+
+                               Callers
+                 Total.     Function
+ Count     %  Count     %      Callees
+------------------------------------------------------------------------
+   437  21.9    437  21.9   foreign function __bzero [1]
+------------------------------------------------------------------------
+   243  12.2    243  12.2   CNVRS/RUNTIME::DERIVE-CONFIG [2]
+------------------------------------------------------------------------
+   217  10.9    217  10.9   CNVRS/RUNTIME::CLOSURE-WORK [3]
+------------------------------------------------------------------------
+   145   7.3    145   7.3   SB-IMPL::GETHASH/EQL [4]
+------------------------------------------------------------------------
+   103   5.2    103   5.2   CNVRS/RUNTIME:CONTEXT-EQUAL [5]
+------------------------------------------------------------------------
+    74   3.7     74   3.7   CNVRS/RUNTIME:SINGLETON-CONTEXT [6]
+------------------------------------------------------------------------
+    65   3.3     65   3.3   ALLOCATE-VECTOR-ON-HEAP [7]
+------------------------------------------------------------------------
+    62   3.1     62   3.1   CNVRS/RUNTIME::MERGE-ARRAYS [8]
+------------------------------------------------------------------------
+    55   2.8     55   2.8   CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE [9]
+------------------------------------------------------------------------
+    54   2.7     54   2.7   foreign function __pthread_sigmask [10]
+------------------------------------------------------------------------
+    53   2.7     53   2.7   CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE [11]
+------------------------------------------------------------------------
+    50   2.5     50   2.5   CNVRS/RUNTIME:CONFIG-SET-ADD [12]
+------------------------------------------------------------------------
+    45   2.3     45   2.3   CNVRS/RUNTIME::GET-EPSILON-TARGET [13]
+------------------------------------------------------------------------
+    44   2.2     44   2.2   CNVRS/RUNTIME::CONTEXT-NODE [14]
+------------------------------------------------------------------------
+    44   2.2     44   2.2   CNVRS/RUNTIME::COMBINE-COMMON-PARENTS [15]
+------------------------------------------------------------------------
+    38   1.9     38   1.9   CNVRS/RUNTIME::MERGE-CACHE-PUT [16]
+------------------------------------------------------------------------
+    30   1.5     30   1.5   SB-IMPL::PUTHASH/EQL [17]
+------------------------------------------------------------------------
+    27   1.4     27   1.4   SB-IMPL::GROW-HASH-TABLE [18]
+------------------------------------------------------------------------
+    24   1.2     24   1.2   CNVRS/RUNTIME::MERGE-CACHE-GET [19]
+------------------------------------------------------------------------
+    23   1.2     23   1.2   foreign function __psynch_cvwait [20]
+------------------------------------------------------------------------
+    22   1.1     22   1.1   (FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE) [21]
+------------------------------------------------------------------------
+    20   1.0     20   1.0   SB-IMPL::REHASH [22]
+------------------------------------------------------------------------
+    19   1.0     19   1.0   CNVRS/RUNTIME:MERGE-CONTEXTS [23]
+------------------------------------------------------------------------
+    14   0.7     14   0.7   foreign function setitimer [24]
+------------------------------------------------------------------------
+    12   0.6     12   0.6   CNVRS/RUNTIME:CONFLICTING-ALT-SUBSETS [25]
+------------------------------------------------------------------------
+    11   0.6     11   0.6   CNVRS/RUNTIME::MERGE-SINGLETONS [26]
+------------------------------------------------------------------------
+    11   0.6     11   0.6   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [27]
+------------------------------------------------------------------------
+    10   0.5     10   0.5   SB-IMPL::GETHASH3 [28]
+------------------------------------------------------------------------
+     8   0.4      8   0.4   (LABELS SB-IMPL::EQUAL-AUX :IN EQUAL) [29]
+------------------------------------------------------------------------
+     3   0.2      3   0.2   SB-KERNEL:%ADJOIN-EQ [30]
+------------------------------------------------------------------------
+     2   0.1      2   0.1   SB-VM::EXTEND-VECTOR [31]
+------------------------------------------------------------------------
+     2   0.1      2   0.1   SB-KERNEL:%PUTHASH [32]
+------------------------------------------------------------------------
+     2   0.1      2   0.1   CNVRS/RUNTIME:COMPUTE-REACH-SET [33]
+------------------------------------------------------------------------
+     2   0.1      2   0.1   CNVRS/RUNTIME::STOP-CONFIG-P [34]
+------------------------------------------------------------------------
+     2   0.1      2   0.1   SB-IMPL::%ALLOC-HASH-TABLE [35]
+------------------------------------------------------------------------
+     2   0.1      2   0.1   SB-THREAD:GRAB-MUTEX [36]
+------------------------------------------------------------------------
+     2   0.1      2   0.1   UNSCHEDULE-TIMER [37]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [38]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (FLET SB-IMPL::BODY :IN SB-IMPL::PUTHASH/WEAK) [39]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp") [40]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (SB-VM::OPTIMIZED-DATA-VECTOR-SET T) [41]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp") [42]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   foreign function listify_rest_arg [43]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp") [44]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   SB-KERNEL:%SINGLE-FLOAT [45]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   VECTOR-PUSH-EXTEND [46]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME:ADAPTIVE-PREDICT) [47]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   SB-KERNEL:TWO-ARG-- [48]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   foreign function gc_alloc_large [49]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   CNVRS::APPLY-ATN-EVENTS [50]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   REDUCE [51]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   SB-KERNEL::FIXNUM-GCD [52]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   CNVRS::RUNTIME-ADAPTIVE-PREDICT [53]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   SB-IMPL::GETHASH/EQ [54]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp") [55]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp") [56]
+------------------------------------------------------------------------
+     1   0.1      1   0.1   CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET [57]
+------------------------------------------------------------------------
+
+
+           Self        Total        Cumul
+  Nr  Count     %  Count     %  Count     %    Calls  Function
+------------------------------------------------------------------------
+   1    437  21.9    437  21.9    437  21.9        -  foreign function __bzero
+   2    243  12.2    243  12.2    680  34.1        -  CNVRS/RUNTIME::DERIVE-CONFIG
+   3    217  10.9    217  10.9    897  44.9        -  CNVRS/RUNTIME::CLOSURE-WORK
+   4    145   7.3    145   7.3   1042  52.2        -  SB-IMPL::GETHASH/EQL
+   5    103   5.2    103   5.2   1145  57.3        -  CNVRS/RUNTIME:CONTEXT-EQUAL
+   6     74   3.7     74   3.7   1219  61.0        -  CNVRS/RUNTIME:SINGLETON-CONTEXT
+   7     65   3.3     65   3.3   1284  64.3        -  ALLOCATE-VECTOR-ON-HEAP
+   8     62   3.1     62   3.1   1346  67.4        -  CNVRS/RUNTIME::MERGE-ARRAYS
+   9     55   2.8     55   2.8   1401  70.2        -  CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE
+  10     54   2.7     54   2.7   1455  72.9        -  foreign function __pthread_sigmask
+  11     53   2.7     53   2.7   1508  75.5        -  CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE
+  12     50   2.5     50   2.5   1558  78.0        -  CNVRS/RUNTIME:CONFIG-SET-ADD
+  13     45   2.3     45   2.3   1603  80.3        -  CNVRS/RUNTIME::GET-EPSILON-TARGET
+  14     44   2.2     44   2.2   1647  82.5        -  CNVRS/RUNTIME::CONTEXT-NODE
+  15     44   2.2     44   2.2   1691  84.7        -  CNVRS/RUNTIME::COMBINE-COMMON-PARENTS
+  16     38   1.9     38   1.9   1729  86.6        -  CNVRS/RUNTIME::MERGE-CACHE-PUT
+  17     30   1.5     30   1.5   1759  88.1        -  SB-IMPL::PUTHASH/EQL
+  18     27   1.4     27   1.4   1786  89.4        -  SB-IMPL::GROW-HASH-TABLE
+  19     24   1.2     24   1.2   1810  90.6        -  CNVRS/RUNTIME::MERGE-CACHE-GET
+  20     23   1.2     23   1.2   1833  91.8        -  foreign function __psynch_cvwait
+  21     22   1.1     22   1.1   1855  92.9        -  (FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE)
+  22     20   1.0     20   1.0   1875  93.9        -  SB-IMPL::REHASH
+  23     19   1.0     19   1.0   1894  94.8        -  CNVRS/RUNTIME:MERGE-CONTEXTS
+  24     14   0.7     14   0.7   1908  95.5        -  foreign function setitimer
+  25     12   0.6     12   0.6   1920  96.1        -  CNVRS/RUNTIME:CONFLICTING-ALT-SUBSETS
+  26     11   0.6     11   0.6   1931  96.7        -  CNVRS/RUNTIME::MERGE-SINGLETONS
+  27     11   0.6     11   0.6   1942  97.2        -  (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP")
+  28     10   0.5     10   0.5   1952  97.7        -  SB-IMPL::GETHASH3
+  29      8   0.4      8   0.4   1960  98.1        -  (LABELS SB-IMPL::EQUAL-AUX :IN EQUAL)
+  30      3   0.2      3   0.2   1963  98.3        -  SB-KERNEL:%ADJOIN-EQ
+  31      2   0.1      2   0.1   1965  98.4        -  SB-VM::EXTEND-VECTOR
+  32      2   0.1      2   0.1   1967  98.5        -  SB-KERNEL:%PUTHASH
+  33      2   0.1      2   0.1   1969  98.6        -  CNVRS/RUNTIME:COMPUTE-REACH-SET
+  34      2   0.1      2   0.1   1971  98.7        -  CNVRS/RUNTIME::STOP-CONFIG-P
+  35      2   0.1      2   0.1   1973  98.8        -  SB-IMPL::%ALLOC-HASH-TABLE
+  36      2   0.1      2   0.1   1975  98.9        -  SB-THREAD:GRAB-MUTEX
+  37      2   0.1      2   0.1   1977  99.0        -  UNSCHEDULE-TIMER
+  38      1   0.1      1   0.1   1978  99.0        -  CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT
+  39      1   0.1      1   0.1   1979  99.1        -  (FLET SB-IMPL::BODY :IN SB-IMPL::PUTHASH/WEAK)
+  40      1   0.1      1   0.1   1980  99.1        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp")
+  41      1   0.1      1   0.1   1981  99.2        -  (SB-VM::OPTIMIZED-DATA-VECTOR-SET T)
+  42      1   0.1      1   0.1   1982  99.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp")
+  43      1   0.1      1   0.1   1983  99.3        -  foreign function listify_rest_arg
+  44      1   0.1      1   0.1   1984  99.3        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp")
+  45      1   0.1      1   0.1   1985  99.4        -  SB-KERNEL:%SINGLE-FLOAT
+  46      1   0.1      1   0.1   1986  99.4        -  VECTOR-PUSH-EXTEND
+  47      1   0.1      1   0.1   1987  99.5        -  (FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME:ADAPTIVE-PREDICT)
+  48      1   0.1      1   0.1   1988  99.5        -  SB-KERNEL:TWO-ARG--
+  49      1   0.1      1   0.1   1989  99.6        -  foreign function gc_alloc_large
+  50      1   0.1      1   0.1   1990  99.6        -  CNVRS::APPLY-ATN-EVENTS
+  51      1   0.1      1   0.1   1991  99.7        -  REDUCE
+  52      1   0.1      1   0.1   1992  99.7        -  SB-KERNEL::FIXNUM-GCD
+  53      1   0.1      1   0.1   1993  99.8        -  CNVRS::RUNTIME-ADAPTIVE-PREDICT
+  54      1   0.1      1   0.1   1994  99.8        -  SB-IMPL::GETHASH/EQ
+  55      1   0.1      1   0.1   1995  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp")
+  56      1   0.1      1   0.1   1996  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp")
+  57      1   0.1      1   0.1   1997 100.0        -  CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET
+------------------------------------------------------------------------
+          0   0.0                                     elsewhere
+DFA ROOTS 66 STATES 1160
+CONTEXTS 24764

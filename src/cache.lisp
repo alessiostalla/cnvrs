@@ -1,11 +1,13 @@
 (in-package #:cnvrs)
 
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
+
 ;; Backends can be added by specializing MAKE-CACHE on a new backend name
 ;; and implementing these three operations for the returned cache object.
 (defgeneric make-cache (backend)
   (:documentation "Create a cache for BACKEND, such as :HASH-TABLE, :FSET, or (:LOCKED backend)."))
 (defgeneric cache-get-or-compute (cache key thunk)
-  (:documentation "Return the value for KEY, computing and storing it with THUNK when absent."))
+  (:documentation "Return the value for KEY, computing and storing it with THUNK when absent. Invoke THUNK synchronously, and do not retain it after this call returns."))
 (defgeneric cache-clear (cache)
   (:documentation "Remove all entries from CACHE and return the cache."))
 (defgeneric cache-count (cache)
@@ -22,13 +24,6 @@
           for index of-type fixnum from 1
           do (setf (aref key index) value))
     key))
-
-(defun parser-context-key (head stack)
-  "Use a small pair for shallow stacks and a flat array for deeper ones."
-  (declare (type fixnum head) (type list stack))
-  (if (null (cdr stack))
-      (cons head (first stack))
-      (flat-cache-key head stack)))
 
 (defun flat-cache-key-p (key)
   (typep key '(simple-array fixnum (*))))

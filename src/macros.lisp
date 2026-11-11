@@ -3,13 +3,11 @@
 #+sbcl (declaim (optimize (speed 3) (safety 1) (debug 0)
                            (space 0) (compilation-speed 0)))
 
-(defvar *current-parser-name* nil)
-
 (defun parser-option-list-p (form)
   (and (consp form)
        (member (first form) '(:kind :default-rule :lexer :cache-backend
                               :tree-builder :full-context-strategy :metadata
-                              :parser-package :lexer-package))))
+                              :parser-package :lexer-package :rules-only))))
 
 (defun checked-options (options allowed context)
   (unless (and (listp options) (evenp (length options)))
@@ -65,7 +63,7 @@
            (expression (second body))
            (options (checked-options (cddr body)
                                      '(:lexer :skip :channel :mode
-                                       :push-mode :pop-mode :set-mode)
+                                       :push-mode :pop-mode :set-mode :more :type :case-insensitive :fragment)
                                      (format nil "rule ~S" name)))
            (lexer-option (getf options :lexer :unspecified))
            (lexer-p (case kind
@@ -85,8 +83,19 @@
         (grammar-fail "Parser rule ~S is not allowed in a lexer grammar" name))
       (when (and (not lexer-p)
                  (some (lambda (key) (plist-key-p options key))
-                       '(:skip :channel :mode :push-mode :pop-mode :set-mode)))
+                       '(:skip :channel :mode :push-mode :pop-mode :set-mode :more :type :case-insensitive :fragment)))
         (grammar-fail "Lexer options on parser rule ~S" name))
+      (when (plist-key-p options :fragment)
+        (unless (member (getf options :fragment) '(nil t)) (grammar-fail ":FRAGMENT must be boolean"))
+        (when (getf options :fragment)
+          (when (plist-key-p options :mode) (grammar-fail "A fragment cannot declare a mode"))
+          (setf (getf options :mode) :cnvrs-fragment)))
+      (when (plist-key-p options :case-insensitive)
+        (setf expression (list 'lexer-case expression (getf options :case-insensitive))))
+      (let ((commands nil))
+        (when (getf options :more) (push '(:more) commands))
+        (when (getf options :type) (push (list :type (getf options :type)) commands))
+        (when commands (setf expression (list 'lexer-commands expression (nreverse commands)))))
       (list name expression lexer-p
             (getf options :skip nil)
             (getf options :channel :default)
@@ -95,30 +104,88 @@
             (getf options :pop-mode nil)
             (getf options :set-mode nil)))))
 
-(defun register-parser-rule (definition form)
-  (unless (parser-definition-p definition)
-    (grammar-fail "DEFRULE target is not a parser definition: ~S" definition))
-  (let* ((rule (normalize-rule-form
-                form (parser-definition-kind definition)
-                (parser-definition-lexer-package definition)))
-         (name (first rule)))
-    (let ((previous (find name (parser-definition-rules definition)
-                          :key #'first :test #'eq)))
-      (when previous
-        (if (eq (third previous) (third rule))
-            (grammar-fail "Duplicate rule ~S in ~S"
-                          name (parser-definition-name definition))
-            (grammar-fail
-             "~S is both a parser rule name and a lexer token kind in ~S"
-             name (parser-definition-name definition)))))
-    (setf (parser-definition-rules definition)
-          (append (parser-definition-rules definition) (list rule))
+(defun compose-definition-rules (definition imports forms)
+  "Merge definitions before compiling their shared graph."
+  (let ((local-rules nil)
+        (local-names (make-hash-table :test 'eq))
+        (imported-names (make-hash-table :test 'eq))
+        (imported-origins (make-hash-table :test 'eq))
+        (origins (make-hash-table :test 'eq))
+        (rules nil))
+    (dolist (form forms)
+      (let* ((rule (normalize-rule-form form
+                                        (parser-definition-kind definition)
+                                        (parser-definition-lexer-package definition)))
+             (name (first rule)))
+        (when (gethash name local-names)
+          (grammar-fail "Duplicate local rule ~S in ~S"
+                        name (parser-definition-name definition)))
+        (setf (gethash name local-names) rule
+              (gethash name origins) (parser-definition-name definition))
+        (push rule local-rules)))
+    (setf local-rules (nreverse local-rules))
+    (labels ((reaches-definition-p (source seen)
+               (let ((name (if (symbolp source) source
+                               (parser-definition-name source))))
+                 (cond ((eq name (parser-definition-name definition)) t)
+                       ((gethash name seen) nil)
+                       (t
+                        (setf (gethash name seen) t)
+                        (some (lambda (parent)
+                                (reaches-definition-p parent seen))
+                              (if (symbolp source)
+                                  (and (boundp source)
+                                       (parser-definition-p (symbol-value source))
+                                       (parser-definition-imports
+                                        (symbol-value source)))
+                                  (parser-definition-imports source))))))))
+      (dolist (source imports)
+        (when (eq (parser-definition-kind definition) :lexer)
+          (grammar-fail "A lexer definition cannot USE parser rules"))
+        (unless (and (parser-definition-p source)
+                     (eq (parser-definition-kind source) :parser))
+          (grammar-fail "USE requires a parser definition, got ~S" source))
+        (when (reaches-definition-p source (make-hash-table :test 'eq))
+          (grammar-fail "Parser import cycle involving ~S"
+                        (parser-definition-name definition)))
+        (dolist (rule (parser-definition-rules source))
+          (let* ((name (first rule))
+                 (previous (gethash name imported-names))
+                 (origin (gethash name (parser-definition-origins source)
+                                  (parser-definition-name source))))
+            (when (and (gethash name local-names)
+                       (third (gethash name local-names)))
+              (grammar-fail "~S is both an imported parser rule and a lexer token kind"
+                            name))
+            (unless (gethash name local-names)
+              (cond ((null previous)
+                     (setf (gethash name imported-names) rule)
+                     (setf (gethash name imported-origins) origin
+                           (gethash name origins) origin)
+                     (push rule rules))
+                    ((not (eq (gethash name imported-origins) origin))
+                     (grammar-fail "Conflicting imported rule ~S in ~S"
+                                   name (parser-definition-name definition)))))))))
+    (setf rules (nreverse rules))
+    (setf rules (nconc rules local-rules))
+    (unless rules
+      (grammar-fail "Definition ~S needs at least one rule"
+                    (parser-definition-name definition)))
+    (setf (parser-definition-rules definition) rules
+          (parser-definition-imports definition) imports
+          (parser-definition-origins definition) origins
           (parser-definition-compiled definition) nil)
-    name))
+    (unless (or (parser-definition-default-rule definition)
+                (eq (parser-definition-kind definition) :lexer))
+      (setf (parser-definition-default-rule definition)
+            (first (or (find-if-not #'third local-rules)
+                       (find-if-not #'third rules)))))
+    definition))
 
 (defun make-defined-parser (name kind default-rule lexer cache-backend
                             tree-builder full-context-strategy forms
-                            &key metadata parser-package lexer-package)
+                            &key metadata parser-package lexer-package
+                              imports rules-only)
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (unless (member kind '(:parser :lexer :combined))
@@ -129,7 +196,7 @@
     (grammar-fail "A lexer grammar defines its own lexer rules"))
   (when (and (eq kind :combined) lexer)
     (grammar-fail "A combined grammar defines its lexer rules in the same form"))
-  (when (and (eq kind :lexer) (not (eq full-context-strategy :cached)))
+  (when (and (eq kind :lexer) (not (eq full-context-strategy :recompute)))
     (grammar-fail "A lexer grammar has no full-context prediction"))
   (let* ((parser-package (grammar-package
                           (or parser-package (symbol-package name)) "parser"))
@@ -145,8 +212,8 @@
                      :metadata metadata
                      :full-context-strategy full-context-strategy
                      :tree-builder tree-builder)))
-      (dolist (form forms)
-        (register-parser-rule definition form))
+      (compose-definition-rules definition imports forms)
+      (unless rules-only (ensure-parser-compiled definition))
       definition)))
 
 (defun ensure-parser-compiled (definition)
@@ -213,7 +280,108 @@
                                   :metadata (parser-definition-metadata definition)))))
         (parser-definition-compiled definition))))
 
-(defun lex (parser source)
+(defun split-definition-rules (definition)
+  (let ((parser-rules nil) (lexer-rules nil))
+    (dolist (rule (parser-definition-rules definition))
+      (destructuring-bind (name expression lexer-p skip channel mode
+                           push-mode pop-mode set-mode) rule
+        (if lexer-p
+            (push (append (list name expression :skip skip :channel channel
+                                :mode mode)
+                          (when push-mode (list :push-mode push-mode))
+                          (when pop-mode (list :pop-mode pop-mode))
+                          (when set-mode (list :set-mode set-mode)))
+                  lexer-rules)
+            (push (list name expression) parser-rules))))
+    (values (nreverse parser-rules) (nreverse lexer-rules))))
+
+(defun file-compiled-definition-form (definition lexer-form cache-form
+                                       tree-form strategy-form metadata-form
+                                       rules-only)
+  "Return a load-time constructor and top-level helper definitions."
+  (let ((lexer-input lexer-form)
+        (cache-input cache-form)
+        (tree-input tree-form)
+        (strategy-input strategy-form)
+        (metadata-input metadata-form)
+        (lexer-variable (gensym "LEXER-"))
+        (cache-variable (gensym "CACHE-"))
+        (tree-variable (gensym "TREE-"))
+        (strategy-variable (gensym "STRATEGY-"))
+        (metadata-variable (gensym "METADATA-")))
+    (setf lexer-form lexer-variable
+          cache-form cache-variable
+          tree-form tree-variable
+          strategy-form strategy-variable
+          metadata-form metadata-variable)
+  (multiple-value-bind (parser-rules lexer-rules)
+      (split-definition-rules definition)
+    (let* ((kind (parser-definition-kind definition))
+           (prepared-lexer
+             (when (and (not rules-only) lexer-rules)
+               (compile-lexer lexer-rules)))
+           (prepared-parser
+             (when (and (not rules-only) parser-rules)
+               (compile-grammar parser-rules
+                                :default-rule
+                                (parser-definition-default-rule definition)
+                                :lexer (and (eq kind :combined) prepared-lexer)
+                                :compile-runners nil)))
+           (lexer-constructor
+             (when prepared-lexer
+               `(thawed-lexer ',(frozen-lexer prepared-lexer)
+                              ,cache-form ,metadata-form)))
+           (runner-definitions nil)
+           (parser-constructor
+             (when prepared-parser
+               `(thawed-parser ',(frozen-parser prepared-parser)
+                               ,(if (eq kind :combined)
+                                    lexer-constructor lexer-form)
+                               ,tree-form ,strategy-form ,cache-form
+                               ,metadata-form
+                               ,@(if (parser-semantic-rules prepared-parser)
+                                     '(nil nil)
+                                     (loop for tree-p in '(nil t) collect
+                                       (multiple-value-bind (constructor definitions)
+                                           (parser-runner-form prepared-parser tree-p)
+                                         (setf runner-definitions
+                                               (nconc runner-definitions definitions))
+                                         constructor)))))))
+      (values
+       `(let* ((,lexer-variable ,lexer-input)
+              (,cache-variable ,cache-input)
+              (,tree-variable ,tree-input)
+              (,strategy-variable ,strategy-input)
+              (,metadata-variable ,metadata-input)
+              (definition
+               (make-parser-definition
+                :name ',(parser-definition-name definition)
+                :kind ',kind
+                :default-rule ',(parser-definition-default-rule definition)
+                :lexer ,lexer-form :cache-backend ,cache-form
+                :tree-builder ,tree-form
+                :full-context-strategy ,strategy-form
+                :metadata ,metadata-form
+                :parser-package (find-package
+                                 ',(package-name
+                                    (parser-definition-parser-package definition)))
+                :lexer-package (find-package
+                                ',(package-name
+                                   (parser-definition-lexer-package definition)))
+                :rules ',(parser-definition-rules definition)
+                :imports ',(mapcar #'parser-definition-name
+                                   (parser-definition-imports definition))
+                :origins (thawed-table
+                          ',(frozen-table
+                             (parser-definition-origins definition))))))
+         ,@(unless rules-only
+             `((setf (parser-definition-compiled definition)
+                     ,(if (eq kind :lexer)
+                          lexer-constructor parser-constructor))))
+         definition)
+       runner-definitions)))))
+
+(defun lex (parser source &key recover)
   "Run the lexer of a lexer or combined grammar on SOURCE."
   (let* ((compiled (if (parser-definition-p parser)
                        (ensure-parser-compiled parser)
@@ -223,7 +391,7 @@
                     compiled)))
     (unless lexer (grammar-fail "No lexer is attached to ~S" parser))
     (if (compiled-lexer-p lexer)
-        (funcall (compiled-lexer-function lexer) source)
+        (funcall (compiled-lexer-function lexer) source :recover recover)
         (funcall (coerce lexer 'function) source))))
 
 (defun lexer-matcher (parser)
@@ -250,15 +418,16 @@ end position, and rule index."
   (let ((compiled (ensure-compiled parser)))
     (typecase compiled
       (parser
-       (cache-clear (parser-sll-decisions compiled))
+       (when (parser-atn-runtime compiled)
+         (let ((sim (first (parser-atn-runtime compiled))))
+           (cnvrs/runtime:clear-dfa sim)
+           (bordeaux-threads:with-lock-held
+               ((cnvrs/runtime::simulator-context-cache-lock sim))
+             (clrhash (cnvrs/runtime:simulator-context-cache sim)))))
        (cache-clear (parser-decisions compiled))
-       (cache-clear (parser-direct-decisions compiled))
-       (cache-clear (parser-contexts compiled))
-       (setf (parser-compiled-sll compiled) nil
-             (parser-compiled-full compiled) nil)
-       (when (compiled-lexer-p (parser-lexer compiled))
+       (when (typep (parser-lexer compiled) '(or compiled-lexer parser-definition))
          (clear-cache (parser-lexer compiled))))
-      (compiled-lexer (cache-clear (compiled-lexer-cache compiled))))
+      (compiled-lexer (clear-lexer-cache compiled)))
     compiled))
 
 (defun clone-compiled (parser &key cache-backend
@@ -272,17 +441,12 @@ The transition graph and lexer automaton are immutable and shared."
               (backend (or cache-backend (parser-cache-backend compiled)))
               (strategy (if strategy-supplied-p full-context-strategy
                             (parser-full-context-strategy compiled))))
-         (setf (parser-cache-backend copy) backend
+         (resolve-full-context-strategy strategy)
+         (setf (parser-atn-runtime-lock copy) (bordeaux-threads:make-lock "ANTLR frontend runtime")
+               (parser-atn-runtime copy) nil
+               (parser-cache-backend copy) backend
                (parser-full-context-strategy copy) strategy
-               (parser-full-context-start copy)
-               (resolve-full-context-strategy strategy)
-               (parser-sll-decisions copy) (make-cache backend)
                (parser-decisions copy) (make-cache backend)
-               (parser-direct-decisions copy) (make-cache backend)
-               (parser-contexts copy) (make-cache backend)
-               (parser-context-count copy) 0
-               (parser-compiled-sll copy) nil
-               (parser-compiled-full copy) nil
                (parser-lexer copy)
                (if (compiled-lexer-p (parser-lexer compiled))
                    (clone-compiled (parser-lexer compiled)
@@ -299,14 +463,10 @@ The transition graph and lexer automaton are immutable and shared."
                (compiled-lexer-cache copy) (make-cache backend))
          (initialize-compiled-lexer copy))))))
 
-(defmacro define-parser (name &body body)
-  "Define NAME as a parser definition. The first body form may be a plist
-(:KIND :PARSER|:LEXER|:COMBINED :DEFAULT-RULE rule :LEXER function
- :CACHE-BACKEND :HASH-TABLE|:FSET|(:LOCKED backend)
- :TREE-BUILDER builder-expression :METADATA metadata-expression
- :FULL-CONTEXT-STRATEGY :CACHED|:RECOMPUTE|function).
-Remaining forms are DEFRULE forms, (name expression ...) rule forms, or
-WITH-MODE blocks containing lexer rules."
+(defmacro defparser (name &body body)
+  "Define a complete parser, lexer, or combined grammar.
+USE imports parser rules before local overrides. :RULES-ONLY T retains the
+definition without compiling it at definition time."
   (unless (and (symbolp name) (not (keywordp name)))
     (grammar-fail "Parser name must be a non-keyword symbol: ~S" name))
   (let* ((options (if (and body (parser-option-list-p (first body)))
@@ -314,50 +474,85 @@ WITH-MODE blocks containing lexer rules."
          (options (checked-options options '(:kind :default-rule :lexer
                                              :parser-package :lexer-package
                                              :cache-backend :tree-builder
-                                             :full-context-strategy :metadata)
+                                             :full-context-strategy :metadata
+                                             :rules-only)
                                    (format nil "parser ~S" name)))
          (kind (getf options :kind :parser))
-         (default-rule (getf options :default-rule nil))
-         (lexer (getf options :lexer nil))
-         (cache-backend (getf options :cache-backend :hash-table))
-         (tree-builder (getf options :tree-builder :node))
-         (metadata (getf options :metadata nil))
-         (parser-package (getf options :parser-package nil))
-         (lexer-package (getf options :lexer-package nil))
-         (full-context-strategy
-           (getf options :full-context-strategy :cached)))
-    `(defparameter ,name
-       (make-defined-parser ',name ',kind ',default-rule ,lexer ',cache-backend
-                            ,tree-builder ,full-context-strategy
-                            ',(expand-mode-rule-forms body)
-                            :metadata ,metadata
-                            :parser-package ,parser-package
-                            :lexer-package ,lexer-package))))
+         (rules-only (getf options :rules-only nil))
+         (imports nil)
+         (rules nil))
+    (unless (member kind '(:parser :lexer :combined))
+      (grammar-fail "Unknown grammar kind ~S" kind))
+    (unless (member rules-only '(nil t))
+      (grammar-fail ":RULES-ONLY must be T or NIL in ~S" name))
+    (dolist (form body)
+      (if (and (consp form) (eq (first form) 'use))
+          (if (= (length form) 2)
+              (let ((source (second form)))
+                (unless (and (symbolp source) (not (keywordp source)))
+                  (grammar-fail "USE requires a DEFPARSER name, got ~S"
+                                source))
+                (push source imports))
+              (grammar-fail "USE requires one parser definition: ~S" form))
+          (push form rules)))
+    (when (and (eq kind :lexer) imports)
+      (grammar-fail "A lexer definition cannot USE parser rules"))
+    (let* ((imports (nreverse imports))
+           (rules (expand-mode-rule-forms (nreverse rules)))
+           (sources
+             (loop for source in imports collect
+               (progn
+                 (unless (and (boundp source)
+                              (parser-definition-p (symbol-value source)))
+                   (grammar-fail "USE needs an already defined parser ~S" source))
+                 (symbol-value source))))
+           (definition
+             (make-defined-parser
+              name kind (getf options :default-rule) nil :hash-table
+              :node :recompute rules :imports sources :rules-only t
+              :parser-package (when (plist-key-p options :parser-package)
+                                (eval (getf options :parser-package)))
+              :lexer-package (when (plist-key-p options :lexer-package)
+                               (eval (getf options :lexer-package)))))
+           (runner-definitions nil)
+           (initializer
+             (multiple-value-bind (constructor definitions)
+                 (file-compiled-definition-form
+                  definition (getf options :lexer)
+                  (getf options :cache-backend :hash-table)
+                  (getf options :tree-builder :node)
+                  (getf options :full-context-strategy :recompute)
+                  (getf options :metadata) rules-only)
+               (setf runner-definitions definitions)
+               constructor)))
+      `(progn
+         (eval-when (:compile-toplevel)
+           (setf (symbol-value ',name)
+                 (make-defined-parser
+                  ',name ',kind ',(getf options :default-rule)
+                  nil :hash-table :node :recompute ',rules
+                  :imports (list ,@imports) :rules-only t
+                  :parser-package (find-package
+                                   ',(package-name
+                                      (parser-definition-parser-package
+                                       definition)))
+                  :lexer-package (find-package
+                                  ',(package-name
+                                     (parser-definition-lexer-package
+                                      definition))))))
+         ,@runner-definitions
+         (defparameter ,name ,initializer)))))
 
-(defmacro in-parser (name)
-  "Select the parser definition receiving subsequent top-level DEFRULE forms."
-  (unless (symbolp name)
-    (grammar-fail "IN-PARSER requires a parser variable name: ~S" name))
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (setf *current-parser-name* ',name)
-     ',name))
-
-(defmacro defrule (&whole form &rest arguments)
-  "Add a rule to the parser selected by IN-PARSER at load time."
+(defmacro use (&rest arguments)
   (declare (ignore arguments))
-  (unless *current-parser-name*
-    (grammar-fail "DEFRULE requires an earlier IN-PARSER form"))
-  `(eval-when (:load-toplevel :execute)
-     (register-parser-rule (symbol-value ',*current-parser-name*) ',form)))
+  (grammar-fail "USE is only valid inside DEFPARSER"))
 
-(defmacro with-mode (mode &body rules)
-  "Define RULES in lexer MODE within an incremental IN-PARSER definition.
-Also accepted inside DEFINE-PARSER, where rules may omit DEFRULE."
-  (unless (and (symbolp mode) mode)
-    (grammar-fail "WITH-MODE requires a mode name, got ~S" mode))
-  `(progn
-     ,@(mapcar (lambda (form)
-                 (if (and (consp form) (eq (first form) 'defrule))
-                     form
-                     (cons 'defrule form)))
-               (expand-mode-rule-forms rules mode))))
+(defmacro defrule (&rest arguments)
+  "A rule subform of DEFPARSER; it is invalid at top level."
+  (declare (ignore arguments))
+  (grammar-fail "DEFRULE is only valid inside DEFPARSER"))
+
+(defmacro with-mode (&rest arguments)
+  "A lexer-mode subform of DEFPARSER; it is invalid at top level."
+  (declare (ignore arguments))
+  (grammar-fail "WITH-MODE is only valid inside DEFPARSER"))

@@ -1,0 +1,26 @@
+UTC 2026-11-09T22:19:23Z
+146e07cfee49271461c4063310e904fb5512fd85
+arm64
+java version "24" 2025-03-18
+Java(TM) SE Runtime Environment (build 24+36-3646)
+Java HotSpot(TM) 64-Bit Server VM (build 24+36-3646, mixed mode, sharing)
+SBCL 2.4.0
+eae2dfa119a64327444672aff63e9ec35a20180dc5b8090b7a6ab85125df4d76  /tmp/cnvrs-antlr-reference/antlr-4.13.2-complete.jar
+aac416eaf3a1bb409342b33eab6fae27837c654ad4c582469714bc77b2c09747  bench/c-reference/C.g4
+d34376923e47ec74e63610ccfd8a4479a684859e9ad8a0500d7d92cff863582b  bench/c-reference/examples/FuncCallAsFuncArgument.c
+3a820a38d9a8f5c1019ece5e5ca7f9f5e87dcec8a9cb93fa02419c72e550456e  bench/c-reference/examples/FuncCallwithVarArgs.c
+9fefdc6fc6d40567c0273fca313dcfb5d58e34a654d1529b977be0a90ece1185  bench/c-reference/examples/FunctionPointer.c
+fdfc2ab1e8563a455726ab0d6854d49010bca629d01584a978bf825e47022d72  bench/c-reference/examples/Wmisleading-indentation.pp.c
+136815b762676b948fd8dc79053b50a7e39bbe4f193f77fbe1ecf1a160956404  bench/c-reference/pointers.c
+7fcf32c80748d6822f924106844e03a8770b27bdcb149baa4eca2f339b693987  bench/c-reference/benchmark.lisp
+8a6dfb8164419c2e66f307caf42a8cf35cc85619e99527b71c90141c712ce30e  bench/c-reference/Benchmark.java
+ab2d3853d2789c1c2e54775e31873664f5289273f6ec533a22220a336d3a337a  src/runtime/atn-config.lisp
+464e8d1d34407df663cd3f22fdcc88de7eb63bbfafadd3610be4b59c3305cfcb  src/runtime/lexer-atn-simulator.lisp
+df8cf6438f5990f971987b6ba9065903d348901c05d21aeb4f35acdcb6b7f199  src/runtime/ll1-analyzer.lisp
+d0d2326f0c2927bbf545b5d43e5c60c6eb8796b14b767e13137126c19a99faba  src/runtime/package.lisp
+04754ed14bf24e21bc79c0deb3583ffe36aaa90403c84e58d72a26f18a4b75f0  src/runtime/parser-atn-simulator.lisp
+e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7  src/runtime/prediction-context.lisp
+f06e45b546d9e1fa92ddf60632002b162ca7c04f21678d0f8521b4728f394634  src/cnvrs.lisp
+de82fa74b27f5232d4504dee7845a558425e37d48734769112e817beb1bbbadf  src/parser-runtime.lisp
+228db2291a48a66cc11d3441e47d8c4920103d7b82bc396cbba4e5b15dd74acc  bench/c-reference/compare.sh
+479afb69abdb4407b6e562f433242970b34cc0787a39cc1063e1235bc9ebe06e  bench/c-reference/summarize.py

@@ -1,5 +1,7 @@
 (in-package #:cnvrs)
 
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
+
 (defstruct node rule children start end label)
 (defgeneric make-parse-node (builder rule children start end)
   (:documentation "Build a parse node for RULE and CHILDREN spanning token offsets START through END."))

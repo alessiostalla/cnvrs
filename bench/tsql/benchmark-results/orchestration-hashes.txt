@@ -1,0 +1,2 @@
+4e699e4acb4dc2c2d187da4c67ec7dbfc5629ca222d2e44a88bcf40ddcbe5f93  bench/tsql/compare.sh
+4475e328b1ab16465544479c04c306f6d7af400a34718406a09cb8df8a0ddc66  bench/tsql/summarize.py

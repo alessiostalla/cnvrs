@@ -1,0 +1,36 @@
+select: matching token kinds 013085AF0E5E04E3, topology PARSER-RULES 609 PARSER-STATES 14516 DECISIONS 1840
+select: identical token signatures in all six processes: F33A709A64862717
+schema: matching token kinds 1D3CF39E81D23CDC, topology PARSER-RULES 609 PARSER-STATES 14516 DECISIONS 1840
+schema: identical token signatures in all six processes: 9A7CCBF21A68D6C8
+json: matching token kinds 7DFC8067D8BECDA5, topology PARSER-RULES 609 PARSER-STATES 14516 DECISIONS 1840
+json: identical token signatures in all six processes: 29762ADF37008E80
+backup: matching token kinds 7F04B7ADA66473AE, topology PARSER-RULES 609 PARSER-STATES 14516 DECISIONS 1840
+backup: identical token signatures in all six processes: 7149E0BD0A73EF15
+
+select
+phase java-warm-ms cnvrs-warm-ms ratio java-cold-ms cnvrs-cold-ms java-warm-bytes cnvrs-warm-bytes
+lexer 0.176233 0.973850 5.53 4.086542 8.415000 248192.6 2093347.0
+parse-none 205.000855 245.073000 1.20 653.183167 812.594000 326284452.0 243491472.0
+parse-tree 208.161250 245.357500 1.18 651.944209 812.948000 326754908.0 244318960.0
+pipeline-tree 203.364500 245.460500 1.21 645.103250 820.857000 327003100.0 246409776.0
+
+schema
+phase java-warm-ms cnvrs-warm-ms ratio java-cold-ms cnvrs-cold-ms java-warm-bytes cnvrs-warm-bytes
+lexer 0.014303 0.092450 6.46 2.689500 4.601000 21280.6 178828.2
+parse-none 8.660625 10.983000 1.27 60.108500 64.600000 13031820.0 10977160.0
+parse-tree 8.505688 10.991000 1.29 55.864500 65.282000 13060180.0 11032264.0
+pipeline-tree 8.936896 10.749500 1.20 57.184458 70.071000 13081460.0 11207656.0
+
+json
+phase java-warm-ms cnvrs-warm-ms ratio java-cold-ms cnvrs-cold-ms java-warm-bytes cnvrs-warm-bytes
+lexer 0.038708 0.241000 6.23 2.349625 5.684000 66976.6 456670.1
+parse-none 75.829730 88.421500 1.17 339.943959 398.583000 124668836.0 102737168.0
+parse-tree 78.111604 88.288500 1.13 337.805208 395.124000 124795916.0 102916496.0
+pipeline-tree 75.598208 89.152500 1.18 335.150291 402.531000 124862892.0 103368744.0
+
+backup
+phase java-warm-ms cnvrs-warm-ms ratio java-cold-ms cnvrs-cold-ms java-warm-bytes cnvrs-warm-bytes
+lexer 0.013623 0.086210 6.33 1.489291 2.258000 19640.6 145391.5
+parse-none 5.860021 7.877500 1.34 33.440042 36.006000 9483572.0 7846664.0
+parse-tree 5.928813 7.815000 1.32 30.031042 35.510000 9496124.0 7853400.0
+pipeline-tree 5.939896 7.880000 1.33 30.016792 37.847000 9515764.0 7989184.0

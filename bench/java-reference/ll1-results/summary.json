@@ -1,0 +1,54 @@
+{
+  "iri": {
+    "ADAPTIVE": {
+      "warm_ms": 0.21695,
+      "warm_runs": [
+        0.21695,
+        0.21681,
+        0.22078
+      ],
+      "warm_bytes": 144554.4,
+      "cold_ms": 1.07,
+      "cold_bytes": 851104.0,
+      "states": 56
+    },
+    "LL1": {
+      "warm_ms": 0.08345,
+      "warm_runs": [
+        0.08345,
+        0.08333,
+        0.08455
+      ],
+      "warm_bytes": 113662.2,
+      "cold_ms": 0.532,
+      "cold_bytes": 392768.0,
+      "states": 5
+    }
+  },
+  "java8": {
+    "ADAPTIVE": {
+      "warm_ms": 521.57,
+      "warm_runs": [
+        521.57,
+        532.833,
+        518.796
+      ],
+      "warm_bytes": 367197280.0,
+      "cold_ms": 3623.805,
+      "cold_bytes": 2388435760.0,
+      "states": 1350
+    },
+    "LL1": {
+      "warm_ms": 514.571,
+      "warm_runs": [
+        514.571,
+        514.2165,
+        516.282
+      ],
+      "warm_bytes": 367193968.0,
+      "cold_ms": 3377.573,
+      "cold_bytes": 2284420832.0,
+      "states": 1160
+    }
+  }
+}

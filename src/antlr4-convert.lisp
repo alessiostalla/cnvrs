@@ -14,6 +14,7 @@
 (defvar *semantic-callbacks* nil)
 (defvar *antlr-parser-package* nil)
 (defvar *antlr-lexer-package* nil)
+(defvar *token-vocabulary* nil)
 
 (defun action-expression (node predicate-p)
   (let* ((source (cnvrs:lexeme-text (first-token node)))
@@ -52,8 +53,12 @@
 
 (defun antlr-name (node &optional token-p)
   (let ((name (cnvrs:lexeme-text (first-token node))))
-    (intern (string-upcase name)
-            (if token-p *antlr-lexer-package* *antlr-parser-package*))))
+    (let ((symbol (intern (string-upcase name)
+                          (if token-p *antlr-lexer-package* *antlr-parser-package*))))
+      (when (and token-p *token-vocabulary*
+                 (not (find symbol *token-vocabulary* :key #'first)))
+        (conversion-error node "unknown token ~A in tokenVocab" name))
+      symbol)))
 
 (defun antlr-char (text position node)
   (if (char/= (char text position) #\\)
@@ -79,7 +84,10 @@
                    (unless (and code (code-char code))
                      (conversion-error node "invalid Unicode escape ~S" text))
                    (values (code-char code) (if braced (1+ digits-end) digits-end)))))
-          (otherwise (values escape (+ position 2)))))))
+          (otherwise
+           (unless (find escape "\\'\"-]" )
+             (conversion-error node "invalid escape in ~S" text))
+           (values escape (+ position 2)))))))
 
 (defun antlr-string (node)
   (let* ((text (cnvrs:lexeme-text (if (cnvrs:lexeme-p node) node
@@ -91,30 +99,42 @@
           (write-char character output)
           (setf position next))))))
 
+(defun unicode-property-ranges (name node)
+  (let* ((key (string-downcase (substitute #\_ #\- name)))
+         (canonical (or (gethash key cnvrs::*unicode-aliases*) key))
+         (ranges (gethash canonical cnvrs::*unicode-properties*)))
+    (unless ranges (conversion-error node "unknown Unicode property ~S" name))
+    ranges))
+(defvar *lexer-case-insensitive* nil)
 (defun charset-expression (node &optional invert)
   (let* ((text (cnvrs:lexeme-text (first-token node)))
-         (end (1- (length text)))
-         (position 1) (negated nil) (parts nil))
-    (when (and (< position end) (char= (char text position) #\^))
-      (setf negated t)
-      (incf position))
-    (loop while (< position end) do
-      (multiple-value-bind (first next) (antlr-char text position node)
-        (setf position next)
-        (if (and (< (1+ position) end) (char= (char text position) #\-))
-            (multiple-value-bind (last after) (antlr-char text (1+ position) node)
-              (push (list 'range first last) parts)
-              (setf position after))
-            (push first parts))))
-    (setf parts (nreverse parts))
-    (when (null parts) (conversion-error node "empty character set"))
-    (if (if invert (not negated) negated)
-        (list 'not-one-of
-              (mapcar (lambda (part)
-                        (if (characterp part) part
-                            (cons (second part) (third part))))
-                      parts))
-        (if (rest parts) (cons 'or parts) (first parts)))))
+         (end (1- (length text))) (at 1) (ranges nil) (scalars nil))
+    (labels ((element ()
+               (if (and (< (+ at 2) end) (char= (char text at) #\\)
+                        (find (char text (1+ at)) "pP") (char= (char text (+ at 2)) #\{))
+                   (let* ((inverted (char= (char text (1+ at)) #\P))
+                          (close (position #\} text :start (+ at 3))))
+                     (unless close (conversion-error node "unterminated Unicode property"))
+                     (let ((set (unicode-property-ranges (subseq text (+ at 3) close) node)))
+                       (setf at (1+ close))
+                       (values (if inverted (cnvrs::complement-character-intervals set) set) nil)))
+                   (multiple-value-bind (character next) (antlr-char text at node)
+                     (setf at next)
+                     (let ((code (char-code character))) (values (list (list code code)) code))))))
+      (loop while (< at end) do
+        (multiple-value-bind (set scalar) (element)
+          (if (and scalar (< (1+ at) end) (char= (char text at) #\-))
+              (progn
+                (incf at)
+                (multiple-value-bind (right-set right) (element)
+                  (declare (ignore right-set))
+                  (unless (and right (<= scalar right)) (conversion-error node "invalid character range"))
+                  (push (list scalar right) scalars)))
+              (if scalar (setf scalars (append set scalars))
+                  (setf ranges (append set ranges)))))))
+    (unless (or ranges scalars) (conversion-error node "empty character set"))
+    (list 'cnvrs::codepoint-set (cnvrs::normalize-character-intervals ranges) invert
+          scalars)))
 
 (defun sequence-form (parts)
   (cond ((null parts) '(and))
@@ -136,9 +156,24 @@
 
 (defvar *implicit-literals*)
 
+(defun lexer-literal-body (expression)
+  (if (and (consp expression) (member (first expression) '(cnvrs::lexer-commands cnvrs::lexer-case)))
+      (lexer-literal-body (second expression)) expression))
+
 (defun implicit-token (node)
   (let* ((literal (antlr-string node))
          (entry (assoc literal *implicit-literals* :test #'string=)))
+    (when *token-vocabulary*
+      (let ((matches (remove-if-not
+                      (lambda (rule)
+                        (and (stringp (lexer-literal-body (second rule)))
+                             (string= literal (lexer-literal-body (second rule)))
+                             (not (eq (sixth rule) :cnvrs-fragment))))
+                      *token-vocabulary*)))
+        (unless (= (length matches) 1)
+          (conversion-error node "literal ~S has ~D token aliases in tokenVocab"
+                            literal (length matches)))
+        (return-from implicit-token (caar matches))))
     (unless entry
       (setf entry (cons literal
                         (intern (format nil "ANTLR-LITERAL-~D"
@@ -182,10 +217,7 @@
             (parts (mapcar #'parser-expression (child-nodes node 'element))))
        (when (and options (not allow-associativity))
          (conversion-error node "element options are not supported"))
-       (when (and parts (eq (car (last parts)) :eof))
-         (setf parts (butlast parts)))
-       (when (member :eof parts)
-         (conversion-error node "EOF is only supported at the end of an alternative"))
+       (setf parts (subst '(cnvrs:eof) :eof parts))
        (let ((expression (sequence-form parts)))
          (if (eq associativity :right)
              (list 'right expression)
@@ -224,6 +256,10 @@
          (terminal-def (parser-expression child))
          (rule-ref (parser-expression child))
          (not-set (parser-expression child))
+         (wildcard
+          (when (first-node child 'element-options)
+            (conversion-error child "wildcard options are not supported"))
+          '(cnvrs:any))
          (otherwise (conversion-error node "unsupported parser atom")))))
     (not-set
      (let* ((set (first (child-nodes node)))
@@ -274,15 +310,11 @@
            (conversion-error node "negated set elements must be single characters"))
          (list (char value 0))))
       ((eq (cnvrs:lexeme-kind token) :lexer_char_set)
-       (labels ((items (expression)
-                  (cond ((characterp expression) (list expression))
-                        ((and (consp expression) (eq (first expression) 'range))
-                         (list (cons (second expression) (third expression))))
-                        ((and (consp expression) (eq (first expression) 'or))
-                         (mapcan #'items (rest expression)))
-                        (t (conversion-error node
-                                             "nested negated character sets are not supported")))))
-         (items (charset-expression node))))
+       (mapcar (lambda (range)
+                 (if (= (first range) (second range)) (code-char (first range))
+                     (cons (code-char (first range)) (code-char (second range)))))
+               (let ((form (charset-expression node)))
+                 (cnvrs::normalize-character-intervals (append (second form) (fourth form))))))
       (t (conversion-error node
                            "lexer negated sets require characters or ranges")))))
 
@@ -311,7 +343,8 @@
      (if (child-nodes node)
          (lexer-expression (first (child-nodes node)))
          (case (cnvrs:lexeme-kind (first-token node))
-           (:token_ref (antlr-name node t))
+           (:token_ref (if (string= (cnvrs:lexeme-text (first-token node)) "EOF")
+                           '(cnvrs:eof) (antlr-name node t)))
            (:lexer_char_set (charset-expression node))
            (otherwise (conversion-error node "unsupported lexer atom")))))
     (character-range
@@ -325,23 +358,23 @@
      (when (first-node node 'element-options)
        (conversion-error node "element options are not supported"))
      (if (eq (cnvrs:lexeme-kind (first-token node)) :token_ref)
-         (antlr-name node t)
+         (if (string= (cnvrs:lexeme-text (first-token node)) "EOF") '(cnvrs:eof) (antlr-name node t))
          (antlr-string node)))
     (wildcard
      (when (first-node node 'element-options)
        (conversion-error node "wildcard options are not supported"))
      '(any))
     (not-set
-     (let ((set (first (child-nodes node))))
-       (when (eq (cnvrs:node-rule set) 'block-set)
-         (return-from lexer-expression
-           (list 'not-one-of
-                 (mapcan #'lexer-set-items
-                         (child-nodes set 'set-element)))))
-       (let ((token (first-token set)))
-         (when (eq (cnvrs:lexeme-kind token) :lexer_char_set)
-           (return-from lexer-expression (charset-expression set t))))
-       (list 'not-one-of (lexer-set-items set))))
+     (let* ((set (first (child-nodes node)))
+            (elements (if (eq (cnvrs:node-rule set) 'block-set) (child-nodes set 'set-element) (list set)))
+            (properties nil) (scalars nil))
+       (dolist (element elements)
+         (if (eq (cnvrs:lexeme-kind (first-token element)) :lexer_char_set)
+             (let ((form (charset-expression element)))
+               (setf properties (append properties (second form)) scalars (append scalars (fourth form))))
+             (setf scalars (append scalars (cnvrs::character-items-intervals (lexer-set-items element))))))
+       (list 'cnvrs::codepoint-set (cnvrs::normalize-character-intervals properties) t
+             scalars)))
     (set-element
      (let ((token (first-token node)))
        (when (eq (cnvrs:lexeme-kind token) :lexer_char_set)
@@ -358,28 +391,37 @@
            (charset-expression node)
            (conversion-error node "unsupported lexer expression"))))))
 
-(defun lexer-command-options (node)
-  (let ((options nil))
-    (dolist (command (child-nodes node 'lexer-command))
-      (let* ((name-node (first-node command 'lexer-command-name))
-             (name (string-downcase (cnvrs:lexeme-text (first-token name-node))))
-             (argument (first-node command 'lexer-command-expr)))
-        (cond
-          ((and (string= name "skip") (null argument))
-           (setf options (append options '(:skip t))))
-          ((and (string= name "channel") argument)
-           (setf options (append options
-                                 (list :channel (antlr-name argument t)))))
-          ((and (string= name "pushmode") argument)
-           (setf options (append options
-                                 (list :push-mode (antlr-name argument t)))))
-          ((and (string= name "mode") argument)
-           (setf options (append options
-                                 (list :set-mode (antlr-name argument t)))))
-          ((and (string= name "popmode") (null argument))
-           (setf options (append options '(:pop-mode t))))
-          (t (conversion-error command "lexer command ~A is not supported" name)))))
-    options))
+(defun lexer-command-actions (node)
+  (loop for command in (child-nodes node 'lexer-command)
+        for name = (string-downcase (cnvrs:lexeme-text (first-token (first-node command 'lexer-command-name))))
+        for argument = (first-node command 'lexer-command-expr)
+        collect
+        (cond ((member name '("skip" "more" "popmode") :test #'string=)
+               (when argument (conversion-error command "unexpected command argument"))
+               (list (cond ((string= name "skip") :skip) ((string= name "more") :more) (t :pop-mode))))
+              ((member name '("channel" "type" "mode" "pushmode") :test #'string=)
+               (unless argument (conversion-error command "missing command argument"))
+               (let* ((text (cnvrs:lexeme-text (first-token argument)))
+                      (value (cond ((every #'digit-char-p text)
+                                    (conversion-error command "numeric lexer command arguments need symbolic names in Lisp"))
+                                   ((string= text "DEFAULT_MODE") :default)
+                                   ((string= text "DEFAULT_TOKEN_CHANNEL") :default)
+                                   (t (antlr-name argument t)))))
+                 (list (cond ((string= name "channel") :channel) ((string= name "type") :type)
+                             ((string= name "mode") :mode) (t :push-mode)) value)))
+              (t (conversion-error command "lexer command ~A is not supported" name)))))
+
+(defun lexer-case-option (options default)
+  (unless options (return-from lexer-case-option default))
+  (let ((value default))
+    (dolist (option (child-nodes options 'option))
+      (let ((name (identifier-text (first-node option 'identifier))))
+        (unless (string= name "caseInsensitive")
+          (conversion-error option "unsupported lexer rule option ~A" name))
+        (let ((text (cnvrs:lexeme-text (first-token (first-node option 'option-value)))))
+          (unless (member text '("true" "false") :test #'string=)
+            (conversion-error option "caseInsensitive requires true or false"))
+          (setf value (string= text "true"))))) value))
 
 (defun lexer-rule-form (node &optional (mode :default))
   (let* ((name (antlr-name (token-of-kind node :token_ref) t))
@@ -389,16 +431,15 @@
          (commands (remove nil
                            (mapcar (lambda (alt) (first-node alt 'lexer-commands))
                                    (child-nodes alternatives 'lexer-alt)))))
-    (when (first-node node 'options-spec)
-      (conversion-error node "lexer rule options are not supported"))
     (when (> (length commands) 1)
       (conversion-error node "commands on multiple alternatives are not supported"))
     (when (and commands (> (length (child-nodes alternatives 'lexer-alt)) 1))
       (conversion-error node "commands on one of several alternatives are not supported"))
-    (append (list name (lexer-expression alternatives) :mode
-                  (if fragment :cnvrs-fragment mode))
-            (when fragment '(:skip t))
-            (when commands (lexer-command-options (first commands))))))
+    (let* ((rule-case (lexer-case-option (first-node node 'options-spec) *lexer-case-insensitive*))
+           (body (list 'cnvrs::lexer-case (lexer-expression alternatives) rule-case)))
+      (list name (if commands
+                     (list 'cnvrs::lexer-commands body (lexer-command-actions (first commands))) body)
+            :mode (if fragment :cnvrs-fragment mode)))))
 
 (defun parser-rule-form (node)
   (when (or (first-node node 'rule-modifiers)
@@ -438,7 +479,7 @@
     ;; Keep ANTLR's source order so the left-recursion rewrite can assign
     ;; precedence to prefix as well as recursive alternatives.
     (list rule (if recursive
-                   (list 'cnvrs::antlr-precedence (choice-form forms))
+                   (list 'cnvrs::source-order-precedence (choice-form forms))
                    (choice-form forms)))))
 
 (defun identifier-text (node)
@@ -485,7 +526,42 @@
                                                      'action-block)))))))
       (otherwise (conversion-error node "unsupported prequel construct")))))
 
-(defun grammar-from-tree (tree &key lexer parser-package lexer-package)
+(defun resolve-token-vocabulary (tree metadata kind lexer token-vocabulary lexer-package)
+  (let ((names (loop for prequel in (getf metadata :prequels)
+                     when (eq (first prequel) :options)
+                       append (loop for (name value) in (second prequel)
+                                    when (string= name "tokenVocab") collect value))))
+    (unless names (return-from resolve-token-vocabulary nil))
+    (unless (and (eq kind :parser) (= (length names) 1))
+      (conversion-error tree "tokenVocab requires a parser grammar and one vocabulary"))
+    (let* ((name (first names))
+           (vocabulary (if (hash-table-p token-vocabulary)
+                           (gethash name token-vocabulary)
+                           (cdr (assoc name token-vocabulary :test #'string=)))))
+      (unless (and (cnvrs:parser-definition-p vocabulary)
+                   (eq (cnvrs::parser-definition-kind vocabulary) :lexer))
+        (conversion-error tree "tokenVocab ~A requires a lexer definition in :TOKEN-VOCABULARY" name))
+      (unless (eq lexer-package (cnvrs:parser-definition-lexer-package vocabulary))
+        (conversion-error tree "tokenVocab ~A uses a different lexer package" name))
+      (when (and lexer (not (eq lexer vocabulary)))
+        (conversion-error tree ":LEXER conflicts with tokenVocab ~A" name))
+      vocabulary)))
+
+(defun vocabulary-token-rules (vocabulary metadata)
+  (let ((rules (remove-if (lambda (rule) (eq (sixth rule) :cnvrs-fragment))
+                          (cnvrs::parser-definition-rules vocabulary))))
+    ;; Declared tokens have no literal alias, but are legal named references.
+    (dolist (prequel (append (getf (cnvrs:parser-definition-metadata vocabulary)
+                                   :prequels)
+                            (getf metadata :prequels)))
+      (when (eq (first prequel) :tokens)
+        (dolist (name (second prequel))
+          (let ((symbol (intern (string-upcase name) *antlr-lexer-package*)))
+            (unless (find symbol rules :key #'first)
+              (setf rules (append rules (list (list symbol nil)))))))))
+    rules))
+
+(defun grammar-from-tree (tree &key lexer token-vocabulary parser-package lexer-package)
   (unless (eq (cnvrs:node-rule tree) 'grammar-spec)
     (conversion-error tree "expected a complete grammar"))
   (let* ((*antlr-parser-package* parser-package)
@@ -498,7 +574,21 @@
          (metadata (list :prequels
                          (mapcar #'prequel-metadata
                                  (child-nodes tree 'prequel-construct))))
+         (vocabulary (resolve-token-vocabulary tree metadata kind lexer
+                                                token-vocabulary lexer-package))
+         (*token-vocabulary*
+           (when vocabulary
+             (vocabulary-token-rules vocabulary metadata)))
          (*implicit-literals* nil)
+         (*lexer-case-insensitive*
+           (some (lambda (prequel)
+                   (and (eq (first prequel) :options)
+                        (let ((option (assoc "caseInsensitive" (second prequel) :test #'string=)))
+                          (when option
+                            (unless (member (second option) '("true" "false") :test #'string=)
+                              (conversion-error tree "caseInsensitive requires true or false"))
+                            (string= (second option) "true")))))
+                 (getf metadata :prequels)))
          (parser-rules nil) (lexer-rules nil))
     (dolist (rule (child-nodes (first-node tree 'rules) 'rule-spec))
       (let ((spec (first (child-nodes rule))))
@@ -526,24 +616,28 @@
                                  lexer-rules)
                          parser-rules)))
       (cnvrs::make-defined-parser name kind
-                                  (caar parser-rules) lexer
-                                  :hash-table :node :cached forms
+                                  (caar parser-rules) (or vocabulary lexer)
+                                  :hash-table :node :recompute forms
                                   :metadata metadata
                                   :parser-package parser-package
-                                  :lexer-package lexer-package))))
+                                  :lexer-package lexer-package
+                                  :rules-only t))))
 
-(defun parse (source &key lexer callbacks parser-package lexer-package)
+(defun parse (source &key lexer token-vocabulary callbacks parser-package lexer-package)
   "Parse ANTLR4 SOURCE into a CNVRS grammar definition ready for ENSURE-COMPILED.
 For parser grammars, :LEXER optionally supplies a CNVRS lexer; otherwise
-PARSE accepts token sequences. :PARSER-PACKAGE and :LEXER-PACKAGE are required
+PARSE accepts token sequences. TOKEN-VOCABULARY is an alist or EQUAL hash table
+mapping tokenVocab names (strings) to lexer definitions in :LEXER-PACKAGE.
+:PARSER-PACKAGE and :LEXER-PACKAGE are required
 package designators for parser rule names and lexer token kinds. CALLBACKS maps exact action block text,
-including braces, to functions of (input position). Use PARSE-TREE to inspect
+including braces, to functions of (input position). Parser callbacks use
+INPUT-TOKEN-AT and INPUT-TOKEN-COUNT to inspect visible tokens. Use PARSE-TREE to inspect
 the syntax tree."
   (let ((*semantic-callbacks* callbacks)
         (parser-package (cnvrs::grammar-package parser-package "parser"))
         (lexer-package (cnvrs::grammar-package lexer-package "lexer")))
     (when (eq parser-package lexer-package)
       (cnvrs::grammar-fail "ANTLR parser and lexer packages must differ"))
-    (grammar-from-tree (parse-tree source) :lexer lexer
+    (grammar-from-tree (parse-tree source) :lexer lexer :token-vocabulary token-vocabulary
                        :parser-package parser-package
                        :lexer-package lexer-package)))

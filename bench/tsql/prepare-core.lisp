@@ -1,0 +1,8 @@
+(load "bench/tsql/prepare.lisp")
+(in-package #:tsql-reference/bench)
+(let ((lexer (cnvrs:ensure-compiled (cnvrs:parser-lexer *benchmark-parser*))))
+  (cnvrs:lexer-simulator lexer)
+  (cnvrs:clear-cache lexer)
+  (cnvrs:clear-cache *benchmark-parser*))
+(sb-ext:gc :full t)
+(sb-ext:save-lisp-and-die (first (uiop:command-line-arguments)))

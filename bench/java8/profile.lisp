@@ -1,0 +1,83 @@
+;;; Current Java 8 baseline: ANTLR Java 4.13.2 prediction port.
+(require :asdf)
+(require :sb-sprof)
+(let ((setup (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))
+  (when (probe-file setup) (load setup)))
+(asdf:load-asd (truename "cnvrs.asd"))
+(asdf:load-system :cnvrs)
+(defpackage #:java8/profile/parser (:use))
+(defpackage #:java8/profile/lexer (:use))
+(defparameter *grammar-paths* (uiop:command-line-arguments))
+(unless (= (length *grammar-paths*) 2)
+  (error "Usage: sbcl --script bench/java8/profile.lisp Java8Lexer.g4 Java8Parser.g4"))
+(defparameter *java8-lexer*
+  (cnvrs/antlr4:parse (uiop:read-file-string (first *grammar-paths*))
+                    :parser-package '#:java8/profile/parser :lexer-package '#:java8/profile/lexer))
+(defparameter *java8-parser*
+  (cnvrs:ensure-compiled
+   (cnvrs/antlr4:parse (uiop:read-file-string (second *grammar-paths*))
+                     :parser-package '#:java8/profile/parser :lexer-package '#:java8/profile/lexer
+                     :token-vocabulary (list (cons "Java8Lexer" *java8-lexer*)))))
+(defparameter *source*
+  (let ((file (uiop:getenv "JAVA8_SOURCE_FILE")))
+    (cond (file (uiop:read-file-string file))
+          ((uiop:getenv "JAVA8_SOURCE"))
+          (t (uiop:read-file-string "bench/antlr4-grammar/Bench.java")))))
+(defparameter *tokens* (cnvrs:lex *java8-lexer* *source*))
+(defparameter *entry* (find-symbol "COMPILATIONUNIT" '#:java8/profile/parser))
+(defparameter *seconds* (parse-integer (or (uiop:getenv "PROFILE_SECONDS") "20")))
+(defparameter *trials* (parse-integer (or (uiop:getenv "PROFILE_TRIALS") "3")))
+(defparameter *warm* (parse-integer (or (uiop:getenv "PROFILE_WARM_ITERATIONS") "3")))
+(defparameter *mode* (or (uiop:getenv "PROFILE_MODE") "timing"))
+(defun simulator (grammar) (cnvrs:parser-prediction-simulator grammar))
+(defun cache-summary (grammar)
+  (let ((dfas (cnvrs/runtime:simulator-decision-dfas (simulator grammar))))
+    (format t "~&DFA ROOTS ~D STATES ~D~%"
+            (count-if (lambda (d) (plusp (hash-table-count (cnvrs/runtime:dfa-states d)))) dfas)
+            (reduce #'+ dfas :key (lambda (d) (hash-table-count (cnvrs/runtime:dfa-states d)))))))
+(defun parse-one (grammar)
+  (sb-ext:with-timeout *seconds*
+    (cnvrs:parse grammar *tokens* :lexer nil :rule *entry*)))
+(format t "~&INPUT CHARACTERS ~D TOKENS ~D MODE ~A~%" (length *source*) (length *tokens*) *mode*)
+(finish-output)
+(cond
+  ((equal *mode* "timing")
+   (dotimes (trial *trials*)
+     (let ((grammar (cnvrs:clone-compiled *java8-parser*)))
+       ;; Lowering the grammar ATN, lexing, and full GC are outside parse timing.
+       (simulator grammar)
+       (sb-ext:gc :full t)
+       (let ((begin (get-internal-real-time)) (bytes (sb-ext:get-bytes-consed)))
+         (handler-case
+             (let ((tree (parse-one grammar)))
+               (format t "~&COLD TRIAL ~D MS ~F BYTES ~D END ~D~%"
+                       (1+ trial) (* 1000.0 (/ (- (get-internal-real-time) begin) internal-time-units-per-second))
+                       (- (sb-ext:get-bytes-consed) bytes) (cnvrs:node-end tree)))
+           (sb-ext:timeout () (format t "~&TIMEOUT TRIAL ~D~%" (1+ trial)))))
+       (finish-output)
+       (when (plusp *warm*)
+         (let ((begin (get-internal-real-time)) (bytes (sb-ext:get-bytes-consed)))
+           (dotimes (i *warm*) (parse-one grammar))
+           (format t "WARM MEAN-MS ~F MEAN-BYTES ~F~%"
+                   (* 1000.0 (/ (- (get-internal-real-time) begin) (* *warm* internal-time-units-per-second)))
+                   (/ (- (sb-ext:get-bytes-consed) bytes) (float *warm*)))))
+       (cache-summary grammar) (finish-output))))
+  ((equal *mode* "count")
+   (let ((reaches 0) (full 0) (max-configs 0) (fallbacks 0))
+     (setf (cnvrs/runtime::simulator-trace (simulator *java8-parser*))
+           (lambda (event data)
+             (case event
+               (:reach (incf reaches)
+                       (when (getf data :full-context) (incf full))
+                       (setf max-configs (max max-configs (getf data :configs))))
+               (:attempting-full-context (incf fallbacks)))))
+     (parse-one *java8-parser*)
+     (format t "REACHES ~D FULL-REACHES ~D MAX-CONFIGS ~D FULL-FALLBACKS ~D~%"
+             reaches full max-configs fallbacks)
+     (cache-summary *java8-parser*)))
+  ((equal *mode* "sample")
+   (require :sb-sprof)
+   (eval '(sb-sprof:with-profiling (:reset t :mode :cpu :sample-interval 0.001 :max-samples 20000 :report :flat)
+           (time (parse-one *java8-parser*))))
+   (cache-summary *java8-parser*))
+  (t (error "Unknown PROFILE_MODE: ~S" *mode*)))

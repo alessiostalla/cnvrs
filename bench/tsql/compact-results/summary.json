@@ -1,0 +1,602 @@
+{
+  "select": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.163774,
+        "warm_run_medians_ms": [
+          0.163774,
+          0.162344,
+          0.164253
+        ],
+        "cold_ms": 3.673333,
+        "cold_bytes": 2299760.0,
+        "warm_bytes": 248192.6,
+        "cache": [
+          418,
+          1189,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.97023,
+        "warm_run_medians_ms": [
+          0.97023,
+          0.96649,
+          0.97157
+        ],
+        "cold_ms": 8.903,
+        "cold_bytes": 7105184.0,
+        "warm_bytes": 2093346.2,
+        "cache": [
+          418,
+          1189,
+          0,
+          0
+        ]
+      },
+      "ratio": 5.924200422533492
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 207.031313,
+        "warm_run_medians_ms": [
+          201.554167,
+          207.031313,
+          219.639709
+        ],
+        "cold_ms": 650.251,
+        "cold_bytes": 1024036816.0,
+        "warm_bytes": 326284452.0,
+        "cache": [
+          0,
+          0,
+          1475,
+          8923
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 213.674,
+        "warm_run_medians_ms": [
+          211.8195,
+          213.674,
+          214.8375
+        ],
+        "cold_ms": 754.814,
+        "cold_bytes": 601427280.0,
+        "warm_bytes": 182225952.0,
+        "cache": [
+          0,
+          0,
+          1475,
+          8923
+        ]
+      },
+      "ratio": 1.0320854217835154
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 208.450542,
+        "warm_run_medians_ms": [
+          208.450542,
+          205.838563,
+          220.665813
+        ],
+        "cold_ms": 648.311208,
+        "cold_bytes": 1024103472.0,
+        "warm_bytes": 326754908.0,
+        "cache": [
+          0,
+          0,
+          1475,
+          8923
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 214.513,
+        "warm_run_medians_ms": [
+          212.894,
+          215.3295,
+          214.513
+        ],
+        "cold_ms": 756.401,
+        "cold_bytes": 602327584.0,
+        "warm_bytes": 183030648.0,
+        "cache": [
+          0,
+          0,
+          1475,
+          8923
+        ]
+      },
+      "ratio": 1.029083436012366
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 207.164021,
+        "warm_run_medians_ms": [
+          204.082959,
+          207.164021,
+          220.709729
+        ],
+        "cold_ms": 666.878083,
+        "cold_bytes": 1026173232.0,
+        "warm_bytes": 327003100.0,
+        "cache": [
+          418,
+          1189,
+          1475,
+          8923
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 217.5665,
+        "warm_run_medians_ms": [
+          214.047,
+          217.5665,
+          217.796
+        ],
+        "cold_ms": 764.03,
+        "cold_bytes": 609448448.0,
+        "warm_bytes": 185120488.0,
+        "cache": [
+          418,
+          1189,
+          1475,
+          8923
+        ]
+      },
+      "ratio": 1.0502137337834354
+    }
+  },
+  "schema": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.013405,
+        "warm_run_medians_ms": [
+          0.013405,
+          0.01459,
+          0.01305
+        ],
+        "cold_ms": 2.723,
+        "cold_bytes": 1166352.0,
+        "warm_bytes": 21280.6,
+        "cache": [
+          211,
+          469,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.08946,
+        "warm_run_medians_ms": [
+          0.08946,
+          0.08779,
+          0.09308
+        ],
+        "cold_ms": 4.291,
+        "cold_bytes": 3132944.0,
+        "warm_bytes": 178829.6,
+        "cache": [
+          211,
+          469,
+          0,
+          0
+        ]
+      },
+      "ratio": 6.673629242819843
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 8.572479,
+        "warm_run_medians_ms": [
+          8.514646,
+          8.718563,
+          8.572479
+        ],
+        "cold_ms": 58.791417,
+        "cold_bytes": 94082464.0,
+        "warm_bytes": 13031820.0,
+        "cache": [
+          0,
+          0,
+          292,
+          1195
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 9.24,
+        "warm_run_medians_ms": [
+          9.0955,
+          9.24,
+          9.3235
+        ],
+        "cold_ms": 63.018,
+        "cold_bytes": 59912048.0,
+        "warm_bytes": 8372784.0,
+        "cache": [
+          0,
+          0,
+          292,
+          1195
+        ]
+      },
+      "ratio": 1.077867907287962
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 8.598792,
+        "warm_run_medians_ms": [
+          8.598792,
+          8.257292,
+          8.734167
+        ],
+        "cold_ms": 55.622459,
+        "cold_bytes": 94096056.0,
+        "warm_bytes": 13060180.0,
+        "cache": [
+          0,
+          0,
+          292,
+          1195
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 9.3135,
+        "warm_run_medians_ms": [
+          9.2175,
+          9.3135,
+          9.513
+        ],
+        "cold_ms": 63.087,
+        "cold_bytes": 59934352.0,
+        "warm_bytes": 8427904.0,
+        "cache": [
+          0,
+          0,
+          292,
+          1195
+        ]
+      },
+      "ratio": 1.0831172564704437
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 8.55475,
+        "warm_run_medians_ms": [
+          8.55475,
+          8.508584,
+          9.392084
+        ],
+        "cold_ms": 56.262875,
+        "cold_bytes": 95167456.0,
+        "warm_bytes": 13081460.0,
+        "cache": [
+          211,
+          469,
+          292,
+          1195
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 9.378,
+        "warm_run_medians_ms": [
+          9.378,
+          9.178,
+          9.487
+        ],
+        "cold_ms": 67.916,
+        "cold_bytes": 63154112.0,
+        "warm_bytes": 8600616.0,
+        "cache": [
+          211,
+          469,
+          292,
+          1195
+        ]
+      },
+      "ratio": 1.096233086881557
+    }
+  },
+  "json": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.037658,
+        "warm_run_medians_ms": [
+          0.04151,
+          0.037,
+          0.037658
+        ],
+        "cold_ms": 2.81825,
+        "cold_bytes": 1485840.0,
+        "warm_bytes": 66976.6,
+        "cache": [
+          291,
+          707,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.24182,
+        "warm_run_medians_ms": [
+          0.23509,
+          0.25539,
+          0.24182
+        ],
+        "cold_ms": 5.242,
+        "cold_bytes": 3980288.0,
+        "warm_bytes": 456670.2,
+        "cache": [
+          291,
+          707,
+          0,
+          0
+        ]
+      },
+      "ratio": 6.421477508099209
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 75.193583,
+        "warm_run_medians_ms": [
+          87.867459,
+          74.929625,
+          75.193583
+        ],
+        "cold_ms": 327.760792,
+        "cold_bytes": 522074168.0,
+        "warm_bytes": 124668836.0,
+        "cache": [
+          0,
+          0,
+          825,
+          5323
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 76.007,
+        "warm_run_medians_ms": [
+          77.5685,
+          74.8395,
+          76.007
+        ],
+        "cold_ms": 386.062,
+        "cold_bytes": 331409856.0,
+        "warm_bytes": 74797032.0,
+        "cache": [
+          0,
+          0,
+          825,
+          5323
+        ]
+      },
+      "ratio": 1.0108176385210956
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 74.2235,
+        "warm_run_medians_ms": [
+          73.298334,
+          74.2235,
+          75.456813
+        ],
+        "cold_ms": 327.688333,
+        "cold_bytes": 522183616.0,
+        "warm_bytes": 124795916.0,
+        "cache": [
+          0,
+          0,
+          825,
+          5323
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 75.082,
+        "warm_run_medians_ms": [
+          73.961,
+          76.0515,
+          75.082
+        ],
+        "cold_ms": 383.055,
+        "cold_bytes": 331574592.0,
+        "warm_bytes": 74973936.0,
+        "cache": [
+          0,
+          0,
+          825,
+          5323
+        ]
+      },
+      "ratio": 1.0115664176440076
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 75.726083,
+        "warm_run_medians_ms": [
+          72.386354,
+          75.726083,
+          75.897875
+        ],
+        "cold_ms": 326.716791,
+        "cold_bytes": 523314320.0,
+        "warm_bytes": 124862892.0,
+        "cache": [
+          291,
+          707,
+          825,
+          5323
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 75.07,
+        "warm_run_medians_ms": [
+          75.07,
+          74.637,
+          77.466
+        ],
+        "cold_ms": 387.71,
+        "cold_bytes": 335704640.0,
+        "warm_bytes": 75423416.0,
+        "cache": [
+          291,
+          707,
+          825,
+          5323
+        ]
+      },
+      "ratio": 0.9913361027798043
+    }
+  },
+  "backup": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.013723,
+        "warm_run_medians_ms": [
+          0.012608,
+          0.014357,
+          0.013723
+        ],
+        "cold_ms": 1.4335,
+        "cold_bytes": 670416.0,
+        "warm_bytes": 19640.6,
+        "cache": [
+          118,
+          237,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.08651,
+        "warm_run_medians_ms": [
+          0.08582,
+          0.08651,
+          0.08717
+        ],
+        "cold_ms": 2.216,
+        "cold_bytes": 1691456.0,
+        "warm_bytes": 145392.3,
+        "cache": [
+          118,
+          237,
+          0,
+          0
+        ]
+      },
+      "ratio": 6.304015157035633
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 5.936833,
+        "warm_run_medians_ms": [
+          5.659459,
+          5.94475,
+          5.936833
+        ],
+        "cold_ms": 32.230916,
+        "cold_bytes": 52596888.0,
+        "warm_bytes": 9483572.0,
+        "cache": [
+          0,
+          0,
+          130,
+          206
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 6.9205,
+        "warm_run_medians_ms": [
+          6.831,
+          6.9205,
+          7.503
+        ],
+        "cold_ms": 34.751,
+        "cold_bytes": 32589680.0,
+        "warm_bytes": 6359008.0,
+        "cache": [
+          0,
+          0,
+          130,
+          206
+        ]
+      },
+      "ratio": 1.1656888445405151
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 5.660021,
+        "warm_run_medians_ms": [
+          5.660021,
+          5.835458,
+          5.578771
+        ],
+        "cold_ms": 28.962292,
+        "cold_bytes": 52592008.0,
+        "warm_bytes": 9496124.0,
+        "cache": [
+          0,
+          0,
+          130,
+          206
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 6.6925,
+        "warm_run_medians_ms": [
+          6.625,
+          6.6925,
+          7.375
+        ],
+        "cold_ms": 35.415,
+        "cold_bytes": 32595152.0,
+        "warm_bytes": 6364656.0,
+        "cache": [
+          0,
+          0,
+          130,
+          206
+        ]
+      },
+      "ratio": 1.1824161076434168
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 5.673854,
+        "warm_run_medians_ms": [
+          5.673854,
+          5.815104,
+          5.558667
+        ],
+        "cold_ms": 29.65675,
+        "cold_bytes": 53213264.0,
+        "warm_bytes": 9515764.0,
+        "cache": [
+          118,
+          237,
+          130,
+          206
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 7.2215,
+        "warm_run_medians_ms": [
+          6.896,
+          7.2215,
+          8.22
+        ],
+        "cold_ms": 36.08,
+        "cold_bytes": 34398736.0,
+        "warm_bytes": 6533080.0,
+        "cache": [
+          118,
+          237,
+          130,
+          206
+        ]
+      },
+      "ratio": 1.272768033861992
+    }
+  }
+}

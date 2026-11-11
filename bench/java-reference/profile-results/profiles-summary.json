@@ -1,0 +1,2464 @@
+{
+  "before": {
+    "cpu": {
+      "parses": 30,
+      "wall_seconds": 7.72,
+      "cpu_seconds": 7.509593,
+      "gc_wall_seconds": 0.628,
+      "bytes": 9553073728,
+      "flat": [
+        {
+          "self_samples": 767,
+          "self_percent": 18.5,
+          "total_samples": 767,
+          "total_percent": 18.5,
+          "function": "foreign function __bzero"
+        },
+        {
+          "self_samples": 367,
+          "self_percent": 8.8,
+          "total_samples": 367,
+          "total_percent": 8.8,
+          "function": "CNVRS/RUNTIME::DERIVE-CONFIG"
+        },
+        {
+          "self_samples": 291,
+          "self_percent": 7.0,
+          "total_samples": 291,
+          "total_percent": 7.0,
+          "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+        },
+        {
+          "self_samples": 275,
+          "self_percent": 6.6,
+          "total_samples": 275,
+          "total_percent": 6.6,
+          "function": "SB-IMPL::GETHASH/EQL"
+        },
+        {
+          "self_samples": 223,
+          "self_percent": 5.4,
+          "total_samples": 223,
+          "total_percent": 5.4,
+          "function": "ALLOCATE-VECTOR-ON-HEAP"
+        },
+        {
+          "self_samples": 205,
+          "self_percent": 4.9,
+          "total_samples": 205,
+          "total_percent": 4.9,
+          "function": "CNVRS/RUNTIME::MERGE-ARRAYS"
+        },
+        {
+          "self_samples": 163,
+          "self_percent": 3.9,
+          "total_samples": 163,
+          "total_percent": 3.9,
+          "function": "CNVRS/RUNTIME::CONTEXT-NODE"
+        },
+        {
+          "self_samples": 143,
+          "self_percent": 3.4,
+          "total_samples": 143,
+          "total_percent": 3.4,
+          "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+        },
+        {
+          "self_samples": 122,
+          "self_percent": 2.9,
+          "total_samples": 122,
+          "total_percent": 2.9,
+          "function": "CNVRS/RUNTIME::MERGE-CACHE-PUT"
+        },
+        {
+          "self_samples": 111,
+          "self_percent": 2.7,
+          "total_samples": 111,
+          "total_percent": 2.7,
+          "function": "FIND"
+        },
+        {
+          "self_samples": 88,
+          "self_percent": 2.1,
+          "total_samples": 88,
+          "total_percent": 2.1,
+          "function": "foreign function __pthread_sigmask"
+        },
+        {
+          "self_samples": 84,
+          "self_percent": 2.0,
+          "total_samples": 84,
+          "total_percent": 2.0,
+          "function": "CNVRS/RUNTIME:CONTEXT-EQUAL"
+        },
+        {
+          "self_samples": 79,
+          "self_percent": 1.9,
+          "total_samples": 79,
+          "total_percent": 1.9,
+          "function": "CNVRS/RUNTIME::CONTEXT-CACHE-ADD"
+        },
+        {
+          "self_samples": 73,
+          "self_percent": 1.8,
+          "total_samples": 73,
+          "total_percent": 1.8,
+          "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+        },
+        {
+          "self_samples": 69,
+          "self_percent": 1.7,
+          "total_samples": 69,
+          "total_percent": 1.7,
+          "function": "(FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE)"
+        },
+        {
+          "self_samples": 68,
+          "self_percent": 1.6,
+          "total_samples": 68,
+          "total_percent": 1.6,
+          "function": "SB-IMPL::%ALLOC-HASH-TABLE"
+        },
+        {
+          "self_samples": 61,
+          "self_percent": 1.5,
+          "total_samples": 61,
+          "total_percent": 1.5,
+          "function": "SB-IMPL::GETHASH3"
+        },
+        {
+          "self_samples": 54,
+          "self_percent": 1.3,
+          "total_samples": 54,
+          "total_percent": 1.3,
+          "function": "SB-IMPL::GROW-HASH-TABLE"
+        },
+        {
+          "self_samples": 53,
+          "self_percent": 1.3,
+          "total_samples": 53,
+          "total_percent": 1.3,
+          "function": "REPLACE"
+        },
+        {
+          "self_samples": 51,
+          "self_percent": 1.2,
+          "total_samples": 51,
+          "total_percent": 1.2,
+          "function": "CNVRS/RUNTIME::GET-EPSILON-TARGET"
+        },
+        {
+          "self_samples": 47,
+          "self_percent": 1.1,
+          "total_samples": 47,
+          "total_percent": 1.1,
+          "function": "CNVRS/RUNTIME::COMBINE-COMMON-PARENTS"
+        },
+        {
+          "self_samples": 45,
+          "self_percent": 1.1,
+          "total_samples": 45,
+          "total_percent": 1.1,
+          "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-SET T)"
+        },
+        {
+          "self_samples": 43,
+          "self_percent": 1.0,
+          "total_samples": 43,
+          "total_percent": 1.0,
+          "function": "SB-IMPL::PUTHASH/EQL"
+        },
+        {
+          "self_samples": 39,
+          "self_percent": 0.9,
+          "total_samples": 39,
+          "total_percent": 0.9,
+          "function": "(LABELS SB-IMPL::SXHASH-RECURSE :IN SXHASH)"
+        },
+        {
+          "self_samples": 38,
+          "self_percent": 0.9,
+          "total_samples": 38,
+          "total_percent": 0.9,
+          "function": "SB-IMPL::REHASH"
+        },
+        {
+          "self_samples": 35,
+          "self_percent": 0.8,
+          "total_samples": 35,
+          "total_percent": 0.8,
+          "function": "CNVRS/RUNTIME:SINGLETON-CONTEXT"
+        },
+        {
+          "self_samples": 34,
+          "self_percent": 0.8,
+          "total_samples": 34,
+          "total_percent": 0.8,
+          "function": "SB-IMPL::GETHASH/EQUAL"
+        },
+        {
+          "self_samples": 34,
+          "self_percent": 0.8,
+          "total_samples": 34,
+          "total_percent": 0.8,
+          "function": "CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE"
+        },
+        {
+          "self_samples": 32,
+          "self_percent": 0.8,
+          "total_samples": 32,
+          "total_percent": 0.8,
+          "function": "SB-KERNEL:%SINGLE-FLOAT"
+        },
+        {
+          "self_samples": 31,
+          "self_percent": 0.7,
+          "total_samples": 31,
+          "total_percent": 0.7,
+          "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+        },
+        {
+          "self_samples": 31,
+          "self_percent": 0.7,
+          "total_samples": 31,
+          "total_percent": 0.7,
+          "function": "CNVRS/RUNTIME::CONTEXT-CACHE-GET"
+        },
+        {
+          "self_samples": 28,
+          "self_percent": 0.7,
+          "total_samples": 28,
+          "total_percent": 0.7,
+          "function": "CNVRS/RUNTIME:CONFLICTING-ALT-SUBSETS"
+        },
+        {
+          "self_samples": 27,
+          "self_percent": 0.7,
+          "total_samples": 27,
+          "total_percent": 0.7,
+          "function": "CNVRS/RUNTIME::MERGE-CACHE-GET"
+        },
+        {
+          "self_samples": 27,
+          "self_percent": 0.7,
+          "total_samples": 27,
+          "total_percent": 0.7,
+          "function": "CNVRS/RUNTIME:MERGE-CONTEXTS"
+        },
+        {
+          "self_samples": 27,
+          "self_percent": 0.7,
+          "total_samples": 27,
+          "total_percent": 0.7,
+          "function": "SB-IMPL::ARRAY-EQUALP"
+        },
+        {
+          "self_samples": 19,
+          "self_percent": 0.5,
+          "total_samples": 19,
+          "total_percent": 0.5,
+          "function": "foreign function __psynch_cvwait"
+        },
+        {
+          "self_samples": 19,
+          "self_percent": 0.5,
+          "total_samples": 19,
+          "total_percent": 0.5,
+          "function": "(LABELS SB-IMPL::EQUAL-AUX :IN EQUAL)"
+        },
+        {
+          "self_samples": 17,
+          "self_percent": 0.4,
+          "total_samples": 17,
+          "total_percent": 0.4,
+          "function": "SB-KERNEL:TWO-ARG-+"
+        },
+        {
+          "self_samples": 17,
+          "self_percent": 0.4,
+          "total_samples": 17,
+          "total_percent": 0.4,
+          "function": "SB-IMPL::LIST-NREVERSE"
+        },
+        {
+          "self_samples": 15,
+          "self_percent": 0.4,
+          "total_samples": 15,
+          "total_percent": 0.4,
+          "function": "LENGTH"
+        },
+        {
+          "self_samples": 12,
+          "self_percent": 0.3,
+          "total_samples": 12,
+          "total_percent": 0.3,
+          "function": "EQUALP"
+        },
+        {
+          "self_samples": 12,
+          "self_percent": 0.3,
+          "total_samples": 12,
+          "total_percent": 0.3,
+          "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+        },
+        {
+          "self_samples": 11,
+          "self_percent": 0.3,
+          "total_samples": 11,
+          "total_percent": 0.3,
+          "function": "SB-KERNEL:TWO-ARG-/"
+        },
+        {
+          "self_samples": 10,
+          "self_percent": 0.2,
+          "total_samples": 10,
+          "total_percent": 0.2,
+          "function": "SB-IMPL::%MAKE-HASH-TABLE"
+        },
+        {
+          "self_samples": 10,
+          "self_percent": 0.2,
+          "total_samples": 10,
+          "total_percent": 0.2,
+          "function": "SB-KERNEL:%PUTHASH"
+        },
+        {
+          "self_samples": 10,
+          "self_percent": 0.2,
+          "total_samples": 10,
+          "total_percent": 0.2,
+          "function": "SB-KERNEL:HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+        },
+        {
+          "self_samples": 8,
+          "self_percent": 0.2,
+          "total_samples": 8,
+          "total_percent": 0.2,
+          "function": "IDENTITY"
+        },
+        {
+          "self_samples": 7,
+          "self_percent": 0.2,
+          "total_samples": 7,
+          "total_percent": 0.2,
+          "function": "SB-KERNEL:%UNARY-TRUNCATE"
+        },
+        {
+          "self_samples": 7,
+          "self_percent": 0.2,
+          "total_samples": 7,
+          "total_percent": 0.2,
+          "function": "SB-KERNEL:%COERCE-CALLABLE-TO-FUN"
+        },
+        {
+          "self_samples": 7,
+          "self_percent": 0.2,
+          "total_samples": 7,
+          "total_percent": 0.2,
+          "function": "foreign function setitimer"
+        },
+        {
+          "self_samples": 6,
+          "self_percent": 0.1,
+          "total_samples": 6,
+          "total_percent": 0.1,
+          "function": "SB-KERNEL:TWO-ARG-="
+        },
+        {
+          "self_samples": 5,
+          "self_percent": 0.1,
+          "total_samples": 5,
+          "total_percent": 0.1,
+          "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-REF T)"
+        },
+        {
+          "self_samples": 5,
+          "self_percent": 0.1,
+          "total_samples": 5,
+          "total_percent": 0.1,
+          "function": "SXHASH"
+        },
+        {
+          "self_samples": 5,
+          "self_percent": 0.1,
+          "total_samples": 5,
+          "total_percent": 0.1,
+          "function": "SB-KERNEL:HAIRY-DATA-VECTOR-SET/CHECK-BOUNDS"
+        },
+        {
+          "self_samples": 4,
+          "self_percent": 0.1,
+          "total_samples": 4,
+          "total_percent": 0.1,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 4,
+          "self_percent": 0.1,
+          "total_samples": 4,
+          "total_percent": 0.1,
+          "function": "SYMBOL-FUNCTION"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.1,
+          "total_samples": 3,
+          "total_percent": 0.1,
+          "function": "SB-KERNEL:%ADJOIN-EQ"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.1,
+          "total_samples": 3,
+          "total_percent": 0.1,
+          "function": "SB-IMPL::PICK-TABLE-METHODS"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.1,
+          "total_samples": 3,
+          "total_percent": 0.1,
+          "function": "SB-C::CHECK-DS-LIST"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::EQUAL-HASH"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "CNVRS::ANTLR-ADAPTIVE-PREDICT"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::PUTHASH/EQUAL"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "VECTOR-PUSH-EXTEND"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL::INTEGER-/-INTEGER"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-THREAD:GRAB-MUTEX"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::STOP-CONFIG-P"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(FLET SB-IMPL::FAST-NTHCDR :IN NTHCDR)"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::GETHASH/EQ"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "foreign function gc_find_freeish_pages"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::MERGE-ROOT"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "foreign function tlv_get_addr"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-VM::EXTEND-VECTOR"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "REDUCE"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:TWO-ARG-<"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL::FIXNUM-GCD"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:UNIQUE-ALT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER)"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(SB-PCL::FAST-METHOD CNVRS:MAKE-PARSE-NODE ((EQL :NODE) T T T T))"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS::APPLY-ATN-EVENTS"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:%MEMBER-EQ"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::EXEC-ATN"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(FLET SB-THREAD::WITH-RECURSIVE-LOCK-THUNK :IN SB-IMPL::MAKE-CANCELLABLE-INTERRUPTOR)"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::CONTEXT-HAS-EMPTY-PATH-P"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:MAKE-CONTEXT-CACHE"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-VM::ALLOCATE-VECTOR-WITH-WIDETAG"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "foreign function listify_rest_arg"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:HAIRY-DATA-VECTOR-REF"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::RUNTIME-TRACE"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "NTHCDR"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "ALLOC-TRAMP"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::MAKE-HASH-TABLE-USING-DEFAULTS"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2.) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-UNIX::WITH-DEFERRABLE-SIGNALS-UNBLOCKED"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:%MEMBER-TEST"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "EQUAL"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:SINGLE-VIABLE-ALT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:UB32-BASH-COPY"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CAR"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "foreign function alloc"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        }
+      ]
+    },
+    "alloc": {
+      "parses": 30,
+      "wall_seconds": 10.264,
+      "cpu_seconds": 8.478182,
+      "gc_wall_seconds": 0.806,
+      "bytes": 9553078944,
+      "flat": [
+        {
+          "self_samples": 78548,
+          "self_percent": 54.9,
+          "total_samples": 93407,
+          "total_percent": 65.3,
+          "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+        },
+        {
+          "self_samples": 28296,
+          "self_percent": 19.8,
+          "total_samples": 30884,
+          "total_percent": 21.6,
+          "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+        },
+        {
+          "self_samples": 12396,
+          "self_percent": 8.7,
+          "total_samples": 14111,
+          "total_percent": 9.9,
+          "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+        },
+        {
+          "self_samples": 9568,
+          "self_percent": 6.7,
+          "total_samples": 10691,
+          "total_percent": 7.5,
+          "function": "CNVRS/RUNTIME::COMBINE-COMMON-PARENTS"
+        },
+        {
+          "self_samples": 8315,
+          "self_percent": 5.8,
+          "total_samples": 9638,
+          "total_percent": 6.7,
+          "function": "CNVRS/RUNTIME::MERGE-ARRAYS"
+        },
+        {
+          "self_samples": 3637,
+          "self_percent": 2.5,
+          "total_samples": 3865,
+          "total_percent": 2.7,
+          "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+        },
+        {
+          "self_samples": 802,
+          "self_percent": 0.6,
+          "total_samples": 984,
+          "total_percent": 0.7,
+          "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+        },
+        {
+          "self_samples": 366,
+          "self_percent": 0.3,
+          "total_samples": 502,
+          "total_percent": 0.4,
+          "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+        },
+        {
+          "self_samples": 225,
+          "self_percent": 0.2,
+          "total_samples": 249,
+          "total_percent": 0.2,
+          "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+        },
+        {
+          "self_samples": 208,
+          "self_percent": 0.1,
+          "total_samples": 211,
+          "total_percent": 0.1,
+          "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+        },
+        {
+          "self_samples": 130,
+          "self_percent": 0.1,
+          "total_samples": 132,
+          "total_percent": 0.1,
+          "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+        },
+        {
+          "self_samples": 121,
+          "self_percent": 0.1,
+          "total_samples": 150,
+          "total_percent": 0.1,
+          "function": "VECTOR-PUSH-EXTEND"
+        },
+        {
+          "self_samples": 91,
+          "self_percent": 0.1,
+          "total_samples": 92,
+          "total_percent": 0.1,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 88,
+          "self_percent": 0.1,
+          "total_samples": 99,
+          "total_percent": 0.1,
+          "function": "SB-KERNEL:SUB-GC"
+        },
+        {
+          "self_samples": 60,
+          "self_percent": 0.0,
+          "total_samples": 62,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+        },
+        {
+          "self_samples": 33,
+          "self_percent": 0.0,
+          "total_samples": 34,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::GROW-HASH-TABLE"
+        },
+        {
+          "self_samples": 31,
+          "self_percent": 0.0,
+          "total_samples": 58,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 31,
+          "self_percent": 0.0,
+          "total_samples": 32,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 30,
+          "self_percent": 0.0,
+          "total_samples": 31,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET"
+        },
+        {
+          "self_samples": 30,
+          "self_percent": 0.0,
+          "total_samples": 31,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 28,
+          "self_percent": 0.0,
+          "total_samples": 40,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:CONFLICTING-ALT-SUBSETS"
+        },
+        {
+          "self_samples": 4,
+          "self_percent": 0.0,
+          "total_samples": 4,
+          "total_percent": 0.0,
+          "function": "CNVRS::PREDICT"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.0,
+          "total_samples": 5,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.0,
+          "total_samples": 4,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 3,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 3,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 3,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 15298,
+          "total_percent": 10.7,
+          "function": "foreign function collect_backtrace"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 11615,
+          "total_percent": 8.1,
+          "function": "foreign function search_all_gc_spaces"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 11099,
+          "total_percent": 7.8,
+          "function": "SB-SPROF::UNAVAILABLE-FRAMES"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 9024,
+          "total_percent": 6.3,
+          "function": "foreign function component_ptr_from_pc"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 7274,
+          "total_percent": 5.1,
+          "function": "foreign function page_table_pages"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 7084,
+          "total_percent": 5.0,
+          "function": "Unknown fn 2"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 980,
+          "total_percent": 0.7,
+          "function": "foreign function debug_function_from_pc"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 798,
+          "total_percent": 0.6,
+          "function": "foreign function lisp_frame_previous"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 218,
+          "total_percent": 0.2,
+          "function": "foreign function scav_list_pointer"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 180,
+          "total_percent": 0.1,
+          "function": "foreign function gc_alloc_new_region"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 174,
+          "total_percent": 0.1,
+          "function": "foreign function collector_alloc_fallback"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 132,
+          "total_percent": 0.1,
+          "function": "foreign function page_table"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 63,
+          "total_percent": 0.0,
+          "function": "foreign function gc_alloc_region"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 38,
+          "total_percent": 0.0,
+          "function": "Unknown fn 6907604"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 28,
+          "total_percent": 0.0,
+          "function": "foreign function allocator_record_backtrace"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 3,
+          "total_percent": 0.0,
+          "function": "foreign function _ZNK4llvm6Triple18getEnvironmentNameEv"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(MACRO-FUNCTION SB-POSIX::WITH-ALIEN-FLOCK)"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "LIST-ALLOC-TRAMP"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/private/tmp/cnvrs-objects-before/src/antlr4-parser.lisp\")"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "foreign function lisp_alloc"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "foreign function copy_potential_large_object"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "foreign function __crashreporter_info__"
+        }
+      ]
+    }
+  },
+  "after": {
+    "cpu": {
+      "parses": 30,
+      "wall_seconds": 8.072,
+      "cpu_seconds": 7.408237,
+      "gc_wall_seconds": 0.446,
+      "bytes": 8139998768,
+      "flat": [
+        {
+          "self_samples": 682,
+          "self_percent": 15.2,
+          "total_samples": 682,
+          "total_percent": 15.2,
+          "function": "foreign function __bzero"
+        },
+        {
+          "self_samples": 436,
+          "self_percent": 9.7,
+          "total_samples": 436,
+          "total_percent": 9.7,
+          "function": "SB-IMPL::GETHASH/EQL"
+        },
+        {
+          "self_samples": 406,
+          "self_percent": 9.1,
+          "total_samples": 406,
+          "total_percent": 9.1,
+          "function": "CNVRS/RUNTIME::DERIVE-CONFIG"
+        },
+        {
+          "self_samples": 376,
+          "self_percent": 8.4,
+          "total_samples": 376,
+          "total_percent": 8.4,
+          "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+        },
+        {
+          "self_samples": 272,
+          "self_percent": 6.1,
+          "total_samples": 272,
+          "total_percent": 6.1,
+          "function": "CNVRS/RUNTIME::MERGE-ARRAYS"
+        },
+        {
+          "self_samples": 164,
+          "self_percent": 3.7,
+          "total_samples": 164,
+          "total_percent": 3.7,
+          "function": "FIND"
+        },
+        {
+          "self_samples": 140,
+          "self_percent": 3.1,
+          "total_samples": 140,
+          "total_percent": 3.1,
+          "function": "ALLOCATE-VECTOR-ON-HEAP"
+        },
+        {
+          "self_samples": 136,
+          "self_percent": 3.0,
+          "total_samples": 136,
+          "total_percent": 3.0,
+          "function": "CNVRS/RUNTIME:CONTEXT-EQUAL"
+        },
+        {
+          "self_samples": 125,
+          "self_percent": 2.8,
+          "total_samples": 125,
+          "total_percent": 2.8,
+          "function": "CNVRS/RUNTIME::MERGE-CACHE-PUT"
+        },
+        {
+          "self_samples": 106,
+          "self_percent": 2.4,
+          "total_samples": 106,
+          "total_percent": 2.4,
+          "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+        },
+        {
+          "self_samples": 102,
+          "self_percent": 2.3,
+          "total_samples": 102,
+          "total_percent": 2.3,
+          "function": "SB-IMPL::PUTHASH/EQL"
+        },
+        {
+          "self_samples": 99,
+          "self_percent": 2.2,
+          "total_samples": 99,
+          "total_percent": 2.2,
+          "function": "CNVRS/RUNTIME:SINGLETON-CONTEXT"
+        },
+        {
+          "self_samples": 89,
+          "self_percent": 2.0,
+          "total_samples": 89,
+          "total_percent": 2.0,
+          "function": "CNVRS/RUNTIME::CONTEXT-CACHE-ADD"
+        },
+        {
+          "self_samples": 82,
+          "self_percent": 1.8,
+          "total_samples": 82,
+          "total_percent": 1.8,
+          "function": "(FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE)"
+        },
+        {
+          "self_samples": 82,
+          "self_percent": 1.8,
+          "total_samples": 82,
+          "total_percent": 1.8,
+          "function": "SB-IMPL::GETHASH3"
+        },
+        {
+          "self_samples": 78,
+          "self_percent": 1.7,
+          "total_samples": 78,
+          "total_percent": 1.7,
+          "function": "CNVRS/RUNTIME::COMBINE-COMMON-PARENTS"
+        },
+        {
+          "self_samples": 76,
+          "self_percent": 1.7,
+          "total_samples": 76,
+          "total_percent": 1.7,
+          "function": "foreign function __pthread_sigmask"
+        },
+        {
+          "self_samples": 73,
+          "self_percent": 1.6,
+          "total_samples": 73,
+          "total_percent": 1.6,
+          "function": "SB-IMPL::%ALLOC-HASH-TABLE"
+        },
+        {
+          "self_samples": 69,
+          "self_percent": 1.5,
+          "total_samples": 69,
+          "total_percent": 1.5,
+          "function": "CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE"
+        },
+        {
+          "self_samples": 65,
+          "self_percent": 1.5,
+          "total_samples": 65,
+          "total_percent": 1.5,
+          "function": "SB-IMPL::GROW-HASH-TABLE"
+        },
+        {
+          "self_samples": 60,
+          "self_percent": 1.3,
+          "total_samples": 60,
+          "total_percent": 1.3,
+          "function": "CNVRS/RUNTIME::GET-EPSILON-TARGET"
+        },
+        {
+          "self_samples": 59,
+          "self_percent": 1.3,
+          "total_samples": 59,
+          "total_percent": 1.3,
+          "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+        },
+        {
+          "self_samples": 54,
+          "self_percent": 1.2,
+          "total_samples": 54,
+          "total_percent": 1.2,
+          "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+        },
+        {
+          "self_samples": 50,
+          "self_percent": 1.1,
+          "total_samples": 50,
+          "total_percent": 1.1,
+          "function": "CNVRS/RUNTIME::CONTEXT-NODE"
+        },
+        {
+          "self_samples": 48,
+          "self_percent": 1.1,
+          "total_samples": 48,
+          "total_percent": 1.1,
+          "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-SET T)"
+        },
+        {
+          "self_samples": 44,
+          "self_percent": 1.0,
+          "total_samples": 44,
+          "total_percent": 1.0,
+          "function": "SB-IMPL::REHASH"
+        },
+        {
+          "self_samples": 43,
+          "self_percent": 1.0,
+          "total_samples": 43,
+          "total_percent": 1.0,
+          "function": "CNVRS/RUNTIME::CONTEXT-CACHE-GET"
+        },
+        {
+          "self_samples": 39,
+          "self_percent": 0.9,
+          "total_samples": 39,
+          "total_percent": 0.9,
+          "function": "REPLACE"
+        },
+        {
+          "self_samples": 39,
+          "self_percent": 0.9,
+          "total_samples": 39,
+          "total_percent": 0.9,
+          "function": "CNVRS/RUNTIME::MERGE-CACHE-GET"
+        },
+        {
+          "self_samples": 36,
+          "self_percent": 0.8,
+          "total_samples": 36,
+          "total_percent": 0.8,
+          "function": "CNVRS/RUNTIME:MERGE-CONTEXTS"
+        },
+        {
+          "self_samples": 34,
+          "self_percent": 0.8,
+          "total_samples": 34,
+          "total_percent": 0.8,
+          "function": "SB-KERNEL:%SINGLE-FLOAT"
+        },
+        {
+          "self_samples": 24,
+          "self_percent": 0.5,
+          "total_samples": 24,
+          "total_percent": 0.5,
+          "function": "SB-KERNEL:TWO-ARG-+"
+        },
+        {
+          "self_samples": 22,
+          "self_percent": 0.5,
+          "total_samples": 22,
+          "total_percent": 0.5,
+          "function": "CNVRS/RUNTIME:CONFLICTING-ALT-SUBSETS"
+        },
+        {
+          "self_samples": 20,
+          "self_percent": 0.4,
+          "total_samples": 20,
+          "total_percent": 0.4,
+          "function": "SB-KERNEL:%COERCE-CALLABLE-TO-FUN"
+        },
+        {
+          "self_samples": 19,
+          "self_percent": 0.4,
+          "total_samples": 19,
+          "total_percent": 0.4,
+          "function": "foreign function __psynch_cvwait"
+        },
+        {
+          "self_samples": 18,
+          "self_percent": 0.4,
+          "total_samples": 18,
+          "total_percent": 0.4,
+          "function": "SB-KERNEL:TWO-ARG-/"
+        },
+        {
+          "self_samples": 16,
+          "self_percent": 0.4,
+          "total_samples": 16,
+          "total_percent": 0.4,
+          "function": "LENGTH"
+        },
+        {
+          "self_samples": 12,
+          "self_percent": 0.3,
+          "total_samples": 12,
+          "total_percent": 0.3,
+          "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+        },
+        {
+          "self_samples": 11,
+          "self_percent": 0.2,
+          "total_samples": 11,
+          "total_percent": 0.2,
+          "function": "SB-KERNEL:%UNARY-TRUNCATE"
+        },
+        {
+          "self_samples": 11,
+          "self_percent": 0.2,
+          "total_samples": 11,
+          "total_percent": 0.2,
+          "function": "SB-KERNEL:HAIRY-DATA-VECTOR-SET/CHECK-BOUNDS"
+        },
+        {
+          "self_samples": 10,
+          "self_percent": 0.2,
+          "total_samples": 10,
+          "total_percent": 0.2,
+          "function": "foreign function setitimer"
+        },
+        {
+          "self_samples": 9,
+          "self_percent": 0.2,
+          "total_samples": 9,
+          "total_percent": 0.2,
+          "function": "SB-IMPL::LIST-NREVERSE"
+        },
+        {
+          "self_samples": 9,
+          "self_percent": 0.2,
+          "total_samples": 9,
+          "total_percent": 0.2,
+          "function": "SB-KERNEL:%PUTHASH"
+        },
+        {
+          "self_samples": 8,
+          "self_percent": 0.2,
+          "total_samples": 8,
+          "total_percent": 0.2,
+          "function": "SB-IMPL::%MAKE-HASH-TABLE"
+        },
+        {
+          "self_samples": 7,
+          "self_percent": 0.2,
+          "total_samples": 7,
+          "total_percent": 0.2,
+          "function": "CNVRS/RUNTIME::CONFIG-LOOKUP-EQUAL"
+        },
+        {
+          "self_samples": 7,
+          "self_percent": 0.2,
+          "total_samples": 7,
+          "total_percent": 0.2,
+          "function": "(SB-VM::OPTIMIZED-DATA-VECTOR-REF T)"
+        },
+        {
+          "self_samples": 6,
+          "self_percent": 0.1,
+          "total_samples": 6,
+          "total_percent": 0.1,
+          "function": "IDENTITY"
+        },
+        {
+          "self_samples": 5,
+          "self_percent": 0.1,
+          "total_samples": 5,
+          "total_percent": 0.1,
+          "function": "CNVRS/RUNTIME:UNIQUE-ALT"
+        },
+        {
+          "self_samples": 5,
+          "self_percent": 0.1,
+          "total_samples": 5,
+          "total_percent": 0.1,
+          "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+        },
+        {
+          "self_samples": 5,
+          "self_percent": 0.1,
+          "total_samples": 5,
+          "total_percent": 0.1,
+          "function": "SB-KERNEL:HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+        },
+        {
+          "self_samples": 4,
+          "self_percent": 0.1,
+          "total_samples": 4,
+          "total_percent": 0.1,
+          "function": "(LABELS SB-IMPL::EQUAL-AUX :IN EQUAL)"
+        },
+        {
+          "self_samples": 4,
+          "self_percent": 0.1,
+          "total_samples": 4,
+          "total_percent": 0.1,
+          "function": "FIND-IF"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.1,
+          "total_samples": 3,
+          "total_percent": 0.1,
+          "function": "SB-THREAD:GRAB-MUTEX"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.1,
+          "total_samples": 3,
+          "total_percent": 0.1,
+          "function": "SB-IMPL::MAKE-HASH-TABLE-USING-DEFAULTS"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.1,
+          "total_samples": 3,
+          "total_percent": 0.1,
+          "function": "NTHCDR"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "foreign function gc_alloc_new_region"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "REDUCE"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "foreign function tlv_get_addr"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "foreign function gc_close_region"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL::FIXNUM-GCD"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::MERGE-ROOT"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(FLET SB-IMPL::FAST-NTHCDR :IN NTHCDR)"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:%ADJOIN-EQ"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-VM::EXTEND-VECTOR"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "SB-C::CHECK-DS-LIST"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "HASH-TABLE-COUNT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-VM::SLOW-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SYMBOL-FUNCTION"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:VECTOR-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::CONTEXT-HAS-EMPTY-PATH-P"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:SINGLE-VIABLE-ALT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "VECTOR-PUSH-EXTEND"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "foreign function gc_find_freeish_pages"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CLOSURE-TRAMP"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:%MEMBER-EQ"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "ALLOC-TRAMP"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL::INTEGER-/-INTEGER"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "FLOOR"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "UNSCHEDULE-TIMER"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-THREAD::CALL-WITH-MUTEX"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::PICK-TABLE-METHODS"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(FLET \"CLEANUP-FUN-7\" :IN SB-THREAD::CALL-WITH-MUTEX)"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(FLET SB-IMPL::BODY :IN SB-IMPL::PUTHASH/WEAK)"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS::ANTLR-ADAPTIVE-PREDICT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(FLET SB-THREAD::WITH-RECURSIVE-LOCK-THUNK :IN SB-IMPL::MAKE-CANCELLABLE-INTERRUPTOR)"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "EQUAL"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:MAKE-CONTEXT-CACHE"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(SB-PCL::FAST-METHOD CNVRS:MAKE-PARSE-NODE ((EQL :NODE) T T T T))"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS::PREDICT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(FLET \"CLEANUP-FUN-0\" :IN PARSE-ONE)"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-KERNEL:VECTOR-T-P"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME::EVALUATE-PREDICTIONS"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2.) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::GETHASH/EQ"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS:PARSE"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2. SB-PCL::.ARG3. SB-PCL::.ARG4.) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        }
+      ]
+    },
+    "alloc": {
+      "parses": 30,
+      "wall_seconds": 9.978,
+      "cpu_seconds": 8.087156,
+      "gc_wall_seconds": 0.541,
+      "bytes": 8140004448,
+      "flat": [
+        {
+          "self_samples": 63561,
+          "self_percent": 52.2,
+          "total_samples": 76846,
+          "total_percent": 63.1,
+          "function": "CNVRS/RUNTIME::CLOSURE-WORK"
+        },
+        {
+          "self_samples": 25779,
+          "self_percent": 21.2,
+          "total_samples": 27843,
+          "total_percent": 22.8,
+          "function": "(FLET SB-IMPL::INSERT-AT :IN \"SYS:SRC;CODE;TARGET-HASH-TABLE.LISP\")"
+        },
+        {
+          "self_samples": 10457,
+          "self_percent": 8.6,
+          "total_samples": 11940,
+          "total_percent": 9.8,
+          "function": "CNVRS/RUNTIME:CONFIG-SET-ADD"
+        },
+        {
+          "self_samples": 8804,
+          "self_percent": 7.2,
+          "total_samples": 9808,
+          "total_percent": 8.0,
+          "function": "CNVRS/RUNTIME::COMBINE-COMMON-PARENTS"
+        },
+        {
+          "self_samples": 6857,
+          "self_percent": 5.6,
+          "total_samples": 7743,
+          "total_percent": 6.4,
+          "function": "CNVRS/RUNTIME::MERGE-ARRAYS"
+        },
+        {
+          "self_samples": 4202,
+          "self_percent": 3.4,
+          "total_samples": 4513,
+          "total_percent": 3.7,
+          "function": "CNVRS/RUNTIME::MERGE-SINGLETONS"
+        },
+        {
+          "self_samples": 854,
+          "self_percent": 0.7,
+          "total_samples": 1029,
+          "total_percent": 0.8,
+          "function": "CNVRS/RUNTIME:ADAPTIVE-PREDICT"
+        },
+        {
+          "self_samples": 298,
+          "self_percent": 0.2,
+          "total_samples": 335,
+          "total_percent": 0.3,
+          "function": "VECTOR-PUSH-EXTEND"
+        },
+        {
+          "self_samples": 295,
+          "self_percent": 0.2,
+          "total_samples": 369,
+          "total_percent": 0.3,
+          "function": "CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT"
+        },
+        {
+          "self_samples": 178,
+          "self_percent": 0.1,
+          "total_samples": 183,
+          "total_percent": 0.2,
+          "function": "CNVRS/RUNTIME:COMPUTE-START-STATE"
+        },
+        {
+          "self_samples": 149,
+          "self_percent": 0.1,
+          "total_samples": 184,
+          "total_percent": 0.2,
+          "function": "CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE"
+        },
+        {
+          "self_samples": 90,
+          "self_percent": 0.1,
+          "total_samples": 115,
+          "total_percent": 0.1,
+          "function": "CNVRS/RUNTIME:CONTEXT-FROM-STACK"
+        },
+        {
+          "self_samples": 75,
+          "self_percent": 0.1,
+          "total_samples": 91,
+          "total_percent": 0.1,
+          "function": "SB-KERNEL:SUB-GC"
+        },
+        {
+          "self_samples": 66,
+          "self_percent": 0.1,
+          "total_samples": 68,
+          "total_percent": 0.1,
+          "function": "CNVRS/RUNTIME:COMPUTE-REACH-SET"
+        },
+        {
+          "self_samples": 30,
+          "self_percent": 0.0,
+          "total_samples": 45,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 30,
+          "self_percent": 0.0,
+          "total_samples": 30,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 30,
+          "self_percent": 0.0,
+          "total_samples": 30,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 30,
+          "self_percent": 0.0,
+          "total_samples": 30,
+          "total_percent": 0.0,
+          "function": "SB-IMPL::GROW-HASH-TABLE"
+        },
+        {
+          "self_samples": 29,
+          "self_percent": 0.0,
+          "total_samples": 29,
+          "total_percent": 0.0,
+          "function": "CNVRS::ANTLR-TOKEN-INPUT"
+        },
+        {
+          "self_samples": 29,
+          "self_percent": 0.0,
+          "total_samples": 29,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 4,
+          "self_percent": 0.0,
+          "total_samples": 4,
+          "total_percent": 0.0,
+          "function": "CNVRS::PREDICT"
+        },
+        {
+          "self_samples": 3,
+          "self_percent": 0.0,
+          "total_samples": 4,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 2,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 2,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "SB-FORMAT::%FORMAT"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/bench/java-reference/warm-profile.lisp\")"
+        },
+        {
+          "self_samples": 1,
+          "self_percent": 0.0,
+          "total_samples": 1,
+          "total_percent": 0.0,
+          "function": "CNVRS/RUNTIME:MAKE-ATN-CONFIG-SET"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 11171,
+          "total_percent": 9.2,
+          "function": "foreign function collect_backtrace"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 9065,
+          "total_percent": 7.4,
+          "function": "SB-SPROF::UNAVAILABLE-FRAMES"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 8883,
+          "total_percent": 7.3,
+          "function": "foreign function search_all_gc_spaces"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 7625,
+          "total_percent": 6.3,
+          "function": "foreign function component_ptr_from_pc"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 6256,
+          "total_percent": 5.1,
+          "function": "Unknown fn 2"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 5947,
+          "total_percent": 4.9,
+          "function": "foreign function page_table_pages"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 1332,
+          "total_percent": 1.1,
+          "function": "foreign function lisp_frame_previous"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 623,
+          "total_percent": 0.5,
+          "function": "foreign function debug_function_from_pc"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 272,
+          "total_percent": 0.2,
+          "function": "foreign function gc_alloc_new_region"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 222,
+          "total_percent": 0.2,
+          "function": "foreign function page_table"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 148,
+          "total_percent": 0.1,
+          "function": "foreign function scav_list_pointer"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 133,
+          "total_percent": 0.1,
+          "function": "foreign function collector_alloc_fallback"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 41,
+          "total_percent": 0.0,
+          "function": "foreign function gc_alloc_region"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 40,
+          "total_percent": 0.0,
+          "function": "foreign function allocator_record_backtrace"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 38,
+          "total_percent": 0.0,
+          "function": "foreign function lisp_alloc"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 30,
+          "total_percent": 0.0,
+          "function": "LIST-ALLOC-TRAMP"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 20,
+          "total_percent": 0.0,
+          "function": "Unknown fn 2406477268"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 6,
+          "total_percent": 0.0,
+          "function": "(LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS::CONTEXT) :IN \"/Users/alessio/projects/cnvrs/src/antlr4-parser.lisp\")"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 4,
+          "total_percent": 0.0,
+          "function": "foreign function copy_instance"
+        },
+        {
+          "self_samples": 0,
+          "self_percent": 0.0,
+          "total_samples": 3,
+          "total_percent": 0.0,
+          "function": "foreign function _ZN3WTF17SharedTaskFunctorIFvRN3JSC12CCallHelpersERNS1_2B33Air17GenerationContextEEZNKS4_24StackmapGenerationParams11addLatePathIZZNS1_3FTL12_GLOBAL__N_112LowerDFGToB311compileInByILNS1_10AccessTypeE20EPNS4_5ValueEEEvSH_T0_ENKUlS3_RKS9_E_clES3_SK_EUlS3_E_EEvRKT_EUlS3_S7_E_E3runES3_S7_"
+        }
+      ]
+    }
+  }
+}

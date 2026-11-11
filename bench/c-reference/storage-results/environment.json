@@ -1,0 +1,35 @@
+{
+  "baseline": "/private/tmp/cnvrs-set-before",
+  "base_revision": "142ce0c05eae5d458b458e5ca0ffabd0c433d383",
+  "runtime": "SBCL 2.4.0",
+  "heap_mib": 2048,
+  "source_sha256": {
+    "before": {
+      "src/runtime/atn-config.lisp": "f66d9098f9b3f00bdc55e596c8e1b0ac5e5d02fcc08a2668f87fb62b33a04f9b",
+      "src/runtime/prediction-context.lisp": "e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7",
+      "src/runtime/parser-atn-simulator.lisp": "748e756663c25983bc2e6d8f75565a4136f067110fdbe7e06ae72c6ab750ee4c",
+      "src/cnvrs.lisp": "b0b7d36662c482fccf7c8211e1c8062368154c1f09fdd6e22c1ae817fac263e0"
+    },
+    "after": {
+      "src/runtime/atn-config.lisp": "4b71086754b5410ea3a380ed5cc92291a7b970a28ef9d3c8d1debe47bc727b97",
+      "src/runtime/prediction-context.lisp": "e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7",
+      "src/runtime/parser-atn-simulator.lisp": "748e756663c25983bc2e6d8f75565a4136f067110fdbe7e06ae72c6ab750ee4c",
+      "src/cnvrs.lisp": "b0b7d36662c482fccf7c8211e1c8062368154c1f09fdd6e22c1ae817fac263e0"
+    }
+  },
+  "harness_sha256": "d3f98d5628c88a3ef49a8b023738f52d4faca9b766d79651380bb5d4148e3621",
+  "final_source_sha256": {
+    "src/runtime/atn-config.lisp": "8a38503d0f374495888c4dc7a1bb50235c5a33472fd54996d21f173fe70f043c",
+    "src/runtime/prediction-context.lisp": "e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7",
+    "src/runtime/parser-atn-simulator.lisp": "748e756663c25983bc2e6d8f75565a4136f067110fdbe7e06ae72c6ab750ee4c",
+    "src/cnvrs.lisp": "b0b7d36662c482fccf7c8211e1c8062368154c1f09fdd6e22c1ae817fac263e0"
+  },
+  "post_measurement_cleanup": "Indentation only in config-set-add; equivalent Lisp reader forms verified.",
+  "validation_harness_sha256": {
+    "bench/c-reference/storage-compare.py": "56470a536ae3847c2bafa0ee8a3554a4e610a9f804df185cb6aee0ac3376ff97",
+    "bench/c-reference/storage-summary.py": "47ad2664db3c7a5f0705fc88a125901e3f097cd614f3b1afbbdda23233b8438f",
+    "bench/c-reference/storage-validate.lisp": "428b3fb88eabf0ffa8430070e6715536b5947fa3e794b1a2b2c82bfcaf606b22",
+    "bench/c-reference/operation-probe.lisp": "ddad3ea5d74d2a2a8abc7f78f200e286e71568e33b90b00127c7c7871dadacc4",
+    "bench/java-reference/lookup-probe.lisp": "625416a7702ff8adec2ba7299ff09987187697b89d735e5474e1ebd47901ffa2"
+  }
+}

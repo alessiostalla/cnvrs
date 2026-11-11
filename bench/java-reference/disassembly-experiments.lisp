@@ -1,0 +1,83 @@
+;;; Diagnostic compiler experiments. Production source and cache policies stay intact.
+(require :asdf)
+(let ((setup (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))
+  (when (probe-file setup) (load setup)))
+(asdf:load-asd (truename "cnvrs.asd"))
+(asdf:load-system :cnvrs)
+(in-package #:cnvrs/runtime)
+(declaim (optimize (speed 3) (safety 1) (debug 0) (space 0) (compilation-speed 1)))
+(defun diagnostic-definition (file name)
+  (let ((*package* (find-package :cnvrs/runtime)))
+    (with-open-file (in file)
+      (loop for form = (read in nil) while form
+            when (and (consp form) (eq (car form) 'defun) (eq (second form) name)) return form))))
+(defun diagnostic-substitute (tree before after)
+  (cond ((equal tree before) (copy-tree after))
+        ((consp tree) (cons (diagnostic-substitute (car tree) before after)
+                           (diagnostic-substitute (cdr tree) before after)))
+        (t tree)))
+(defun diagnostic-compile (original new-name file &key declarations substitutions)
+  (let* ((definition (diagnostic-definition file original))
+         (body (cdddr definition)))
+    (dolist (entry substitutions)
+      (setf body (diagnostic-substitute body (car entry) (cadr entry))))
+    ;; Retain original named block for RETURN-FROM; copy declaration forms out
+    ;; before that block, where CL permits declarations.
+    (let ((original-declarations nil))
+      (loop while (and (consp (first body)) (eq (caar body) 'declare))
+            do (push (pop body) original-declarations))
+      (compile new-name `(lambda ,(third definition)
+                           ,@(nreverse original-declarations)
+                           (declare ,@declarations)
+                           (block ,original ,@body))))
+    (with-open-file (out (format nil "bench/java-reference/disassembly-results/~(~A~).asm" new-name)
+                         :direction :output :if-exists :supersede)
+      (let ((*standard-output* out)) (disassemble (symbol-function new-name))))))
+(defun diagnostic-fixnum-index (tree)
+  (cond ((and (consp tree) (equal (subseq tree 0 (min 4 (length tree))) '(for index from 0)))
+         (list* 'for 'index 'fixnum 'from 0 (mapcar #'diagnostic-fixnum-index (nthcdr 4 tree))))
+        ((consp tree) (cons (diagnostic-fixnum-index (car tree)) (diagnostic-fixnum-index (cdr tree))))
+        (t tree)))
+(let ((form (diagnostic-definition "src/runtime/parser-atn-simulator.lisp" 'closure-work)))
+  (setf (second form) 'diagnostic-closure-work-fixnum-index)
+  (setf (cdddr form) (diagnostic-fixnum-index (cdddr form)))
+  (eval form)
+  (compile 'diagnostic-closure-work-fixnum-index)
+  (with-open-file (out "bench/java-reference/disassembly-results/diagnostic-closure-work-fixnum-index.asm"
+                       :direction :output :if-exists :supersede)
+    (let ((*standard-output* out)) (disassemble #'diagnostic-closure-work-fixnum-index))))
+(diagnostic-compile 'derive-config 'diagnostic-derive-config-typed "src/runtime/atn-config.lisp"
+                    :declarations '((type atn-config config) (type fixnum state)
+                                    (type (or null prediction-context) context)))
+(diagnostic-compile 'config-set-add 'diagnostic-config-set-add-typed "src/runtime/atn-config.lisp"
+                    :declarations '((type atn-config-set set) (type atn-config config)
+                                    (type (or null hash-table) merge-cache))
+                    :substitutions '(((config-set-lookup set) (the hash-table (config-set-lookup set)))))
+(diagnostic-compile 'merge-contexts 'diagnostic-merge-contexts-typed "src/runtime/prediction-context.lisp"
+                    :declarations '((type (or null prediction-context) a b)
+                                    (type (or null hash-table) merge-cache)))
+(diagnostic-compile 'merge-cache-get 'diagnostic-merge-cache-get-typed "src/runtime/prediction-context.lisp"
+                    :declarations '((type (or null prediction-context) a b)
+                                    (type (or null hash-table) cache)))
+(diagnostic-compile 'merge-cache-put 'diagnostic-merge-cache-put-typed "src/runtime/prediction-context.lisp"
+                    :declarations '((type (or null prediction-context) a b result)
+                                    (type (or null hash-table) cache)))
+;; Same-process, unchanged-body controls distinguish declarations from changes
+;; in SBCL's knowledge of already-loaded function return types.
+(dolist (entry '((derive-config "src/runtime/atn-config.lisp")
+                 (config-set-add "src/runtime/atn-config.lisp")
+                 (closure-work "src/runtime/parser-atn-simulator.lisp")
+                 (merge-contexts "src/runtime/prediction-context.lisp")
+                 (merge-cache-get "src/runtime/prediction-context.lisp")
+                 (merge-cache-put "src/runtime/prediction-context.lisp")))
+  (diagnostic-compile (first entry)
+                      (intern (format nil "DIAGNOSTIC-CONTROL-~A" (first entry)) :cnvrs/runtime)
+                      (second entry)))
+;; Representation probe: a packed return-state array needs a 32-bit load,
+;; instead of loading a tagged general object and checking its numeric type.
+(defun diagnostic-packed-return-state (states index)
+  (declare (type (simple-array (unsigned-byte 32) (*)) states) (type fixnum index))
+  (aref states index))
+(with-open-file (out "bench/java-reference/disassembly-results/diagnostic-packed-return-state.asm"
+                     :direction :output :if-exists :supersede)
+  (let ((*standard-output* out)) (disassemble #'diagnostic-packed-return-state)))

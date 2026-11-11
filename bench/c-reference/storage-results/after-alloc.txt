@@ -1,0 +1,539 @@
+WARM C11 MODE alloc-none TOKENS 6811 DEFAULT 3658 SIGNATURE 3C195515C9FBC094 KINDS 9068C913A4518FBE
+Evaluation took:
+  2.081 seconds of real time
+  2.074627 seconds of total run time (2.053800 user, 0.020827 system)
+  [ Real times consist of 0.021 seconds GC time, and 2.060 seconds non-GC time. ]
+  [ Run times consist of 0.021 seconds GC time, and 2.054 seconds non-GC time. ]
+  99.71% CPU
+  1,816,906,496 bytes consed
+  
+
+Number of samples:     28364
+Unique traces:         1114
+Alloc interval:        1 regions (approximately 64 kB)
+Total sampling amount: 28364 regions (approximately 1815296 kB)
+Graph cycles:        0
+Sampled threads:
+   #<THREAD "main thread" RUNNING {7005520203}> (35664/1048576 bytes, 1073 hash buckets)
+
+                               Callers
+                 Total.     Function
+ Count     %  Count     %      Callees
+------------------------------------------------------------------------
+  1629   5.7                   foreign function page_table_pages [64]
+   337   1.2                   foreign function component_ptr_from_pc [62]
+  1800   6.3                   foreign function search_all_gc_spaces [61]
+  1883   6.6                   SB-SPROF::UNAVAILABLE-FRAMES [57]
+     9   0.0                   foreign function lisp_frame_previous [59]
+   822   2.9                   foreign function collect_backtrace [60]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [24]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [33]
+     9   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [21]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [14]
+     6   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [20]
+   526   1.9                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+    13   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [28]
+    11   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [22]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [9]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [38]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [31]
+     6   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [23]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [26]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [50]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [27]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [29]
+     7   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [19]
+     5   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [25]
+     4   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [11]
+     8   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [7]
+     7   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [12]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [39]
+     3   0.0                   CNVRS/RUNTIME:COMPUTE-REACH-SET [4]
+     4   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [36]
+   914   3.2                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [10]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [40]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [34]
+     5   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [8]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [35]
+     5   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [30]
+  1183   4.2                   Unknown fn 2 [56]
+ 15995  56.4  17081  60.2   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   172   0.6                   VECTOR-PUSH-EXTEND [2]
+   914   3.2                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   583   2.1                   foreign function page_table_pages [64]
+   288   1.0                   foreign function search_all_gc_spaces [61]
+   296   1.0                   foreign function collect_backtrace [60]
+    13   0.0                   foreign function lisp_frame_previous [59]
+     5   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [21]
+   268   0.9                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [12]
+     7   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+   172   0.6                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [23]
+     5   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+   279   1.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [9]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [32]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [24]
+     3   0.0                   CNVRS/RUNTIME:CONTEXT-FROM-STACK [15]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [27]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [22]
+     6   0.0                   foreign function component_ptr_from_pc [62]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [19]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [28]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [31]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [36]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [25]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [37]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [8]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [30]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER) [48]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [10]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [7]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [20]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [38]
+     1   0.0                   Unknown fn 2 [56]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [11]
+   397   1.4                   SB-SPROF::UNAVAILABLE-FRAMES [57]
+  3303  11.6   3303  11.6   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+  2700   9.5                   foreign function gc_alloc_new_region [58]
+  2700   9.5   2700   9.5   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [3]
+------------------------------------------------------------------------
+   126   0.4                   Unknown fn 2 [56]
+   598   2.1    606   2.1   CNVRS/RUNTIME:COMPUTE-REACH-SET [4]
+     5   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   296   1.0                   foreign function page_table_pages [64]
+     3   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     3   0.0                   foreign function search_all_gc_spaces [61]
+     3   0.0                   Unknown fn 2 [56]
+   598   2.1    598   2.1   CNVRS/RUNTIME:CONFIG-SET-ADD [5]
+------------------------------------------------------------------------
+     8   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     5   0.0                   CNVRS/RUNTIME:COMPUTE-REACH-SET [4]
+    15   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [12]
+     8   0.0                   SB-SPROF::UNAVAILABLE-FRAMES [57]
+     8   0.0                   foreign function collect_backtrace [60]
+    10   0.0                   foreign function search_all_gc_spaces [61]
+     4   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [14]
+     5   0.0                   CNVRS/RUNTIME:CONTEXT-FROM-STACK [15]
+     7   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [11]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [7]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [9]
+     1   0.0                   foreign function component_ptr_from_pc [62]
+     5   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [10]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [8]
+   301   1.1                   foreign function gc_alloc_new_region [58]
+    15   0.1                   Unknown fn 2 [56]
+   452   1.6   1007   3.6   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     8   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     5   0.0                   VECTOR-PUSH-EXTEND [2]
+    12   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     1   0.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [13]
+   526   1.9                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     3   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [5]
+------------------------------------------------------------------------
+   371   1.3                   foreign function gc_alloc_new_region [58]
+   371   1.3    385   1.4   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [7]
+     1   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     8   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     3   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+   367   1.3                   foreign function gc_alloc_new_region [58]
+   367   1.3    379   1.3   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [8]
+     2   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+     3   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     5   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   362   1.3                   foreign function gc_alloc_new_region [58]
+   362   1.3    648   2.3   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [9]
+   279   1.0                   VECTOR-PUSH-EXTEND [2]
+     2   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     3   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+------------------------------------------------------------------------
+   317   1.1                   foreign function gc_alloc_new_region [58]
+   317   1.1    331   1.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [10]
+     5   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     5   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     3   0.0                   VECTOR-PUSH-EXTEND [2]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   316   1.1                   foreign function gc_alloc_new_region [58]
+   316   1.1    331   1.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [11]
+     7   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     3   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     4   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+   310   1.1                   foreign function gc_alloc_new_region [58]
+   310   1.1    610   2.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [12]
+    10   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+    15   0.1                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+   268   0.9                   VECTOR-PUSH-EXTEND [2]
+     7   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   292   1.0                   foreign function page_table_pages [64]
+     1   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+   306   1.1    306   1.1   CNVRS/RUNTIME::MERGE-SINGLETONS [13]
+------------------------------------------------------------------------
+   301   1.1                   foreign function gc_alloc_new_region [58]
+   301   1.1    320   1.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [14]
+    12   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     4   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   104   0.4                   Unknown fn 2 [56]
+   300   1.1    308   1.1   CNVRS/RUNTIME:CONTEXT-FROM-STACK [15]
+     5   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     3   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+   300   1.1                   foreign function collect_backtrace [60]
+   300   1.1    300   1.1   CNVRS/RUNTIME:COMPUTE-START-STATE [16]
+------------------------------------------------------------------------
+   268   0.9                   foreign function gc_alloc_new_region [58]
+   268   0.9    268   0.9   CNVRS::PREDICT [17]
+------------------------------------------------------------------------
+    10   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [12]
+    12   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [14]
+    14   0.0                   foreign function search_all_gc_spaces [61]
+     5   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [10]
+     5   0.0                   Unknown fn 2 [56]
+     7   0.0                   foreign function component_ptr_from_pc [62]
+    12   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [8]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [11]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [9]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [7]
+     5   0.0                   foreign function gc_alloc_new_region [58]
+   123   0.4    143   0.5   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     7   0.0                   VECTOR-PUSH-EXTEND [2]
+    13   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    79   0.3                   foreign function gc_alloc_new_region [58]
+    79   0.3     87   0.3   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [19]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+     7   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    72   0.3                   foreign function gc_alloc_new_region [58]
+    72   0.3     80   0.3   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [20]
+     6   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+    69   0.2                   foreign function gc_alloc_new_region [58]
+    69   0.2     83   0.3   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [21]
+     5   0.0                   VECTOR-PUSH-EXTEND [2]
+     9   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    68   0.2                   foreign function gc_alloc_new_region [58]
+    68   0.2     81   0.3   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [22]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+    11   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    67   0.2                   foreign function gc_alloc_new_region [58]
+    67   0.2     75   0.3   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [23]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+     6   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    64   0.2                   foreign function gc_alloc_new_region [58]
+    64   0.2     68   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [24]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+    61   0.2                   foreign function gc_alloc_new_region [58]
+    61   0.2     67   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [25]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+     5   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    59   0.2                   foreign function gc_alloc_new_region [58]
+    59   0.2     62   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [27]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    59   0.2                   foreign function gc_alloc_new_region [58]
+    59   0.2     61   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [26]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    59   0.2                   foreign function gc_alloc_new_region [58]
+    59   0.2     61   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [28]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    51   0.2                   foreign function gc_alloc_new_region [58]
+    51   0.2     53   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [29]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    44   0.2                   foreign function gc_alloc_new_region [58]
+    44   0.2     51   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [30]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+     5   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    43   0.2                   foreign function gc_alloc_new_region [58]
+    43   0.2     49   0.2   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [31]
+     3   0.0                   VECTOR-PUSH-EXTEND [2]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    28   0.1                   foreign function gc_alloc_new_region [58]
+    28   0.1     30   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [32]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+    26   0.1                   foreign function gc_alloc_new_region [58]
+    26   0.1     29   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [33]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    26   0.1                   foreign function gc_alloc_new_region [58]
+    26   0.1     28   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [34]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    21   0.1                   foreign function gc_alloc_new_region [58]
+    21   0.1     27   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [36]
+     2   0.0                   VECTOR-PUSH-EXTEND [2]
+     4   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    21   0.1                   foreign function gc_alloc_new_region [58]
+    21   0.1     22   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [35]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    20   0.1                   foreign function gc_alloc_new_region [58]
+    20   0.1     24   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [38]
+     3   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+    20   0.1                   foreign function gc_alloc_new_region [58]
+    20   0.1     21   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [37]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+    19   0.1                   foreign function gc_alloc_new_region [58]
+    19   0.1     20   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [39]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+    17   0.1                   foreign function gc_alloc_new_region [58]
+    17   0.1     18   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [40]
+     1   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     1   0.0                   foreign function debug_function_from_pc [63]
+     2   0.0                   foreign function collect_backtrace [60]
+     2   0.0                   foreign function lisp_frame_previous [59]
+     1   0.0                   SB-KERNEL:SUB-GC [41]
+     1   0.0                   Unknown fn 2 [56]
+    16   0.1     17   0.1   SB-KERNEL:SUB-GC [41]
+     1   0.0                   SB-KERNEL:SUB-GC [41]
+------------------------------------------------------------------------
+    10   0.0                   foreign function gc_alloc_new_region [58]
+    10   0.0     10   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [42]
+------------------------------------------------------------------------
+     9   0.0                   foreign function gc_alloc_new_region [58]
+     9   0.0      9   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [43]
+------------------------------------------------------------------------
+     8   0.0                   foreign function gc_alloc_new_region [58]
+     8   0.0      8   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [44]
+------------------------------------------------------------------------
+     7   0.0                   foreign function gc_alloc_new_region [58]
+     7   0.0      7   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [45]
+------------------------------------------------------------------------
+     7   0.0                   foreign function gc_alloc_new_region [58]
+     7   0.0      7   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [46]
+------------------------------------------------------------------------
+     7   0.0                   foreign function gc_alloc_new_region [58]
+     7   0.0      7   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [47]
+------------------------------------------------------------------------
+     6   0.0                   foreign function gc_alloc_new_region [58]
+     6   0.0      7   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER) [48]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+     4   0.0                   foreign function gc_alloc_new_region [58]
+     4   0.0      4   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [49]
+------------------------------------------------------------------------
+     3   0.0                   foreign function gc_alloc_new_region [58]
+     3   0.0      5   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [50]
+     2   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+     2   0.0                   foreign function gc_alloc_new_region [58]
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [51]
+------------------------------------------------------------------------
+     2   0.0                   foreign function gc_alloc_new_region [58]
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [52]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [58]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [53]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [58]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [54]
+------------------------------------------------------------------------
+     1   0.0                   foreign function gc_alloc_new_region [58]
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [55]
+------------------------------------------------------------------------
+     0   0.0   6679  23.5   foreign function gc_alloc_new_region [58]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [52]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [55]
+     4   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [49]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [54]
+     1   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [53]
+    10   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [42]
+     3   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [50]
+     2   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [51]
+  2700   9.5                   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [3]
+   268   0.9                   CNVRS::PREDICT [17]
+   301   1.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [14]
+   301   1.1                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+    20   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [38]
+    64   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [24]
+   371   1.3                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [7]
+    72   0.3                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [20]
+    69   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [21]
+   367   1.3                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [8]
+    61   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [25]
+    59   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [28]
+    79   0.3                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [19]
+    28   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [32]
+    17   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [40]
+    67   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [23]
+    43   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [31]
+    59   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [27]
+    59   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [26]
+    20   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [37]
+    68   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [22]
+     6   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER) [48]
+   316   1.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [11]
+   317   1.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [10]
+    51   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [29]
+     5   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+    26   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [34]
+    26   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [33]
+     7   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [47]
+     8   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [44]
+     7   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [46]
+    21   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [36]
+     9   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [43]
+    21   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [35]
+    44   0.2                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [30]
+   362   1.3                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [9]
+     7   0.0                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [45]
+   310   1.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [12]
+    19   0.1                   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp") [39]
+------------------------------------------------------------------------
+     0   0.0   2800   9.9   foreign function page_table_pages [64]
+   583   2.1                   VECTOR-PUSH-EXTEND [2]
+  1629   5.7                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   292   1.0                   CNVRS/RUNTIME::MERGE-SINGLETONS [13]
+   296   1.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [5]
+------------------------------------------------------------------------
+     0   0.0   2288   8.1   SB-SPROF::UNAVAILABLE-FRAMES [57]
+  1883   6.6                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     8   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+   397   1.4                   VECTOR-PUSH-EXTEND [2]
+------------------------------------------------------------------------
+     0   0.0   2115   7.5   foreign function search_all_gc_spaces [61]
+   288   1.0                   VECTOR-PUSH-EXTEND [2]
+  1800   6.3                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+    14   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+    10   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     3   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [5]
+------------------------------------------------------------------------
+     0   0.0   1438   5.1   Unknown fn 2 [56]
+     5   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     3   0.0                   CNVRS/RUNTIME:CONFIG-SET-ADD [5]
+     1   0.0                   VECTOR-PUSH-EXTEND [2]
+    15   0.1                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     1   0.0                   SB-KERNEL:SUB-GC [41]
+  1183   4.2                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   126   0.4                   CNVRS/RUNTIME:COMPUTE-REACH-SET [4]
+   104   0.4                   CNVRS/RUNTIME:CONTEXT-FROM-STACK [15]
+------------------------------------------------------------------------
+     0   0.0   1428   5.0   foreign function collect_backtrace [60]
+   296   1.0                   VECTOR-PUSH-EXTEND [2]
+   822   2.9                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+   300   1.1                   CNVRS/RUNTIME:COMPUTE-START-STATE [16]
+     8   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+     2   0.0                   SB-KERNEL:SUB-GC [41]
+------------------------------------------------------------------------
+     0   0.0    351   1.2   foreign function component_ptr_from_pc [62]
+   337   1.2                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     7   0.0                   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [18]
+     6   0.0                   VECTOR-PUSH-EXTEND [2]
+     1   0.0                   CNVRS/RUNTIME:ADAPTIVE-PREDICT [6]
+------------------------------------------------------------------------
+     0   0.0     24   0.1   foreign function lisp_frame_previous [59]
+    13   0.0                   VECTOR-PUSH-EXTEND [2]
+     9   0.0                   CNVRS/RUNTIME::CLOSURE-WORK [1]
+     2   0.0                   SB-KERNEL:SUB-GC [41]
+------------------------------------------------------------------------
+     0   0.0      1   0.0   foreign function debug_function_from_pc [63]
+     1   0.0                   SB-KERNEL:SUB-GC [41]
+------------------------------------------------------------------------
+
+
+           Self        Total        Cumul
+  Nr  Count     %  Count     %  Count     %    Calls  Function
+------------------------------------------------------------------------
+   1  15995  56.4  17081  60.2  15995  56.4        -  CNVRS/RUNTIME::CLOSURE-WORK
+   2   3303  11.6   3303  11.6  19298  68.0        -  VECTOR-PUSH-EXTEND
+   3   2700   9.5   2700   9.5  21998  77.6        -  (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP")
+   4    598   2.1    606   2.1  22596  79.7        -  CNVRS/RUNTIME:COMPUTE-REACH-SET
+   5    598   2.1    598   2.1  23194  81.8        -  CNVRS/RUNTIME:CONFIG-SET-ADD
+   6    452   1.6   1007   3.6  23646  83.4        -  CNVRS/RUNTIME:ADAPTIVE-PREDICT
+   7    371   1.3    385   1.4  24017  84.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+   8    367   1.3    379   1.3  24384  86.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+   9    362   1.3    648   2.3  24746  87.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  10    317   1.1    331   1.2  25063  88.4        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  11    316   1.1    331   1.2  25379  89.5        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  12    310   1.1    610   2.2  25689  90.6        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  13    306   1.1    306   1.1  25995  91.6        -  CNVRS/RUNTIME::MERGE-SINGLETONS
+  14    301   1.1    320   1.1  26296  92.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  15    300   1.1    308   1.1  26596  93.8        -  CNVRS/RUNTIME:CONTEXT-FROM-STACK
+  16    300   1.1    300   1.1  26896  94.8        -  CNVRS/RUNTIME:COMPUTE-START-STATE
+  17    268   0.9    268   0.9  27164  95.8        -  CNVRS::PREDICT
+  18    123   0.4    143   0.5  27287  96.2        -  CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT
+  19     79   0.3     87   0.3  27366  96.5        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  20     72   0.3     80   0.3  27438  96.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  21     69   0.2     83   0.3  27507  97.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  22     68   0.2     81   0.3  27575  97.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  23     67   0.2     75   0.3  27642  97.5        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  24     64   0.2     68   0.2  27706  97.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  25     61   0.2     67   0.2  27767  97.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  26     59   0.2     62   0.2  27826  98.1        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  27     59   0.2     61   0.2  27885  98.3        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  28     59   0.2     61   0.2  27944  98.5        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  29     51   0.2     53   0.2  27995  98.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  30     44   0.2     51   0.2  28039  98.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  31     43   0.2     49   0.2  28082  99.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  32     28   0.1     30   0.1  28110  99.1        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  33     26   0.1     29   0.1  28136  99.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  34     26   0.1     28   0.1  28162  99.3        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  35     21   0.1     27   0.1  28183  99.4        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  36     21   0.1     22   0.1  28204  99.4        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  37     20   0.1     24   0.1  28224  99.5        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  38     20   0.1     21   0.1  28244  99.6        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  39     19   0.1     20   0.1  28263  99.6        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  40     17   0.1     18   0.1  28280  99.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  41     16   0.1     17   0.1  28296  99.8        -  SB-KERNEL:SUB-GC
+  42     10   0.0     10   0.0  28306  99.8        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  43      9   0.0      9   0.0  28315  99.8        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  44      8   0.0      8   0.0  28323  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  45      7   0.0      7   0.0  28330  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  46      7   0.0      7   0.0  28337  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  47      7   0.0      7   0.0  28344  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  48      6   0.0      7   0.0  28350 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::INPUT CNVRS::START CNVRS::REQUIRE-EOF) :IN CNVRS::MAKE-PARSER-RUNNER)
+  49      4   0.0      4   0.0  28354 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  50      3   0.0      5   0.0  28357 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  51      2   0.0      2   0.0  28359 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  52      2   0.0      2   0.0  28361 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  53      1   0.0      1   0.0  28362 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  54      1   0.0      1   0.0  28363 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  55      1   0.0      1   0.0  28364 100.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/c-reference/warm-profile.lisp")
+  56      0   0.0   6679  23.5  28364 100.0        -  foreign function gc_alloc_new_region
+  57      0   0.0   2800   9.9  28364 100.0        -  foreign function page_table_pages
+  58      0   0.0   2288   8.1  28364 100.0        -  SB-SPROF::UNAVAILABLE-FRAMES
+  59      0   0.0   2115   7.5  28364 100.0        -  foreign function search_all_gc_spaces
+  60      0   0.0   1438   5.1  28364 100.0        -  Unknown fn 2
+  61      0   0.0   1428   5.0  28364 100.0        -  foreign function collect_backtrace
+  62      0   0.0    351   1.2  28364 100.0        -  foreign function component_ptr_from_pc
+  63      0   0.0     24   0.1  28364 100.0        -  foreign function lisp_frame_previous
+  64      0   0.0      1   0.0  28364 100.0        -  foreign function debug_function_from_pc
+------------------------------------------------------------------------
+          0   0.0                                     elsewhere

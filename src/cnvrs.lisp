@@ -25,28 +25,34 @@
 (defstruct recovery action condition token)
 (defstruct (state (:include graph-state))
   stop-rule exit-alternative repetition-p
-  direct-lookahead)
-(defstruct direct-choice table default-alternative)
-(defstruct two-token-choice table)
-(defstruct configuration (state 0 :type fixnum) (stack nil :type list)
-  (alternative 0 :type fixnum))
-(defstruct dfa-state configurations alternatives accepted edges)
+  direct-lookahead
+  (kind :basic) rule-index end-state loop-back decision non-greedy-p precedence-rule-p
+  precedence-decision-p (call-precedence 0) events)
+(defvar *prediction-input-cache* nil)
+(defvar *prediction-precedence* 0)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
   has-negated-tokens metadata semantic-rules
   (cache-backend :hash-table)
-  (full-context-strategy :cached) full-context-start
-  decisions sll-decisions direct-decisions contexts
-  (context-count 0) context-shift runner node-runner
-  compiled-sll compiled-full)
+  (full-context-strategy :recompute)
+  decisions token-keys token-index runner node-runner
+  atn-runtime
+  (atn-runtime-lock (bordeaux-threads:make-lock "ANTLR frontend runtime")))
 (defstruct parser-definition name kind default-rule lexer cache-backend metadata
   parser-package lexer-package
-  (full-context-strategy :cached)
+  (full-context-strategy :recompute)
   (tree-builder :node)
-  (rules nil) compiled)
+  (rules nil) (imports nil) (origins nil) compiled)
+(defstruct parser-run-state
+  input
+  (tokens #() :type simple-vector)
+  (position 0 :type fixnum)
+  (logical-position 0 :type fixnum))
 (declaim (ftype function ensure-parser-compiled))
 (declaim (ftype function resolve-full-context-strategy))
+(declaim (ftype function runtime-adaptive-predict ensure-parser-runtime))
 (declaim (ftype function compile-parser-runner))
+(declaim (ftype function initialize-token-index initialize-direct-lookahead java-left-recursion build-java-atn apply-atn-events))
 
 (defun grammar-fail (control &rest arguments)
   (error 'grammar-error :message (apply #'format nil control arguments)))
@@ -56,9 +62,9 @@
         thereis (eq (first tail) key)))
 
 (defun grammar-operator-p (symbol)
-  (member symbol '(and or * + seq ? *? +? ?? range one-of not-one-of any
-                   label alt-label token not-token predicate action right
-                   antlr-precedence defrule with-mode)))
+  (member symbol '(and or * + seq ? *? +? ?? range unicode-property one-of not-one-of any
+                   label alt-label token not-token eof predicate action right
+                   source-order-precedence defparser defrule with-mode use)))
 
 (defun check-lexer-kind-overlap (rule-names lexer)
   (when (compiled-lexer-p lexer)
@@ -87,7 +93,8 @@
 (defclass parser-expr ()
   ((source :initarg :source :reader parser-expr-source)))
 (defclass parser-reference-expr (parser-expr)
-  ((name :initarg :name :reader parser-expr-name)))
+  ((precedence :initarg :precedence :initform 0 :reader parser-expr-precedence)
+   (name :initarg :name :reader parser-expr-name)))
 (defclass parser-token-expr (parser-expr)
   ((value :initarg :value :reader parser-expr-value)))
 (defclass parser-not-token-expr (parser-expr)
@@ -96,6 +103,12 @@
   ((callback :initarg :callback :reader parser-expr-callback)))
 (defclass parser-predicate-expr (parser-callback-expr) ())
 (defclass parser-action-expr (parser-callback-expr) ())
+(defclass parser-noop-expr (parser-expr) ())
+(defclass parser-precedence-expr (parser-expr)
+  ((value :initarg :value :reader parser-expr-value)))
+(defclass parser-set-expr (parser-expr)
+  ((value :initarg :value :reader parser-expr-value)))
+(defclass parser-wildcard-expr (parser-expr) ())
 
 (defun semantic-callback (form)
   (unless (and (= (length form) 2)
@@ -112,12 +125,34 @@
 (defclass parser-label-expr (parser-unary-expr)
   ((label :initarg :label :reader parser-expr-label)))
 (defclass parser-alt-label-expr (parser-label-expr) ())
+(defclass parser-fold-expr (parser-unary-expr)
+  ((label :initarg :label :reader parser-expr-label)
+   (left-label :initarg :left-label :reader parser-expr-left-label)))
 (defclass parser-optional-expr (parser-unary-expr) ())
 (defclass parser-star-expr (parser-unary-expr) ())
 (defclass parser-plus-expr (parser-unary-expr) ())
 
 (defun parser-expression-from-form (form)
   "Convert the public grammar form to an expression used during compilation."
+  (when (consp form)
+    (case (first form)
+      (atn-call (return-from parser-expression-from-form
+                  (make-instance 'parser-reference-expr :source form :name (second form)
+                                 :precedence (third form))))
+      (atn-precedence (return-from parser-expression-from-form
+                        (make-instance 'parser-precedence-expr :source form :value (second form))))
+      (atn-noop (return-from parser-expression-from-form
+                  (make-instance 'parser-noop-expr :source form)))
+      (atn-fold (return-from parser-expression-from-form
+                  (make-instance 'parser-fold-expr :source form :label (second form)
+                                 :left-label (third form)
+                                 :body (parser-expression-from-form (fourth form)))))
+      (eof (unless (= (length form) 1) (grammar-fail "EOF takes no arguments: ~S" form))
+           (return-from parser-expression-from-form
+             (make-instance 'parser-token-expr :source form :value +end-of-input+)))
+      (any (unless (= (length form) 1) (grammar-fail "ANY takes no arguments: ~S" form))
+           (return-from parser-expression-from-form
+             (make-instance 'parser-wildcard-expr :source form)))))
   (let ((kind (expression-kind form)))
     (unless kind (grammar-fail "Invalid grammar expression: ~S" form))
     (flet ((unary (class)
@@ -180,8 +215,16 @@
 (defgeneric nullable-p (expression nullable))
 (defmethod nullable-p ((expression parser-expr) nullable)
   (declare (ignore nullable)) nil)
+(defmethod nullable-p ((expression parser-token-expr) nullable)
+  (declare (ignore nullable))
+  ;; EOF is an assertion in native execution and cannot advance the cursor.
+  (eq (parser-expr-value expression) +end-of-input+))
 (defmethod nullable-p ((expression parser-reference-expr) nullable)
   (gethash (parser-expr-name expression) nullable))
+(defmethod nullable-p ((expression parser-noop-expr) nullable)
+  (declare (ignore nullable)) t)
+(defmethod nullable-p ((expression parser-precedence-expr) nullable)
+  (declare (ignore nullable)) t)
 (defmethod nullable-p ((expression parser-callback-expr) nullable)
   (declare (ignore nullable)) t)
 (defmethod nullable-p ((expression parser-sequence-expr) nullable)
@@ -190,6 +233,8 @@
 (defmethod nullable-p ((expression parser-choice-expr) nullable)
   (some (lambda (part) (nullable-p part nullable))
         (parser-expr-parts expression)))
+(defmethod nullable-p ((expression parser-unary-expr) nullable)
+  (nullable-p (parser-expr-body expression) nullable))
 (defmethod nullable-p ((expression parser-optional-expr) nullable)
   (declare (ignore nullable)) t)
 (defmethod nullable-p ((expression parser-star-expr) nullable)
@@ -233,17 +278,6 @@ NULLABLE maps rule names to whether they can match empty input."))
                   (parser-expr-source expression)))
   (call-next-method))
 
-(defgeneric compile-expression (grammar expression entry exit))
-(defmethod compile-expression (grammar (expression parser-reference-expr) entry exit)
-  (add-edge grammar entry :call exit (parser-expr-name expression)))
-(defmethod compile-expression (grammar (expression parser-token-expr) entry exit)
-  (add-edge grammar entry :token exit (parser-expr-value expression)))
-(defmethod compile-expression (grammar (expression parser-not-token-expr) entry exit)
-  (add-edge grammar entry :not-token exit (parser-expr-excluded expression)))
-(defmethod compile-expression (grammar (expression parser-callback-expr) entry exit)
-  ;; Semantic grammars use the ordered matcher; the graph remains inspectable.
-  (add-edge grammar entry :epsilon exit))
-
 (defgeneric semantic-expression-p (expression))
 (defmethod semantic-expression-p ((expression parser-expr)) nil)
 (defmethod semantic-expression-p ((expression parser-callback-expr)) t)
@@ -251,41 +285,6 @@ NULLABLE maps rule names to whether they can match empty input."))
   (some #'semantic-expression-p (parser-expr-parts expression)))
 (defmethod semantic-expression-p ((expression parser-unary-expr))
   (semantic-expression-p (parser-expr-body expression)))
-(defmethod compile-expression (grammar (expression parser-sequence-expr) entry exit)
-  (let ((parts (parser-expr-parts expression)) (current entry))
-    (if (null parts)
-        (add-edge grammar entry :epsilon exit)
-        (loop for tail on parts
-              for next = (if (null (rest tail)) exit (new-state grammar))
-              do (compile-expression grammar (first tail) current next)
-                 (setf current next)))))
-(defmethod compile-expression (grammar (expression parser-choice-expr) entry exit)
-  (dolist (part (parser-expr-parts expression))
-    (let ((branch (new-state grammar)))
-      (add-edge grammar entry :epsilon branch)
-      (compile-expression grammar part branch exit))))
-(defmethod compile-expression (grammar (expression parser-optional-expr) entry exit)
-  (let ((branch (new-state grammar)))
-    (setf (state-exit-alternative (aref (parser-states grammar) entry)) 1)
-    (add-edge grammar entry :epsilon branch)
-    (add-edge grammar entry :epsilon exit)
-    (compile-expression grammar (parser-expr-body expression) branch exit)))
-(defmethod compile-expression (grammar (expression parser-star-expr) entry exit)
-  (let ((branch (new-state grammar)) (body-end (new-state grammar)))
-    (setf (state-exit-alternative (aref (parser-states grammar) entry)) 1
-          (state-repetition-p (aref (parser-states grammar) entry)) t)
-    (add-edge grammar entry :epsilon branch)
-    (add-edge grammar entry :epsilon exit)
-    (compile-expression grammar (parser-expr-body expression) branch body-end)
-    (add-edge grammar body-end :epsilon entry)))
-(defmethod compile-expression (grammar (expression parser-plus-expr) entry exit)
-  (let ((loop-state (new-state grammar)))
-    (compile-expression grammar (parser-expr-body expression) entry loop-state)
-    (compile-expression
-     grammar (make-instance 'parser-star-expr :source (parser-expr-source expression)
-                                         :body (parser-expr-body expression))
-     loop-state exit)))
-
 (defun validate-progress (definitions nullable)
   "Reject nullable repetition bodies and rule cycles that consume no tokens."
   (dolist (definition definitions)
@@ -332,7 +331,7 @@ NULLABLE maps rule names to whether they can match empty input."))
                           alternative))
           (values nil nil nil nil)))))
 
-(defun antlr-prefix-alternative (rule alternative)
+(defun prefix-alternative-p (rule alternative)
   (let* ((body (if (eq (expression-kind alternative) :alt-label)
                    (third alternative) alternative))
          (parts (and (eq (expression-kind body) :sequence) (rest body)))
@@ -342,162 +341,26 @@ NULLABLE maps rule names to whether they can match empty input."))
              (and (eq (expression-kind last-part) :label)
                   (eq (third last-part) rule))))))
 
-(defun retarget-antlr-prefix (alternative target)
-  (let* ((labeled (eq (expression-kind alternative) :alt-label))
-         (body (if labeled (third alternative) alternative))
-         (parts (copy-list (rest body)))
-         (last-part (car (last parts))))
-    (setf (car (last parts))
-          (if (eq (expression-kind last-part) :label)
-              (list 'label (second last-part) target)
-              target))
-    (let ((result (cons 'and parts)))
-      (if labeled (list 'alt-label (second alternative) result) result))))
-
-(defun rewrite-left-recursion (definitions)
-  (let ((rewrites (make-hash-table :test 'eq))
-        (output nil))
-    (dolist (definition definitions)
-      (destructuring-bind (rule expression) definition
-        (let* ((bases nil) (recursive nil)
-               (antlr-p (and (consp expression)
-                             (eq (first expression) 'antlr-precedence)))
-               (body (if antlr-p (second expression) expression))
-               (alternatives (if (eq (expression-kind body) :choice)
-                                 (rest body) (list body))))
-          (dolist (alternative alternatives)
-            (multiple-value-bind (suffix right alternative-label left-label)
-                (direct-left-alternative rule alternative)
-              (if suffix
-                  (push (list alternative suffix right alternative-label left-label)
-                        recursive)
-                  (push alternative bases))))
-          (if (null recursive)
-              (push definition output)
-              (progn
-                (unless bases
-                  (grammar-fail "Left-recursive rule ~S needs a base alternative" rule))
-                (setf bases (nreverse bases)
-                      recursive (nreverse recursive))
-                (let* ((primary (gensym "PRIMARY-"))
-                       (higher primary)
-                       (primary-definition (list primary nil))
-                       (generated (list primary-definition))
-                       (prefix-targets (make-hash-table :test 'eq)))
-                  (setf (gethash primary rewrites) (list :primary rule))
-                  (labels ((add-recursive-level (alternative)
-                             (destructuring-bind
-                                 (source suffix right alternative-label left-label)
-                                 alternative
-                               (declare (ignore source))
-                               (let* ((level (gensym "LEVEL-"))
-                                      (suffix-rule (gensym "SUFFIX-"))
-                                      (parts (copy-list suffix)))
-                                 (let* ((last-part (car (last parts)))
-                                        (target (if right level higher)))
-                                   (cond ((eq last-part rule)
-                                          (setf (car (last parts)) target))
-                                         ((and (eq (expression-kind last-part)
-                                                   :label)
-                                               (eq (third last-part) rule))
-                                          (setf (car (last parts))
-                                                (list 'label
-                                                      (second last-part)
-                                                      target)))))
-                                 (push (list suffix-rule
-                                             (if (rest parts)
-                                                 (cons 'and parts) (first parts)))
-                                       generated)
-                                 (push (list level
-                                             (list 'and higher (list '* suffix-rule)))
-                                       generated)
-                                 (setf (gethash suffix-rule rewrites)
-                                       (list :suffix rule alternative-label left-label)
-                                       (gethash level rewrites) (list :level rule)
-                                       higher level)))))
-                    (if antlr-p
-                        (dolist (alternative alternatives)
-                          (let ((recursive-entry
-                                  (assoc alternative recursive :test #'eq)))
-                            (cond (recursive-entry
-                                   (add-recursive-level recursive-entry))
-                                  ((antlr-prefix-alternative rule alternative)
-                                   (setf (gethash alternative prefix-targets)
-                                         higher)))))
-                        (dolist (alternative (reverse recursive))
-                          (add-recursive-level alternative))))
-                  (setf (second primary-definition)
-                        (let ((primary-alternatives
-                                (mapcar (lambda (alternative)
-                                          (let ((target
-                                                  (gethash alternative
-                                                           prefix-targets)))
-                                            (if target
-                                                (retarget-antlr-prefix
-                                                 alternative target)
-                                                alternative)))
-                                        bases)))
-                          (if (rest primary-alternatives)
-                              (cons 'or primary-alternatives)
-                              (first primary-alternatives))))
-                  (setf (gethash rule rewrites) (list :wrapper rule))
-                  (push (list rule higher) output)
-                  (dolist (item (nreverse generated)) (push item output))))))))
-    (values (nreverse output) rewrites)))
-
-(defvar *parser-generated-label-rules* nil)
-(defvar *parser-label-rewrites* nil)
-
-(defgeneric expand-parser-labels (expression))
-(defmethod expand-parser-labels ((expression parser-expr))
-  expression)
-(defmethod expand-parser-labels ((expression parser-sequence-expr))
-  (make-instance (class-of expression)
-                 :source (parser-expr-source expression)
-                 :parts (mapcar #'expand-parser-labels
-                                (parser-expr-parts expression))))
-(defmethod expand-parser-labels ((expression parser-unary-expr))
-  (make-instance (class-of expression)
-                 :source (parser-expr-source expression)
-                 :body (expand-parser-labels (parser-expr-body expression))))
-(defmethod expand-parser-labels ((expression parser-label-expr))
-  (let ((rule (gensym "LABEL-"))
-        (body (expand-parser-labels (parser-expr-body expression))))
-    (setf (gethash rule *parser-label-rewrites*)
-          (list (if (typep expression 'parser-alt-label-expr)
-                    :alternative-label :element-label)
-                (parser-expr-label expression)))
-    (push (list rule body) *parser-generated-label-rules*)
-    (make-instance 'parser-reference-expr :source rule :name rule)))
-
-(defun expand-labels (definitions rewrites)
-  (let ((*parser-generated-label-rules* nil)
-        (*parser-label-rewrites* rewrites))
-    (values (append (mapcar (lambda (definition)
-                              (list (first definition)
-                                    (expand-parser-labels (second definition))))
-                            definitions)
-                    (nreverse *parser-generated-label-rules*))
-            rewrites)))
-
 (defun visible-rule (grammar rule)
   (or (second (gethash rule (parser-rewrites grammar))) rule))
 
+(defvar *atn-state-constructor* 'make-state)
 (defun new-state (grammar &optional stop-rule)
   (graph-new-state (parser-states grammar)
-                   (lambda (id) (make-state :id id :stop-rule stop-rule))))
+                   (lambda (id) (funcall *atn-state-constructor* :id id :stop-rule stop-rule))))
 
 (defun add-edge (grammar from kind target &optional value)
   (graph-add-edge (parser-states grammar) from kind target value :append-p t))
 
 (defun compile-grammar (definitions &key default-rule lexer
                                     (cache-backend :hash-table)
-                                    (full-context-strategy :cached)
-                                    (tree-builder :node) metadata)
+                                    (full-context-strategy :recompute)
+                                    (tree-builder :node) metadata
+                                    (compile-runners t))
   "Compile Lisp-form rule definitions into an in-memory parser.
 DEFINITIONS is a list of (name expression) pairs. Expressions use
 (AND ...), (OR ...), (* x), (+ x), (? x), (TOKEN value),
-(LABEL name x), and (ALT-LABEL name x).
+(LABEL name x), (ALT-LABEL name x), (ANY), and (EOF).
 Direct left-recursive alternatives are ordered from low to high precedence;
 (RIGHT alternative) gives a recursive alternative right associativity.
 Bare symbols in a parser rule package name rules; symbols from other packages
@@ -509,8 +372,9 @@ CACHE-BACKEND selects :FSET, :HASH-TABLE, a custom backend, or
 (:LOCKED backend). The default is :HASH-TABLE.
 TREE-BUILDER selects the parse-node construction strategy. The result also
 contains compiled rule runners for :NONE and the default :NODE builder.
-FULL-CONTEXT-STRATEGY selects :CACHED (the default), :RECOMPUTE, or a
-function of (parser state-id return-stack) that returns a start DFA state."
+FULL-CONTEXT-STRATEGY must be :RECOMPUTE, matching the Java predictor.
+Caller-specific caches and custom full-context start hooks are unsupported."
+  (resolve-full-context-strategy full-context-strategy)
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
   (let* ((names (make-hash-table :test 'eq))
@@ -537,496 +401,238 @@ function of (parser state-id return-stack) that returns a start DFA state."
     (setf default-rule (or default-rule (first (first definitions))))
     (unless (gethash default-rule names)
       (grammar-fail "Unknown default rule ~S" default-rule))
-    (multiple-value-setq (definitions rewrites)
-      (rewrite-left-recursion definitions))
-    (setf definitions
-          (mapcar (lambda (definition)
-                    (list (first definition)
-                          (parser-expression-from-form (second definition))))
-                  definitions))
-    (multiple-value-setq (definitions rewrites)
-      (expand-labels definitions rewrites))
-    (dolist (definition definitions)
-      (setf (gethash (first definition) names) t))
-    (dolist (definition definitions)
-      (validate-expression (second definition) names))
-    (loop with changed = t while changed do
-      (setf changed nil)
+    (let ((left-rules nil))
+      (multiple-value-setq (definitions left-rules) (java-left-recursion definitions))
+      (setf rewrites (make-hash-table :test 'eq))
+      (setf definitions
+            (mapcar (lambda (definition)
+                      (list (first definition)
+                            (parser-expression-from-form (second definition))))
+                    definitions))
       (dolist (definition definitions)
-        (when (and (not (gethash (first definition) nullable))
-                   (nullable-p (second definition) nullable))
-          (setf (gethash (first definition) nullable) t
-                changed t))))
-    (validate-progress definitions nullable)
-    (let ((grammar (make-parser :states (make-array 0 :adjustable t :fill-pointer 0)
-                                 :starts (make-hash-table :test 'eq)
-                                 :stops (make-hash-table :test 'eq)
-                                 :default-rule default-rule :lexer lexer
-                                 :metadata metadata
-                                 :tree-builder tree-builder
-                                 :rewrites rewrites
-                                 :cache-backend cache-backend
-                                 :full-context-strategy full-context-strategy
-                                 :full-context-start
-                                 (resolve-full-context-strategy
-                                  full-context-strategy)
-                                 :decisions (make-cache cache-backend)
-                                 :sll-decisions (make-cache cache-backend)
-                                 :direct-decisions (make-cache cache-backend)
-                                 :contexts (make-cache cache-backend))))
+        (setf (gethash (first definition) names) t))
       (dolist (definition definitions)
-        (setf (gethash (first definition) (parser-starts grammar)) (new-state grammar)
-              (gethash (first definition) (parser-stops grammar))
-              (new-state grammar (first definition))))
-      (dolist (definition definitions)
-        (compile-expression grammar (second definition)
-                            (gethash (first definition) (parser-starts grammar))
-                            (gethash (first definition) (parser-stops grammar))))
-      (when (some (lambda (definition)
-                    (semantic-expression-p (second definition))) definitions)
-        (setf (parser-semantic-rules grammar) (make-hash-table :test 'eq))
+        (validate-expression (second definition) names))
+      (loop with changed = t while changed do
+        (setf changed nil)
         (dolist (definition definitions)
-          (setf (gethash (first definition) (parser-semantic-rules grammar))
-                (second definition))))
-      (setf (parser-has-negated-tokens grammar)
-            (loop for state across (parser-states grammar)
-                  thereis (find :not-token (state-edges state)
-                                :key #'transition-kind)))
-      (setf (parser-context-shift grammar)
-            (integer-length (1- (length (parser-states grammar)))))
-      (unless (or (parser-has-negated-tokens grammar)
-                  (parser-semantic-rules grammar))
+          (when (and (not (gethash (first definition) nullable))
+                     (nullable-p (second definition) nullable))
+            (setf (gethash (first definition) nullable) t
+                  changed t))))
+      (validate-progress definitions nullable)
+      (let ((grammar (make-parser :states (make-array 0 :adjustable t :fill-pointer 0)
+                                   :starts (make-hash-table :test 'eq)
+                                   :stops (make-hash-table :test 'eq)
+                                   :default-rule default-rule :lexer lexer
+                                   :metadata metadata
+                                   :tree-builder tree-builder
+                                   :rewrites rewrites
+                                   :cache-backend cache-backend
+                                   :full-context-strategy full-context-strategy
+                                   :decisions (make-cache cache-backend))))
+        (build-java-atn grammar definitions left-rules)
+        (when (some (lambda (definition)
+                      (semantic-expression-p (second definition))) definitions)
+          (setf (parser-semantic-rules grammar) (make-hash-table :test 'eq))
+          (dolist (definition definitions)
+            (setf (gethash (first definition) (parser-semantic-rules grammar))
+                  (second definition))))
+        (setf (parser-has-negated-tokens grammar)
+              (loop for state across (parser-states grammar)
+                    thereis (find :not-token (state-edges state)
+                                  :key #'transition-kind)))
+        (initialize-token-index grammar)
+        ;; Java performs SLL(1) decision analysis before choosing generated
+        ;; switches/loop tests versus adaptive prediction.
         (initialize-direct-lookahead grammar)
-        (initialize-follow-lookahead grammar))
-      (unless (parser-semantic-rules grammar)
-        (setf (parser-runner grammar) (compile-parser-runner grammar nil)
-              (parser-node-runner grammar) (compile-parser-runner grammar t)))
-      grammar)))
-
-(defun configuration-key (configuration)
-  (declare (type configuration configuration))
-  (list (configuration-state configuration)
-        (configuration-stack configuration)
-        (configuration-alternative configuration)))
-
-(defun closure (grammar initial)
-  (declare (type parser grammar) (type list initial))
-  (nreverse
-   (graph-closure
-    initial #'configuration-key
-    (lambda (configuration pending result)
-      (let* ((state (aref (parser-states grammar)
-                          (configuration-state configuration)))
-             (stack (configuration-stack configuration))
-             (alternative (configuration-alternative configuration)))
-        (if (state-stop-rule state)
-            (if stack
-                (push (make-configuration :state (first stack)
-                                          :stack (rest stack)
-                                          :alternative alternative)
-                      pending)
-                (push configuration result))
-            (let ((has-token nil))
-              (dolist (edge (state-edges state))
-                (case (transition-kind edge)
-                  (:epsilon
-                   (push (make-configuration :state (transition-target edge)
-                                             :stack stack :alternative alternative)
-                         pending))
-                  (:call
-                   (push (make-configuration
-                          :state (gethash (transition-value edge)
-                                          (parser-starts grammar))
-                          :stack (cons (transition-target edge) stack)
-                          :alternative alternative)
-                         pending))
-                  ((:token :not-token) (setf has-token t))))
-              (when has-token (push configuration result))))
-        (values pending result))))))
-
-(defun dfa-state-for (grammar configurations)
-  (declare (type parser grammar) (type list configurations))
-  (let* ((closed (closure grammar configurations))
-         (alternatives (sort (remove-duplicates
-                              (mapcar #'configuration-alternative closed)) #'<))
-         (accepted (sort (remove-duplicates
-                          (loop for configuration in closed
-                                for state = (aref (parser-states grammar)
-                                                  (configuration-state configuration))
-                                when (and (state-stop-rule state)
-                                          (null (configuration-stack configuration)))
-                                  collect (configuration-alternative configuration))) #'<)))
-    (make-dfa-state :configurations closed
-                    :alternatives alternatives :accepted accepted
-                    :edges (make-cache (parser-cache-backend grammar)))))
-
-(defun advance-dfa (grammar dfa token)
-  (declare (type parser grammar) (type dfa-state dfa))
-  (cache-get-or-compute
-   (dfa-state-edges dfa) (token-key token)
-   (lambda ()
-     (dfa-state-for grammar
-                    (loop for configuration in (dfa-state-configurations dfa)
-                          for state = (aref (parser-states grammar)
-                                            (configuration-state configuration))
-                          nconc (loop for edge in (state-edges state)
-                                       when (case (transition-kind edge)
-                                              (:token
-                                               (equal (token-key token)
-                                                      (transition-value edge)))
-                                              (:not-token
-                                               (not (member (token-key token)
-                                                            (transition-value edge)
-                                                            :test #'equal))))
-                                         collect (make-configuration
-                                                  :state (transition-target edge)
-                                                  :stack (configuration-stack configuration)
-                                                  :alternative
-                                                  (configuration-alternative configuration))))))))
-
-(defun make-full-context-start (grammar state-id stack)
-  "Build the initial full-context DFA state for a decision and return stack."
-  (declare (type parser grammar) (type fixnum state-id) (type list stack))
-  (dfa-state-for grammar
-                 (loop for edge in (state-edges
-                                    (aref (parser-states grammar) state-id))
-                       for alternative from 0
-                       collect (configuration-after-edge
-                                grammar edge stack alternative))))
-
-(defun cached-full-context-start (grammar state-id stack)
-  (declare (type parser grammar) (type fixnum state-id) (type list stack))
-  (cache-get-or-compute
-   (parser-decisions grammar) (parser-context-key state-id stack)
-   (lambda () (make-full-context-start grammar state-id stack))))
+        (when (and compile-runners (not (parser-semantic-rules grammar)))
+          (setf (parser-runner grammar) (compile-parser-runner grammar nil)
+                (parser-node-runner grammar) (compile-parser-runner grammar t)))
+        grammar))))
 
 (defun resolve-full-context-strategy (strategy)
-  (case strategy
-    (:cached #'cached-full-context-start)
-    (:recompute #'make-full-context-start)
-    (otherwise
-     (if (functionp strategy) strategy
-         (grammar-fail
-          "Full-context strategy must be :CACHED, :RECOMPUTE, or a function, got ~S"
-          strategy)))))
+  ;; Kept at the grammar-option boundary for explicit migration errors.
+  (unless (eq strategy :recompute)
+    (grammar-fail "The Java predictor uses :RECOMPUTE full context; caller-specific caches and custom start hooks are unsupported (got ~S)" strategy))
+  nil)
 
-(defun predict-full-context (grammar state-id stack tokens position)
-  (declare (type parser grammar) (type fixnum state-id position)
-           (type list stack) (type simple-vector tokens))
-  (let* ((dfa (funcall (parser-full-context-start grammar)
-                       grammar state-id stack))
-         (length (length tokens)))
-    (declare (type fixnum length))
-    (when (parser-compiled-full grammar)
-      (let ((program (gethash dfa (parser-compiled-full grammar))))
-        (when program
-          (multiple-value-bind (alternative found)
-              (funcall program tokens position)
-            (when found (return-from predict-full-context alternative))))))
-    (loop
-      (let ((alternatives (dfa-state-alternatives dfa)))
-        (when (= (length alternatives) 1)
-          (return (first alternatives)))
-        (when (or (null alternatives) (= position length))
-          (return (or (first (dfa-state-accepted dfa))
-                      (let ((exit (state-exit-alternative
-                                   (aref (parser-states grammar) state-id))))
-                        (and (= position length)
-                             (member exit alternatives)
-                             exit))
-                      (first alternatives)))))
-      (setf dfa (advance-dfa grammar dfa (aref tokens position)))
-      (incf position))))
+;; Keep the original token vector. A filtered input uses physical vector
+;; positions and skips tokens on excluded channels as its cursor advances.
+(defstruct (filtered-token-input
+            (:constructor %make-filtered-token-input (tokens channels)))
+  (tokens #() :type simple-vector)
+  (channels nil :type list))
+
+;; Callback accessors cache their last logical lookup without enlarging the
+;; filtered input used by ordinary parsers.
+(defstruct (semantic-token-input
+            (:include filtered-token-input)
+            (:constructor %make-semantic-token-input (tokens channels)))
+  (last-logical 0 :type fixnum)
+  last-physical
+  visible-count)
+
+(declaim (inline input-size input-token input-next-position compiled-choice-index))
+(defun input-size (input)
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type (or simple-vector filtered-token-input) input))
+  (if (filtered-token-input-p input)
+      (length (filtered-token-input-tokens input))
+      (length input)))
+
+(defun input-token (input position)
+  (declare (type fixnum position))
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type (or simple-vector filtered-token-input) input))
+  (aref (if (filtered-token-input-p input)
+            (filtered-token-input-tokens input)
+            input)
+        position))
+
+(defun input-next-position (input position)
+  (declare (type fixnum position))
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type (or simple-vector filtered-token-input) input))
+  (let ((next (1+ position)))
+    (declare (type fixnum next))
+    (when (filtered-token-input-p input)
+      (let ((tokens (filtered-token-input-tokens input))
+            (channels (filtered-token-input-channels input)))
+        (loop while (and (< next (length tokens))
+                         (not (member (token-channel (aref tokens next))
+                                      channels :test #'equal)))
+              do (incf next))))
+    next))
+
+(defun input-start-position (input)
+  (if (filtered-token-input-p input)
+      (input-next-position input -1)
+      0))
+
+(defun input-remaining-count (input position)
+  (loop for index = position then (input-next-position input index)
+        while (< index (input-size input))
+        count t))
+
+(defun input-remaining-values (input position)
+  (loop for index = position then (input-next-position input index)
+        while (< index (input-size input))
+        collect (input-token input index)))
+
+(defun make-token-input (tokens channels &optional semantic-p)
+  (if (eq channels :all)
+      tokens
+      (if semantic-p
+          (%make-semantic-token-input tokens channels)
+          (%make-filtered-token-input tokens channels))))
+
+(defun input-token-count (input)
+  "Return the number of visible tokens in parser INPUT."
+  (cond ((semantic-token-input-p input)
+         (or (semantic-token-input-visible-count input)
+             (setf (semantic-token-input-visible-count input)
+                   (input-remaining-count input (input-start-position input)))))
+        ((filtered-token-input-p input)
+         (input-remaining-count input (input-start-position input)))
+        (t (length input))))
+
+(defun input-token-at (input index)
+  "Return the visible token at zero-based INDEX in parser INPUT."
+  (unless (and (integerp index) (<= 0 index))
+    (error 'type-error :datum index :expected-type '(integer 0 *)))
+  (if (filtered-token-input-p input)
+      (let* ((cached (and (semantic-token-input-p input)
+                          (semantic-token-input-last-physical input)))
+             (forward (and cached (>= index
+                                      (semantic-token-input-last-logical input))))
+             (position (if forward cached (input-start-position input)))
+             (logical (if forward
+                          (semantic-token-input-last-logical input) 0)))
+        (loop while (< logical index) do
+          (setf position (input-next-position input position))
+          (incf logical))
+        (when (>= position (input-size input))
+          (error "Visible token index ~D is out of bounds" index))
+        (when (semantic-token-input-p input)
+          (setf (semantic-token-input-last-logical input) logical
+                (semantic-token-input-last-physical input) position))
+        (input-token input position))
+      (aref input index)))
+
+
+(defun direct-choice-index (grammar table input position)
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
+  (let* ((key (if (>= position (input-size input)) +end-of-input+
+                  (token-key (input-token input position))))
+         (index (funcall (the function (parser-token-index grammar)) key)))
+    (aref table (or index (length (parser-token-keys grammar))))))
 
 (defun predict (grammar state-id stack tokens position)
-  ;; The first DFA omits the caller's return stack. If an alternative can
-  ;; finish in that shortened context while another remains viable, the
-  ;; result depends on the caller and prediction retries with the full stack.
-  (declare (type parser grammar) (type fixnum state-id position)
-           (type list stack) (type simple-vector tokens))
-  (let* ((start-position position)
-         (cache (parser-sll-decisions grammar))
-         (dfa (cache-get-or-compute
-               cache state-id
-               (lambda ()
-                 (dfa-state-for grammar
-                                (loop for edge in (state-edges
-                                                   (aref (parser-states grammar) state-id))
-                                      for alternative from 0
-                                      collect (configuration-after-edge
-                                               grammar edge nil alternative))))))
-         (length (length tokens)))
-    (declare (type fixnum start-position length))
-    (when (parser-compiled-sll grammar)
-      (let ((program (gethash dfa (parser-compiled-sll grammar))))
-        (when program
-          (multiple-value-bind (alternative found)
-              (funcall program tokens position)
-            (when found (return-from predict alternative))))))
-    (loop
-      (let ((alternatives (dfa-state-alternatives dfa)))
-        (when (= (length alternatives) 1)
-          (return (first alternatives)))
-        (when (or (null alternatives)
-                  (dfa-state-accepted dfa)
-                  (= position length))
-          (return (predict-full-context grammar state-id stack tokens
-                                        start-position))))
-      (setf dfa (advance-dfa grammar dfa (aref tokens position)))
-      (incf position))))
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
+  (let* ((state (aref (parser-states grammar) state-id))
+         (direct (state-direct-lookahead state)))
+    (if direct (direct-choice-index grammar direct tokens position)
+        (or (runtime-adaptive-predict grammar state-id stack tokens position)
+            ;; Native PARSE permits any rule as an entry point with implicit EOF.
+            ;; A recursive-only rule has no EOF follow in Java's serialized ATN;
+            ;; finish its precedence loop at that entry boundary.
+            (and (>= position (input-size tokens))
+                 (state-precedence-decision-p state)
+                 (state-exit-alternative state))))))
 
-(defun configuration-after-edge (grammar edge stack alternative)
-  (case (transition-kind edge)
-    (:call (make-configuration :state (gethash (transition-value edge)
-                                               (parser-starts grammar))
-                               :stack (cons (transition-target edge) stack)
-                               :alternative alternative))
-    (otherwise (make-configuration :state (transition-target edge)
-                                   :stack stack :alternative alternative))))
+(defun direct-choice-form (grammar table state-id)
+  "Emit Java-style one-token switches/tests in independently compiled rules."
+  (let* ((keys (parser-token-keys grammar)) (groups nil)
+         (other (aref table (length keys))) (eof nil))
+    (loop for key across keys for alternative across table do
+      (if (eq key +end-of-input+) (setf eof alternative)
+          (unless (eql alternative other)
+            (let ((group (assoc alternative groups)))
+              (if group (push key (cdr group)) (push (list alternative key) groups))))))
+    ;; A single CASE clause with hundreds of token keys expands into a large
+    ;; disjunction in SBCL. Its type-constraint propagation can consume GBs,
+    ;; even for a rule with very few states. Reuse the grammar's token index
+    ;; and lookahead table rather than duplicating those tests at every state.
+    (when (> (loop for group in groups sum (length (cdr group))) 64)
+      (return-from direct-choice-form
+        `(direct-choice-index grammar
+                              (state-direct-lookahead
+                               (aref (parser-states grammar) ,state-id))
+                              input position)))
+    `(if (>= position (length tokens)) ,eof
+         ,(if (every #'symbolp keys)
+              `(case (token-key (aref tokens position))
+                 ,@(loop for (alternative . tokens) in (nreverse groups)
+                         collect `(,tokens ,alternative))
+                 (otherwise ,other))
+              `(let ((key (token-key (aref tokens position))))
+                 (cond ,@(loop for (alternative . tokens) in (nreverse groups)
+                               collect `((member key ',tokens :test #'equal) ,alternative))
+                       (t ,other)))))))
 
-(defun direct-lookahead-table (grammar state stack)
-  "Return a table for a disjoint one-token decision, or why it is unsafe."
-  (let ((table (make-hash-table :test 'eq))
-        (nullable nil)
-        (overlap nil)
-        (unresolved-nullability nil)
-        (nullable-alternatives nil))
-    (loop for edge in (state-edges state) for alternative from 0 do
-      (let ((found-token nil)
-            (can-stop nil))
-        (dolist (configuration
-                 (closure grammar
-                          (list (configuration-after-edge
-                                 grammar edge stack alternative))))
-          (let ((next (aref (parser-states grammar)
-                            (configuration-state configuration))))
-            (if (state-stop-rule next)
-                (setf nullable t can-stop t)
-                (dolist (transition (state-edges next))
-                  (when (eq (transition-kind transition) :token)
-                    (setf found-token t)
-                    (let ((key (transition-value transition)))
-                      (when (and (not (symbolp key))
-                                 (eq (hash-table-test table) 'eq))
-                        (let ((general (make-hash-table :test 'equal)))
-                          (maphash (lambda (token alternative)
-                                     (setf (gethash token general) alternative))
-                                   table)
-                          (setf table general)))
-                      (let ((prior (gethash key table)))
-                        (when (and prior (/= prior (1+ alternative)))
-                          (setf overlap t))
-                        (setf (gethash key table) (1+ alternative)))))))))
-        (unless found-token
-          (setf nullable t)
-          (unless can-stop (setf unresolved-nullability t)))
-        (when can-stop (push alternative nullable-alternatives))))
-    (values (unless (or nullable overlap) table)
-            nullable overlap
-            (when (and nullable (not overlap) (not unresolved-nullability)
-                       (null (rest nullable-alternatives)))
-              (first nullable-alternatives))
-            table)))
-
-(defun initialize-direct-lookahead (grammar)
-  "Record one-token choices independent of the caller, and contextual candidates."
-  (loop for state across (parser-states grammar)
-        when (> (length (state-edges state)) 1) do
-          (multiple-value-bind (table nullable overlap)
-              (direct-lookahead-table grammar state nil)
-            (setf (state-direct-lookahead state)
-                  (or table
-                      (and nullable (not overlap) :contextual)
-                      (and overlap :contextual-two))))))
-
-(defun initialize-follow-lookahead (grammar)
-  "Compile nullable decisions whose alternatives have disjoint FIRST/FOLLOW sets.
-The sets include every rule's possible caller and end of input, so an
-overlapping decision keeps its contextual predictor."
-  (let* ((states (parser-states grammar))
-         (count (length states))
-         (first (make-array count :initial-element nil))
-         (nullable (make-array count :initial-element nil))
-         (owners (make-array count :initial-element nil))
-         (follow (make-hash-table :test 'eq)))
-    (maphash (lambda (rule start)
-               (dolist (id (compiled-rule-states grammar start))
-                 (setf (aref owners id) rule))
-               ;; PARSE permits any rule as its entry point.
-               (setf (gethash rule follow) (list +end-of-input+)))
-             (parser-starts grammar))
-    (labels ((edge-first (edge)
-               (case (transition-kind edge)
-                 (:token (list (transition-value edge)))
-                 (:epsilon (aref first (transition-target edge)))
-                 (:call
-                  (let ((start (gethash (transition-value edge)
-                                        (parser-starts grammar))))
-                    (if (aref nullable start)
-                        (union (aref first start)
-                               (aref first (transition-target edge))
-                               :test #'equal)
-                        (aref first start))))))
-             (edge-nullable (edge)
-               (case (transition-kind edge)
-                 (:token nil)
-                 (:epsilon (aref nullable (transition-target edge)))
-                 (:call
-                  (and (aref nullable
-                             (gethash (transition-value edge)
-                                      (parser-starts grammar)))
-                       (aref nullable (transition-target edge)))))))
-      ;; Monotone fixed point over the finite set of states and token keys.
-      (loop with changed = t while changed do
-        (setf changed nil)
-        (loop for state across states for id from 0 do
-          (when (state-stop-rule state)
-            (unless (aref nullable id)
-              (setf (aref nullable id) t changed t)))
-          (dolist (edge (state-edges state))
-            (let ((new (union (edge-first edge) (aref first id)
-                              :test #'equal)))
-              (unless (= (length new) (length (aref first id)))
-                (setf (aref first id) new changed t)))
-            (when (and (edge-nullable edge) (not (aref nullable id)))
-              (setf (aref nullable id) t changed t)))))
-      (loop with changed = t while changed do
-        (setf changed nil)
-        (loop for state across states for id from 0
-              for owner = (aref owners id)
-              when owner do
-                (dolist (edge (state-edges state))
-                  (when (eq (transition-kind edge) :call)
-                    (let* ((callee (transition-value edge))
-                           (target (transition-target edge))
-                           (items (if (aref nullable target)
-                                      (union (aref first target)
-                                             (gethash owner follow)
-                                             :test #'equal)
-                                      (aref first target)))
-                           (old (gethash callee follow))
-                           (new (union items old :test #'equal)))
-                      (unless (= (length new) (length old))
-                        (setf (gethash callee follow) new changed t)))))))
-      (loop for state across states for id from 0
-            for owner = (aref owners id)
-            when (and owner (state-exit-alternative state)
-                      (member (state-direct-lookahead state)
-                              '(:contextual :contextual-two))) do
-              (let ((table (make-hash-table :test 'equal))
-                    (overlap nil))
-                (loop for edge in (state-edges state)
-                      for alternative from 0 do
-                        (let ((keys (if (edge-nullable edge)
-                                        (union (edge-first edge)
-                                               (gethash owner follow)
-                                               :test #'equal)
-                                        (edge-first edge))))
-                          (dolist (key keys)
-                            (let ((prior (gethash key table)))
-                              (when (and prior (/= prior (1+ alternative)))
-                                (setf overlap t))
-                              (setf (gethash key table) (1+ alternative))))))
-                (unless overlap
-                  (setf (state-direct-lookahead state) table)))))))
-
-(defun dfa-token-keys (grammar dfa)
-  (remove-duplicates
-   (loop for configuration in (dfa-state-configurations dfa)
-         for state = (aref (parser-states grammar)
-                           (configuration-state configuration))
-         append (loop for edge in (state-edges state)
-                      when (eq (transition-kind edge) :token)
-                        collect (transition-value edge)))
-   :test #'equal))
-
-(defun two-token-lookahead (grammar state-id stack)
-  "Cache choices proved unique after at most two tokens in this context."
-  (let* ((start (funcall (parser-full-context-start grammar)
-                         grammar state-id stack))
-         (first-keys (dfa-token-keys grammar start))
-         (table (make-hash-table :test (if (every #'symbolp first-keys)
-                                          'eq 'equal))))
-    (dolist (first first-keys)
-      (let* ((one (advance-dfa grammar start first))
-             (alternatives (dfa-state-alternatives one)))
-        (if (and alternatives (null (rest alternatives)))
-            (setf (gethash first table) (1+ (first alternatives)))
-            (let* ((second-keys (dfa-token-keys grammar one))
-                   (second-table
-                     (make-hash-table :test (if (every #'symbolp second-keys)
-                                                'eq 'equal))))
-              (dolist (second second-keys)
-                (let ((two (advance-dfa grammar one second)))
-                  (when (and (dfa-state-alternatives two)
-                             (null (rest (dfa-state-alternatives two))))
-                    (setf (gethash second second-table)
-                          (1+ (first (dfa-state-alternatives two)))))))
-              (when (plusp (hash-table-count second-table))
-                (setf (gethash first table) second-table))))))
-    (when (plusp (hash-table-count table))
-      (make-two-token-choice :table table))))
-
-(defun contextual-choice (grammar state-id stack)
-  (multiple-value-bind (table nullable overlap
-                        default-alternative partial-table)
-      (direct-lookahead-table grammar
-                              (aref (parser-states grammar) state-id) stack)
-    (declare (ignore nullable overlap))
-    (or table
-        (and default-alternative
-             (make-direct-choice :table partial-table
-                                 :default-alternative default-alternative))
-        (two-token-lookahead grammar state-id stack)
-        :unavailable)))
-
-(defun context-key (grammar state-id parent-id)
-  (declare (type fixnum state-id parent-id))
-  (logior (ash parent-id (parser-context-shift grammar)) state-id))
-
-(defun intern-context (grammar return-state parent-id)
-  "Return the unique numeric ID for RETURN-STATE below PARENT-ID."
-  (declare (type fixnum return-state parent-id))
-  (cache-get-or-compute
-   (parser-contexts grammar) (context-key grammar return-state parent-id)
-   (lambda () (incf (the fixnum (parser-context-count grammar))))))
-
-(defun contextual-direct-lookahead (grammar state-id stack context)
-  (cache-get-or-compute
-   (parser-direct-decisions grammar) (context-key grammar state-id context)
-   (lambda () (contextual-choice grammar state-id stack))))
-
-(defun compiled-choice-index (grammar state-id stack context input position)
-  (declare (type simple-vector input) (type fixnum state-id context position))
-  (when (parser-has-negated-tokens grammar)
-    (return-from compiled-choice-index
-      (predict grammar state-id stack input position)))
-  (let* ((choice (state-direct-lookahead
-                  (aref (parser-states grammar) state-id)))
-         (table (if (member choice '(:contextual :contextual-two))
-                    (contextual-direct-lookahead
-                     grammar state-id stack context)
-                    choice))
-         (direct-table (if (direct-choice-p table)
-                           (direct-choice-table table) table))
-         (current (when (< position (length input))
-                    (token-key (aref input position))))
-         (direct (and current (hash-table-p direct-table)
-                      (gethash current direct-table)))
-         (two-token (and current (two-token-choice-p table)
-                         (gethash current (two-token-choice-table table))))
-         (two-token-result
-           (if (hash-table-p two-token)
-               (gethash (if (< (1+ position) (length input))
-                            (token-key (aref input (1+ position)))
-                            +end-of-input+)
-                        two-token)
-               two-token)))
-    (cond (direct (1- (the fixnum direct)))
-          (two-token-result (1- (the fixnum two-token-result)))
-          ((direct-choice-p table)
-           (direct-choice-default-alternative table))
-          (t (predict grammar state-id stack input position)))))
+(defun initialize-token-index (grammar)
+  (let ((keys nil))
+    (loop for state across (parser-states grammar) do
+      (dolist (edge (state-edges state))
+        (case (transition-kind edge)
+          (:token (pushnew (transition-value edge) keys :test #'equal))
+          ((:token-set :not-token)
+           (dolist (token (transition-value edge)) (pushnew token keys :test #'equal))))))
+    (pushnew +end-of-input+ keys :test #'equal)
+    (setf keys (nreverse keys))
+    (setf (parser-token-keys grammar) (coerce keys 'simple-vector)
+          (parser-token-index grammar)
+          (compile nil
+                   (if (every #'symbolp keys)
+                       `(lambda (key)
+                          (case key
+                            ,@(loop for token in keys for index from 0
+                                    collect `((,token) ,index))))
+                       `(lambda (key)
+                          (cond
+                            ,@(loop for token in keys for index from 0
+                                    collect `((equal key ',token) ,index)))))))))
 
 (defun compiled-rule-states (grammar start)
   (let ((seen (make-hash-table :test 'eql))
@@ -1042,80 +648,172 @@ overlapping decision keeps its contextual predictor."
               (push (transition-target edge) pending))))))
     (nreverse result)))
 
-(defun compile-parser-runner (grammar build-tree-p)
-  "Compile one named local function per rule for recognition or node building."
-  (let ((rules nil))
+(defun token-set-member-p (key tokens)
+  ;; Keep large constant sets out of the caller's optimizer component.
+  (member key tokens :test #'equal))
+
+(defun make-chunked-rule-runner (chunks first-state)
+  "Join independently compiled state chunks without sharing mutable closures."
+  (declare (optimize (speed 3) (safety 1) (debug 0))
+           (type simple-vector chunks) (type fixnum first-state))
+  (lambda (grammar run runners stack)
+    (let ((state-id first-state)
+          (start-position (parser-run-state-logical-position run))
+          (children nil) (label nil) (labels nil))
+      (declare (type fixnum state-id))
+      (loop
+        (multiple-value-bind (result next-state next-children next-label next-labels)
+            (funcall (the function (svref chunks (ash state-id -6)))
+                     grammar run runners stack state-id start-position children label labels)
+          ;; A normal rule return (including failure) has no continuation state.
+          (unless next-state (return result))
+          (setf state-id next-state children next-children
+                label next-label labels next-labels))))))
+
+(defun compile-rule-runner-form (form)
+  (if (eq (first form) 'make-chunked-rule-runner)
+      (make-chunked-rule-runner
+       (map 'vector (lambda (chunk) (and chunk (compile nil chunk)))
+            (rest (second form)))
+       (third form))
+      (compile nil form)))
+
+(defun load-rule-runners (descriptors)
+  ;; Resolve names in a loop at load time. A VECTOR form with hundreds of
+  ;; distinct FUNCTION arguments itself overwhelms SBCL's type propagation.
+  (map 'vector
+       (lambda (descriptor)
+         (if (symbolp descriptor)
+             (fdefinition descriptor)
+             (make-chunked-rule-runner
+              (map 'vector (lambda (name) (and name (fdefinition name)))
+                   (rest descriptor))
+              (first descriptor))))
+       descriptors))
+
+(defun release-rule-compiler-constants ()
+  ;; SBCL 2.4 ARM64 retains constant caches across file components. Some
+  ;; cached leaves retain REFS into finished IR, keeping entire components
+  ;; alive. Releasing this optional coalescing cache between generated helpers
+  ;; bounds that retention. Preserve the NIL leaf: ARM64 needs it
+  ;; for a wired TN. Do not interfere with explicitly requested block compile.
+  #+(and sbcl arm64)
+  (let ((namespace (find-symbol "*IR1-NAMESPACE*" :sb-c))
+        (constants (find-symbol "SIMILAR-CONSTANTS" :sb-c))
+        (eql-constants (find-symbol "EQL-CONSTANTS" :sb-c))
+        (refs (find-symbol "LEAF-REFS" :sb-c))
+        (block-mode (find-symbol "*BLOCK-COMPILE-ARGUMENT*" :sb-c)))
+    (when (and namespace (boundp namespace) (symbol-value namespace)
+               constants (fboundp constants) eql-constants (fboundp eql-constants)
+               refs (fboundp (list 'setf refs))
+               (or (null block-mode) (not (boundp block-mode))
+                   (null (symbol-value block-mode))))
+      (let* ((table (funcall eql-constants (symbol-value namespace)))
+             (nil-leaf (gethash nil table)))
+        (clrhash table)
+        (when nil-leaf
+          (funcall (fdefinition (list 'setf refs)) nil nil-leaf)
+          (setf (gethash nil table) nil-leaf)))
+      (clrhash (funcall constants (symbol-value namespace)))))
+  (values))
+
+(defmacro finish-rule-compilation (&environment environment)
+  (declare (ignorable environment))
+  ;; Run in the file compiler's namespace. EVAL-WHEN may compile its body in
+  ;; a fresh namespace, which would leave the file-wide cache untouched.
+  #+(and sbcl arm64)
+  (let ((lambda-accessor (find-symbol "LEXENV-LAMBDA" :sb-c)))
+    (when (and *compile-file-pathname* environment lambda-accessor (fboundp lambda-accessor)
+               (null (funcall lambda-accessor environment)))
+      (release-rule-compiler-constants)))
+  nil)
+
+(defun parser-rule-runner-forms (grammar build-tree-p)
+  "Return rule lambda/constructor forms and their dispatch names."
+  (let ((rules nil)
+        (rule-indices (make-hash-table :test 'eq))
+        (forms (make-array (hash-table-count (parser-starts grammar)))))
     (maphash (lambda (name start)
+               (setf (gethash name rule-indices) (hash-table-count rule-indices))
                (push (list name start
                            (make-symbol (format nil "PARSE-~A" name)))
                      rules))
              (parser-starts grammar))
-    (labels ((rule-function (name)
-               (third (assoc name rules :test #'eq)))
+    (labels ((membership-form (tokens)
+               `(,(if (> (length tokens) 64) 'token-set-member-p 'member)
+                 (token-key (aref tokens position)) ',tokens
+                 ,@(unless (> (length tokens) 64) '(:test #'equal))))
+             (rule-call (edge)
+               `(let ((*prediction-precedence* (state-call-precedence
+                                          (aref (parser-states grammar) state-id))))
+                  (funcall (the function
+                                (svref runners ,(gethash (transition-value edge) rule-indices)))
+                           grammar run runners
+                           (cons ,(transition-target edge) stack))))
              (edge-form (edge function-name)
                (let ((target (transition-target edge)))
                  (case (transition-kind edge)
                    (:epsilon `(setf state-id ,target))
-                   (:token
-                    `(if (and (< position (length input))
-                              (equal (token-key (aref input position))
-                                     ',(transition-value edge)))
+                   (:action `(setf state-id ,target))
+                   (:precedence `(if (>= ,(transition-value edge) *prediction-precedence*)
+                                     (setf state-id ,target)
+                                     (return-from ,function-name nil)))
+                   (:wildcard
+                    `(if (< position (length tokens))
                          (progn
                            ,@(when build-tree-p
-                               `((push (aref input position) children)))
-                           (setf state-id ,target
-                                 position (1+ position)))
+                               `((push (aref tokens position) children) (incf logical-position)))
+                           (setf state-id ,target position (input-next-position input position)))
+                         (return-from ,function-name nil)))
+                   (:token-set
+                    `(cond
+                       ,@(when (member +end-of-input+ (transition-value edge))
+                           `(((= position (length tokens)) (setf state-id ,target))))
+                       ((and (< position (length tokens))
+                             ,(membership-form (remove +end-of-input+ (transition-value edge))))
+                        ,@(when build-tree-p
+                            `((push (aref tokens position) children) (incf logical-position)))
+                        (setf state-id ,target position (input-next-position input position)))
+                       (t (return-from ,function-name nil))))
+                   (:token
+                    `(if ,(if (eq (transition-value edge) +end-of-input+)
+                               '(= position (length tokens))
+                               `(and (< position (length tokens))
+                                     (equal (token-key (aref tokens position))
+                                            ',(transition-value edge))))
+                         (progn
+                           ,@(when (and build-tree-p (not (eq (transition-value edge) +end-of-input+)))
+                               `((push (aref tokens position) children)
+                                 (incf logical-position)))
+                           (setf state-id ,target)
+                           ,@(unless (eq (transition-value edge) +end-of-input+)
+                               '((setf position (input-next-position input position)))))
                          (return-from ,function-name nil)))
                    (:not-token
-                    `(if (and (< position (length input))
-                              (not (member (token-key (aref input position))
-                                           ',(transition-value edge)
-                                           :test #'equal)))
+                    `(if (and (< position (length tokens))
+                              (not ,(membership-form (transition-value edge))))
                          (progn
                            ,@(when build-tree-p
-                               `((push (aref input position) children)))
+                               `((push (aref tokens position) children)
+                                 (incf logical-position)))
                            (setf state-id ,target
-                                 position (1+ position)))
+                                 position (input-next-position input position)))
                          (return-from ,function-name nil)))
                    (:call
                     (if build-tree-p
                         `(let ((child
-                                 (,(rule-function (transition-value edge))
-                                  (cons ,target stack)
-                                  (intern-context grammar ,target context))))
+                                 ,(rule-call edge)))
                            (unless child (return-from ,function-name nil))
                            (push child children)
                            (setf state-id ,target))
                         `(progn
-                           (unless (,(rule-function (transition-value edge))
-                                    (cons ,target stack)
-                                    (intern-context grammar ,target context))
+                           (unless ,(rule-call edge)
                              (return-from ,function-name nil))
                            (setf state-id ,target)))))))
              (choice-form (id state)
-               (let ((table (state-direct-lookahead state)))
-                 (if (hash-table-p table)
-                     (let ((entries nil))
-                       (maphash (lambda (key alternative)
-                                  (push (cons key (1- alternative)) entries))
-                                table)
-                       `(or (let ((key (if (< position (length input))
-                                           (token-key (aref input position))
-                                           +end-of-input+)))
-                                (when key
-                                  ,(if (every (lambda (entry)
-                                                (symbolp (car entry)))
-                                              entries)
-                                       `(case key
-                                          ,@(loop for (key . alternative) in entries
-                                                  collect `((,key) ,alternative)))
-                                       `(cond
-                                          ,@(loop for (key . alternative) in entries
-                                                  collect `((equal key ',key)
-                                                            ,alternative))))))
-                            (predict grammar ,id stack input position)))
-                     `(compiled-choice-index grammar ,id stack context
-                                             input position))))
+               (if (state-direct-lookahead state)
+                   (direct-choice-form grammar (state-direct-lookahead state) id)
+                   `(predict grammar ,id stack input position)))
              (state-form (id function-name)
                (let* ((state (aref (parser-states grammar) id))
                       (edges (state-edges state)))
@@ -1123,10 +821,8 @@ overlapping decision keeps its contextual predictor."
                    ,(cond ((state-stop-rule state)
                            `(return-from ,function-name
                               ,(if build-tree-p
-                                   `(make-node :rule ',(state-stop-rule state)
-                                               :children (nreverse children)
-                                               :start start-position
-                                               :end position)
+                                   `(make-labeled-parse-node :node ',(state-stop-rule state)
+                                               (nreverse children) start-position logical-position label)
                                    t)))
                           ((null (rest edges))
                           (edge-form (first edges) function-name))
@@ -1136,47 +832,132 @@ overlapping decision keeps its contextual predictor."
                                       collect `(,index
                                                 ,(edge-form edge function-name)))
                               (otherwise (return-from ,function-name nil)))))))))
-      (compile
-       nil
-       `(lambda (grammar input start require-eof)
-          #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
-                                     (space 0) (compilation-speed 0)))
-          (declare (type simple-vector input) (ignorable grammar))
-          (let ((position 0))
-            (declare (type fixnum position))
-            (labels
-                ,(loop for (name first-state function-name) in rules
-                       collect `(,function-name (stack context)
-                                 (declare (ignorable stack context))
-                                 (let ((state-id ,first-state)
-                                       ,@(when build-tree-p
-                                           '((start-position position)
-                                             (children nil))))
-                                   (declare (type fixnum state-id))
-                                   (loop
-                                     (ecase state-id
-                                       ,@(loop for id in
-                                               (compiled-rule-states grammar
-                                                                     first-state)
-                                               collect (state-form id function-name)))))))
-              (let ((result
-                      (case start
-                        ,@(loop for (name first-state function-name) in rules
-                                collect `(,name (,function-name nil 0))))))
-                (and result
-                     (or (not require-eof)
-                         (= position (length input)))
-                     result)))))))))
+      (loop for (name first-state function-name) in rules
+            for states = (compiled-rule-states grammar first-state) do
+        ;; Large state machines also need separate compiler components. Rule
+        ;; calls still go through RUNNERS; chunks exchange cursor/tree state
+        ;; through arguments and multiple values, never mutually local LABELS.
+        (when (> (length states) 128)
+          (let ((chunks (make-array (1+ (ash (reduce #'max states) -6))
+                                    :initial-element nil)))
+            (dolist (id states) (push id (svref chunks (ash id -6))))
+            (setf (svref forms (gethash name rule-indices))
+                  `(make-chunked-rule-runner
+                    (vector
+                     ,@(loop for ids across chunks for chunk from 0 collect
+                         (when ids
+                           `(lambda (grammar run runners stack state-id
+                                     start-position children label labels)
+                              (declare (optimize (speed 3) (safety 1) (debug 0)
+                                                 (space 0) (compilation-speed 0))
+                                       (type parser grammar) (type parser-run-state run)
+                                       (type simple-vector runners) (type fixnum state-id)
+                                       (ignorable grammar run runners stack start-position
+                                                  children label labels))
+                              (symbol-macrolet ((input (parser-run-state-input run))
+                                                (tokens (parser-run-state-tokens run))
+                                                (position (parser-run-state-position run))
+                                                (logical-position (parser-run-state-logical-position run)))
+                                (block ,function-name
+                                  (loop
+                                    (unless (= (ash state-id -6) ,chunk)
+                                      (return (values nil state-id children label labels)))
+                                    ,@(when build-tree-p
+                                        `((multiple-value-setq (children label labels)
+                                            (apply-atn-events
+                                             (state-events (aref (parser-states grammar) state-id))
+                                             :node ',name children start-position logical-position label labels))))
+                                    (ecase state-id
+                                      ,@(loop for id in (reverse ids)
+                                              collect (state-form id function-name))))))))))
+                    ,first-state))))
+        (unless (> (length states) 128)
+        (setf (svref forms (gethash name rule-indices))
+              `(lambda (grammar run runners stack)
+                  #+sbcl (declare (optimize (speed 3) (safety 1) (debug 0)
+                                             (space 0) (compilation-speed 0)))
+                  (declare (type parser grammar)
+                           (type parser-run-state run)
+                           (type simple-vector runners)
+                           (ignorable grammar run runners stack))
+                  (symbol-macrolet ((input (parser-run-state-input run))
+                                    (tokens (parser-run-state-tokens run))
+                                    (position (parser-run-state-position run))
+                                    (logical-position
+                                      (parser-run-state-logical-position run)))
+                    (block ,function-name
+                      (let ((state-id ,first-state)
+                            ,@(when build-tree-p
+                                '((start-position logical-position)
+                                  (children nil) (label nil) (labels nil))))
+                        (declare (type fixnum state-id))
+                        (loop
+                          ,@(when build-tree-p
+                              `((multiple-value-setq (children label labels)
+                                  (apply-atn-events
+                                   (state-events (aref (parser-states grammar) state-id))
+                                   :node ',name children start-position logical-position label labels))))
+                          (ecase state-id
+                            ,@(loop for id in states
+                                    collect (state-form id function-name)))))))))))
+      (values (coerce forms 'list) (mapcar #'first (reverse rules))))))
 
-(defun possible-tokens (grammar configurations)
-  (remove-duplicates
-   (loop for configuration in (closure grammar configurations)
-         for state = (aref (parser-states grammar)
-                           (configuration-state configuration))
-         append (loop for edge in (state-edges state)
-                      when (eq (transition-kind edge) :token)
-                        collect (transition-value edge)))
-   :test #'equal))
+(defun make-parser-runner (runners names)
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
+  ;; The table is immutable after compilation. Mutable cursor state belongs
+  ;; to each invocation, so runners can be shared by clones and threads.
+  (let ((rule-indices (make-hash-table :test 'eq)))
+    (loop for name in names for index from 0 do
+      (setf (gethash name rule-indices) index))
+    (lambda (grammar input start require-eof)
+      (let* ((tokens (if (filtered-token-input-p input)
+                         (filtered-token-input-tokens input) input))
+             (run (make-parser-run-state :input input :tokens tokens
+                                         :position (input-start-position input)))
+             (result (funcall (the function
+                                  (svref runners (gethash start rule-indices)))
+                              grammar run runners nil)))
+        (and result
+             (or (not require-eof)
+                 (= (parser-run-state-position run) (length tokens)))
+             result)))))
+
+(defun parser-runner-form (grammar build-tree-p)
+  "Return a runner constructor and separate top-level function definitions.
+COMPILE-FILE must process the definitions at top level: embedding all lambdas
+in the constructor retains a whole grammar's compiler IR in one component."
+  (multiple-value-bind (forms names) (parser-rule-runner-forms grammar build-tree-p)
+    (let ((definitions nil))
+      (labels ((function-form (form)
+                 (let ((name (gensym "PARSE-RULE-")))
+                   (push (copy-tree `(defun ,name ,@(rest form))) definitions)
+                   #+(and sbcl arm64)
+                   (push '(finish-rule-compilation) definitions)
+                   name))
+               (rule-form (form)
+                 (if (eq (first form) 'make-chunked-rule-runner)
+                     (cons (third form)
+                           (mapcar (lambda (chunk) (when chunk (function-form chunk)))
+                                   (rest (second form))))
+                     (function-form form))))
+        (let ((constructor `(make-parser-runner
+                             (load-rule-runners ',(mapcar #'rule-form forms)) ',names)))
+          (values constructor (nreverse definitions)))))))
+
+(defun compile-parser-runner (grammar build-tree-p)
+  (multiple-value-bind (forms names) (parser-rule-runner-forms grammar build-tree-p)
+    (make-parser-runner (map 'vector #'compile-rule-runner-form forms)
+                       names)))
+
+(defun possible-tokens (grammar state stack)
+  "Use the shared ATN analyzer for recovery's expected-token set."
+  (destructuring-bind (sim types decisions) (ensure-parser-runtime grammar)
+    (declare (ignore decisions))
+    (let ((look (cnvrs/runtime:state-lookahead
+                 (cnvrs/runtime:simulator-atn sim) state
+                 :context stack :see-through-predicates t)))
+      (loop for key across (parser-token-keys grammar)
+            when (member (gethash key types) look) collect key))))
 
 (defun parse (grammar tokens &key rule start (require-eof t) recover
                               (tree-builder nil tree-builder-supplied-p)
@@ -1191,6 +972,7 @@ parse; :ALL selects every channel. TREE-BUILDER overrides the compiled
 grammar's node construction strategy for this call. With RECOVER true, single-token deletion,
 insertion, and choice resynchronization are attempted. Handlers may invoke
 the restarts at each error site to make a different local repair."
+  (declare (optimize (speed 3) (safety 1) (debug 0) (compilation-speed 1)))
   (when (parser-definition-p grammar)
     (when (eq (parser-definition-kind grammar) :lexer)
       (grammar-fail "Use LEX to run a lexer grammar"))
@@ -1206,28 +988,28 @@ the restarts at each error site to make a different local repair."
     (grammar-fail "Unknown start rule ~S" start))
   (unless (or (eq channels :all) (listp channels))
     (error 'type-error :datum channels :expected-type '(or list (eql :all))))
-  (let* ((build-tree-p (parse-build-tree-p tree-builder))
+  (let* ((*prediction-input-cache* (make-hash-table :test 'eq))
+         (cnvrs/runtime::*conflict-workspace* (cnvrs/runtime::make-conflict-workspace))
+         (build-tree-p (parse-build-tree-p tree-builder))
          (lexed (coerce (if lexer (lex lexer tokens) tokens)
                         'simple-vector))
-         (input (if (eq channels :all)
-                    lexed
-                    (coerce (remove-if-not (lambda (token)
-                                             (member (token-channel token) channels
-                                                     :test #'equal))
-                                           lexed)
-                            'simple-vector)))
+         (input (make-token-input lexed channels
+                                  (parser-semantic-rules grammar)))
          (position 0)
+         (physical-position (input-start-position input))
          (state-id (gethash start (parser-starts grammar)))
          (stack nil)
-         (context 0)
-         (frames (list (vector start 0 nil 0)))
+         (frames (list (vector start 0 nil 0 nil nil)))
          (pending nil)
+         (forced-set-token nil)
+         (event-state nil)
          (recoveries nil)
          (automatic-insert-position -1)
          (automatic-insert-count 0))
-    (declare (type fixnum position state-id
+    (declare (type fixnum position physical-position state-id
                    automatic-insert-position automatic-insert-count)
-             (type simple-vector lexed input))
+             (type simple-vector lexed)
+             (type (or simple-vector filtered-token-input) input))
     (when lexer
       (when lexer-supplied-p
         (check-lexer-kind-overlap (parser-starts grammar) lexer))
@@ -1238,12 +1020,8 @@ the restarts at each error site to make a different local repair."
                 do (grammar-fail
                      "~S is both a parser rule name and a lexer token kind"
                      kind))))
-    (when (parser-semantic-rules grammar)
-      (when recover
-        (grammar-fail "Recovery is not supported with semantic callbacks"))
-      (return-from parse
-        (values (parse-semantic grammar input start require-eof tree-builder)
-                nil)))
+    (when (and recover (parser-semantic-rules grammar))
+      (grammar-fail "Recovery is not supported with semantic callbacks"))
     (when (not recover)
       (let ((runner (case tree-builder
                       (:none (parser-runner grammar))
@@ -1266,25 +1044,30 @@ the restarts at each error site to make a different local repair."
                                     :token token)
                      recoveries))
              (has-token-p ()
-               (or pending (< position (length input))))
+               (or pending (< physical-position (input-size input))))
              (current-value ()
                (cond (pending (inserted-token-value (first pending)))
-                     ((< position (length input)) (aref input position))
+                     ((< physical-position (input-size input))
+                      (input-token input physical-position))
                      (t +end-of-input+)))
              (next-value ()
                (cond ((rest pending)
                       (inserted-token-value (second pending)))
                      (pending
-                      (if (< position (length input))
-                          (aref input position) +end-of-input+))
-                     ((< (1+ position) (length input))
-                      (aref input (1+ position)))
-                     (t +end-of-input+)))
+                      (if (< physical-position (input-size input))
+                          (input-token input physical-position) +end-of-input+))
+                     (t (let ((next (input-next-position input physical-position)))
+                          (if (< next (input-size input))
+                              (input-token input next) +end-of-input+)))))
              (consume-current ()
                (if pending (pop pending)
-                   (prog1 (aref input position) (incf position))))
+                   (prog1 (input-token input physical-position)
+                     (incf position)
+                     (setf physical-position
+                           (input-next-position input physical-position)))))
              (available-count ()
-               (+ (length pending) (- (length input) position)))
+               (+ (length pending)
+                  (input-remaining-count input physical-position)))
              (delete-current (count condition)
                (unless (and (integerp count) (<= 1 count)
                             (<= count (available-count)))
@@ -1294,35 +1077,12 @@ the restarts at each error site to make a different local repair."
                        (loop repeat count collect (consume-current))))
              (remaining-values ()
                (coerce (append (mapcar #'inserted-token-value pending)
-                               (coerce (subseq input position) 'list))
+                               (input-remaining-values input physical-position))
                        'vector))
              (predict-current ()
-               (let* ((state (aref (parser-states grammar) state-id))
-                      (choice (state-direct-lookahead state))
-                      (table (if (member choice '(:contextual :contextual-two))
-                                 (contextual-direct-lookahead
-                                  grammar state-id stack context)
-                                 choice))
-                      (direct-table (if (direct-choice-p table)
-                                        (direct-choice-table table) table))
-                      (direct (and (hash-table-p direct-table) (has-token-p)
-                                   (gethash (token-key (current-value))
-                                            direct-table)))
-                      (two-token (and (two-token-choice-p table)
-                                      (has-token-p)
-                                      (gethash (token-key (current-value))
-                                               (two-token-choice-table table))))
-                      (two-token-result
-                        (if (hash-table-p two-token)
-                            (gethash (token-key (next-value)) two-token)
-                            two-token)))
-                 (cond (direct (1- direct))
-                       (two-token-result (1- two-token-result))
-                       ((direct-choice-p table)
-                        (direct-choice-default-alternative table))
-                       (pending
-                        (predict grammar state-id stack (remaining-values) 0))
-                       (t (predict grammar state-id stack input position)))))
+               (if pending
+                   (predict grammar state-id stack (remaining-values) 0)
+                   (predict grammar state-id stack input physical-position)))
              (inject (values condition &optional (required nil required-p))
                (let ((items (coerce values 'list)))
                  (unless items (error "INSERT-TOKENS requires a nonempty sequence"))
@@ -1344,10 +1104,7 @@ the restarts at each error site to make a different local repair."
              (can-insert-before-current-p (target)
                (and (has-token-p)
                     (member (token-key (current-value))
-                            (possible-tokens grammar
-                                             (list (make-configuration
-                                                    :state target :stack stack
-                                                    :alternative 0)))
+                            (possible-tokens grammar target stack)
                             :test #'equal))))
       (handler-bind
           ((mismatched-token
@@ -1375,20 +1132,32 @@ the restarts at each error site to make a different local repair."
                (when recover
                  (if (has-token-p)
                      (invoke-restart 'delete-tokens)
-                     (invoke-restart 'choose-alternative 0)))))
+                     (invoke-restart 'choose-alternative
+                                     (or (state-exit-alternative
+                                          (aref (parser-states grammar) state-id))
+                                         0))))))
            (unexpected-input
              (lambda (condition)
                (declare (ignore condition))
                (when recover (invoke-restart 'discard-input)))))
         (loop
           (let* ((state (aref (parser-states grammar) state-id))
-                 (stop (state-stop-rule state)))
+                 (stop (state-stop-rule state))
+                 (*prediction-precedence* (aref (first frames) 3)))
+            (when (and build-tree-p (not (eql state-id event-state)))
+              (setf event-state state-id)
+              (let ((frame (first frames)))
+                (multiple-value-bind (children label labels)
+                    (apply-atn-events (state-events state) tree-builder (aref frame 0)
+                                      (aref frame 2) (aref frame 1) position
+                                      (aref frame 4) (aref frame 5))
+                  (setf (aref frame 2) children (aref frame 4) label (aref frame 5) labels))))
             (when stop
               (let* ((frame (pop frames))
                      (completed (when build-tree-p
-                                  (make-parse-node tree-builder (aref frame 0)
+                                  (make-labeled-parse-node tree-builder (aref frame 0)
                                                    (nreverse (aref frame 2))
-                                                   (aref frame 1) position))))
+                                                   (aref frame 1) position (aref frame 4)))))
                 (unless (eq tree-builder :none)
                   (parse-rule-exit tree-builder
                                    (visible-rule grammar (aref frame 0))
@@ -1397,7 +1166,6 @@ the restarts at each error site to make a different local repair."
                     (progn
                       (when build-tree-p
                         (push completed (aref (first frames) 2)))
-                      (setf context (aref frame 3))
                       (setf state-id (pop stack)))
                     (progn
                       (when (and require-eof (has-token-p))
@@ -1412,7 +1180,10 @@ the restarts at each error site to make a different local repair."
                               (record :discard-input condition
                                       (remaining-values))
                               (setf pending nil
-                                    position (length input))))))
+                                    position (+ position
+                                                (input-remaining-count
+                                                 input physical-position))
+                                    physical-position (input-size input))))))
                       (return (values (if (and build-tree-p
                                                (plusp (hash-table-count
                                                        (parser-rewrites grammar))))
@@ -1424,7 +1195,9 @@ the restarts at each error site to make a different local repair."
             (unless stop
               (let* ((edges (state-edges state))
                      (index (if (null (rest edges))
-                                0 (predict-current))))
+                                0 (or (predict-current)
+                                      (and recover (not (has-token-p))
+                                           (state-exit-alternative state))))))
                 (when (null index)
                   (let ((condition
                           (make-condition
@@ -1432,11 +1205,7 @@ the restarts at each error site to make a different local repair."
                            :token (current-value)
                            :rule (visible-rule grammar (aref (first frames) 0))
                            :expected
-                           (possible-tokens
-                            grammar
-                            (loop for edge in edges for alternative from 0
-                                  collect (configuration-after-edge
-                                           grammar edge stack alternative))))))
+                           (possible-tokens grammar state-id stack))))
                     (multiple-value-bind (action value)
                         (restart-case (error condition)
                           (delete-tokens (&optional (count 1))
@@ -1463,16 +1232,32 @@ the restarts at each error site to make a different local repair."
                          (record :choose-alternative condition value)
                          (setf index value))))))
                 (when index
-                  (let ((edge (nth index edges)))
+                  (let* ((original-edge (nth index edges))
+                         (edge (if (and forced-set-token (= state-id (car forced-set-token)))
+                                   (make-transition :kind :token :target (transition-target original-edge)
+                                                    :value (cdr forced-set-token))
+                                   original-edge)))
                     (case (transition-kind edge)
                       (:epsilon (setf state-id (transition-target edge)))
+                      (:predicate
+                       (unless (semantic-call (transition-value edge) input position)
+                         (error 'no-viable-alternative :position position
+                                :token (current-value) :expected (list 'predicate (transition-value edge))
+                                :rule (visible-rule grammar (aref (first frames) 0))))
+                       (setf state-id (transition-target edge)))
+                      (:precedence
+                       (unless (>= (transition-value edge) *prediction-precedence*)
+                         (error 'no-viable-alternative :position position :token (current-value)
+                                :expected nil :rule (aref (first frames) 0)))
+                       (setf state-id (transition-target edge)))
+                      (:action
+                       (when (transition-value edge)
+                         (semantic-call (transition-value edge) input position))
+                       (setf state-id (transition-target edge)))
                       (:call
                        (push (vector (transition-value edge) position nil
-                                     context)
+                                     (state-call-precedence state) nil nil)
                              frames)
-                       (setf context
-                             (intern-context grammar
-                                             (transition-target edge) context))
                        (push (transition-target edge) stack)
                        (unless (eq tree-builder :none)
                          (parse-rule-enter
@@ -1480,51 +1265,70 @@ the restarts at each error site to make a different local repair."
                           (visible-rule grammar (transition-value edge)) position))
                        (setf state-id (gethash (transition-value edge)
                                                (parser-starts grammar))))
-                      (:not-token
-                       (if (and (has-token-p)
-                                (not (member (token-key (current-value))
-                                             (transition-value edge)
-                                             :test #'equal)))
-                           (let ((start-position position)
-                                 (token (consume-current)))
-                             (unless (eq tree-builder :none)
-                               (parse-token-consumed tree-builder token
-                                                     start-position position))
-                             (when build-tree-p
-                               (push token (aref (first frames) 2)))
+                      ((:not-token :token-set :wildcard)
+                       (if (or (and (eq (transition-kind edge) :token-set)
+                                    (not (has-token-p))
+                                    (member +end-of-input+ (transition-value edge)))
+                               (and (has-token-p)
+                                    (case (transition-kind edge)
+                                      (:wildcard t)
+                                      (:token-set (member (token-key (current-value)) (transition-value edge) :test #'equal))
+                                      (t (not (member (token-key (current-value))
+                                                      (transition-value edge) :test #'equal))))))
+                           (progn
+                             (when (has-token-p)
+                               (let ((start-position position) (token (consume-current)))
+                                 (unless (eq tree-builder :none)
+                                   (parse-token-consumed tree-builder token start-position position))
+                                 (when build-tree-p (push token (aref (first frames) 2)))))
                              (setf state-id (transition-target edge)))
-                           (let ((condition
-                                   (make-condition
-                                    'mismatched-token :position position
-                                    :token (current-value)
-                                    :expected (list 'not-token
-                                                    (transition-value edge))
-                                    :rule (visible-rule
-                                           grammar (aref (first frames) 0))
-                                    :next-state (transition-target edge))))
-                             (multiple-value-bind (action count)
+                           (let* ((set-p (eq (transition-kind edge) :token-set))
+                                  (condition
+                                    (apply #'make-condition
+                                           (if set-p 'no-viable-alternative 'mismatched-token)
+                                           :position position :token (current-value)
+                                           :expected (if set-p (transition-value edge)
+                                                         (list 'not-token (transition-value edge)))
+                                           :rule (visible-rule grammar (aref (first frames) 0))
+                                           (unless set-p (list :next-state (transition-target edge))))))
+                             (multiple-value-bind (action value)
                                  (restart-case (error condition)
+                                   (choose-alternative (alternative)
+                                     :test (lambda (condition) (declare (ignore condition)) set-p)
+                                     (values :choose alternative))
+                                   (insert-tokens (&optional values)
+                                     :test (lambda (condition) (declare (ignore condition)) set-p)
+                                     (values :insert-many values))
                                    (delete-tokens (&optional (count 1))
                                      :report "Delete tokens and retry."
-                                     :test (lambda (condition)
-                                             (declare (ignore condition))
-                                             (has-token-p))
+                                     :test (lambda (condition) (declare (ignore condition)) (has-token-p))
                                      (values :delete-many count)))
-                               (when (eq action :delete-many)
-                                 (delete-current count condition))))))
+                               (case action
+                                 (:delete-many (delete-current value condition))
+                                 (:insert-many (inject value condition))
+                                 (:choose
+                                  (unless (and (integerp value) (<= 0 value)
+                                               (< value (length (transition-value edge))))
+                                    (error "Invalid alternative ~S" value))
+                                  (record :choose-alternative condition value)
+                                  (setf forced-set-token
+                                        (cons state-id (nth value (transition-value edge))))))))))
                       (:token
                        (let ((expected (transition-value edge)))
-                         (if (and (has-token-p)
-                                  (equal (token-key (current-value)) expected))
+                         (if (or (and (eq expected +end-of-input+) (not (has-token-p)))
+                                 (and (has-token-p)
+                                      (equal (token-key (current-value)) expected)))
                              (progn
-                               (let ((start-position position)
+                               (unless (eq expected +end-of-input+)
+                                (let ((start-position position)
                                      (token (consume-current)))
                                  (unless (eq tree-builder :none)
                                    (parse-token-consumed tree-builder token
                                                          start-position position))
                                  (when build-tree-p
-                                   (push token (aref (first frames) 2))))
-                               (setf state-id (transition-target edge)))
+                                   (push token (aref (first frames) 2)))))
+                               (setf forced-set-token nil
+                                     state-id (transition-target edge)))
                              (let ((condition
                                      (make-condition
                                       'mismatched-token :position position

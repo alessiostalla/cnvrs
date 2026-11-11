@@ -1,0 +1,22 @@
+{
+  "baseline": "/private/tmp/cnvrs-config-before",
+  "candidate_revision": "7f3f87ac081dbe9188f43f1a926c89fd29292b23",
+  "machine": "arm64",
+  "runtime": "SBCL 2.4.0",
+  "heap_mib": 2048,
+  "harness_sha256": "6fc5304b1095dafb3a22ed8cc580b25bfde2183410b963e4e9567d3598cef660",
+  "source_sha256": {
+    "before": {
+      "src/runtime/prediction-context.lisp": "dcd716a442bea38954dfb9c8c2e2bf580e198ac9f605b50474c46b37da5c19e0",
+      "src/runtime/atn-config.lisp": "52578da2268dc00ce82345f735e6468a864d866be961ebce1e52c52f048f8f62",
+      "src/runtime/parser-atn-simulator.lisp": "a95233670efb93031beb6747d3c7a22907a942a0fcff6bfac41bd5b3fed6b2ab",
+      "src/runtime/lexer-atn-simulator.lisp": "464e8d1d34407df663cd3f22fdcc88de7eb63bbfafadd3610be4b59c3305cfcb"
+    },
+    "after": {
+      "src/runtime/prediction-context.lisp": "dcd716a442bea38954dfb9c8c2e2bf580e198ac9f605b50474c46b37da5c19e0",
+      "src/runtime/atn-config.lisp": "3231d80923d403c4868c084540f67341d123d42b7e826a887a74c49ff6f35c55",
+      "src/runtime/parser-atn-simulator.lisp": "04754ed14bf24e21bc79c0deb3583ffe36aaa90403c84e58d72a26f18a4b75f0",
+      "src/runtime/lexer-atn-simulator.lisp": "464e8d1d34407df663cd3f22fdcc88de7eb63bbfafadd3610be4b59c3305cfcb"
+    }
+  }
+}

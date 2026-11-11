@@ -1,5 +1,10 @@
 # IRI parser prediction benchmark
 
+The current Java-reference parser/lexer comparison is in
+[bench/java-reference](../java-reference/README.md). The experiments below describe the
+superseded predictor and require its historical implementation; their cache
+strategies and compiled-DFA hooks are not supported by the current runtime.
+
 This benchmark compiles the unchanged grammars-v4 IRI grammar in
 `test/fixtures/IRI.g4`. It parses a fixed 217-character IRI with 216 tokens,
 using the generated recognition runner without a tree. Lexing and grammar

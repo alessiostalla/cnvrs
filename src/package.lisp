@@ -1,11 +1,18 @@
 (defpackage #:cnvrs
   (:use #:cl)
   (:shadow #:parse-error)
-  (:export #:seq #:? #:*? #:+? #:?? #:range #:one-of #:not-one-of #:any
+  (:export #:seq #:? #:*? #:+? #:?? #:range #:unicode-property #:one-of #:not-one-of #:any #:eof
            #:label #:alt-label #:token #:not-token #:predicate #:action #:right
-           #:antlr-precedence
+           #:source-order-precedence
            #:and #:or #:* #:+
-           #:compile-grammar #:compile-lexer #:compile-cached-dfa #:parse #:lex
+           #:compile-grammar #:compile-lexer #:parse #:lex
+           #:make-lexer-state #:lexer-next-token #:*lexer-state*
+           #:lexer-state-source #:lexer-state-start-line #:lexer-state-start-column
+           #:lexer-simulator #:lexer-state-position #:lexer-state-line #:lexer-state-column #:lexer-state-start
+           #:lexer-state-mode #:lexer-state-mode-stack #:lexer-state-type #:lexer-state-channel #:lexer-state-text
+           #:lexeme-line #:lexeme-column #:skip-character
+           #:lexical-error-failed-position #:lexical-error-line #:lexical-error-column
+           #:input-token-at #:input-token-count
            #:ensure-compiled #:clone-compiled #:clear-cache
            #:make-parse-node #:parse-node-components
            #:parse-build-tree-p #:parse-rule-enter #:parse-token-consumed
@@ -13,15 +20,14 @@
            #:make-cache #:cache-get-or-compute #:cache-clear #:cache-count
            #:cache-entries
            #:parser-cache-backend #:parser-full-context-strategy
-           #:make-full-context-start
            #:compiled-lexer-cache-backend
            #:compiled-lexer-cache
            #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
-           #:parser-metadata #:parser-definition-metadata
+           #:parser-metadata #:parser-prediction-simulator #:parser-definition-metadata
            #:parser-definition-parser-package #:parser-definition-lexer-package
            #:parser-tree-builder #:parser-runner #:parser-node-runner
-           #:parser-decisions #:parser-sll-decisions #:parser-direct-decisions
+           #:parser-decisions
            #:state-id #:state-edges #:state-stop-rule #:state-exit-alternative
            #:state-direct-lookahead
            #:transition-kind #:transition-target #:transition-value
@@ -33,7 +39,7 @@
            #:compiled-lexer-set-modes
            #:lx-state-edges #:lx-state-accept
            #:lx-edge-kind #:lx-edge-target #:lx-edge-value
-           #:define-parser #:in-parser #:defrule #:with-mode
+           #:defparser #:use #:defrule #:with-mode
            #:parser-definition-p #:lexer-matcher
            #:grammar-error #:parse-error
            #:lexical-error #:lexical-error-position #:lexical-error-character

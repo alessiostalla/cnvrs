@@ -1,0 +1,393 @@
+T-SQL preparation succeeded.
+WARM SELECT RECOGNITION MODE cpu TOKENS 2949
+Evaluation took:
+  13.100 seconds of real time
+  12.854301 seconds of total run time (12.747792 user, 0.106509 system)
+  [ Real times consist of 0.321 seconds GC time, and 12.779 seconds non-GC time. ]
+  [ Run times consist of 0.315 seconds GC time, and 12.540 seconds non-GC time. ]
+  98.12% CPU
+  10,932,753,136 bytes consed
+  
+
+Number of samples:   4534
+Sample interval:     0.001 seconds
+Total sampling time: 4.5340004 seconds
+Graph cycles:        0
+Sampled threads:
+   #<THREAD "finalizer" RUNNING {70090D0033}> (40/1048576 bytes, 1 hash buckets)
+   #<THREAD "main thread" RUNNING {70090D0203}> (22096/1048576 bytes, 911 hash buckets)
+
+                               Callers
+                 Total.     Function
+ Count     %  Count     %      Callees
+------------------------------------------------------------------------
+  1388  30.6   1388  30.6   CNVRS/RUNTIME::CLOSURE-WORK [1]
+------------------------------------------------------------------------
+   323   7.1    323   7.1   SB-IMPL::GETHASH/EQL [2]
+------------------------------------------------------------------------
+   310   6.8    310   6.8   CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE [3]
+------------------------------------------------------------------------
+   283   6.2    283   6.2   CNVRS/RUNTIME:CONFIG-SET-ADD [4]
+------------------------------------------------------------------------
+   262   5.8    262   5.8   foreign function __bzero [5]
+------------------------------------------------------------------------
+   176   3.9    176   3.9   CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE [6]
+------------------------------------------------------------------------
+   172   3.8    172   3.8   CNVRS/RUNTIME::CONTEXT-STRUCTURALLY-EQUAL [7]
+------------------------------------------------------------------------
+   160   3.5    160   3.5   CNVRS/RUNTIME:SINGLETON-CONTEXT [8]
+------------------------------------------------------------------------
+   117   2.6    117   2.6   SB-IMPL::PUTHASH/EQL [9]
+------------------------------------------------------------------------
+   102   2.2    102   2.2   CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT [10]
+------------------------------------------------------------------------
+   101   2.2    101   2.2   foreign function __pthread_sigmask [11]
+------------------------------------------------------------------------
+    98   2.2     98   2.2   SB-IMPL::GROW-HASH-TABLE [12]
+------------------------------------------------------------------------
+    92   2.0     92   2.0   SB-IMPL::REHASH [13]
+------------------------------------------------------------------------
+    73   1.6     73   1.6   ALLOCATE-VECTOR-ON-HEAP [14]
+------------------------------------------------------------------------
+    70   1.5     70   1.5   (FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE) [15]
+------------------------------------------------------------------------
+    66   1.5     66   1.5   SB-IMPL::GETHASH3 [16]
+------------------------------------------------------------------------
+    60   1.3     60   1.3   foreign function __psynch_cvwait [17]
+------------------------------------------------------------------------
+    59   1.3     59   1.3   CNVRS/RUNTIME:COMPUTE-REACH-SET [18]
+------------------------------------------------------------------------
+    57   1.3     57   1.3   CNVRS/RUNTIME:MERGE-CONTEXTS [19]
+------------------------------------------------------------------------
+    42   0.9     42   0.9   (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP") [20]
+------------------------------------------------------------------------
+    39   0.9     39   0.9   CNVRS/RUNTIME::MERGE-ARRAYS [21]
+------------------------------------------------------------------------
+    33   0.7     33   0.7   SB-KERNEL:%MEMBER-EQ [22]
+------------------------------------------------------------------------
+    32   0.7     32   0.7   CNVRS/RUNTIME::STOP-CONFIG-P [23]
+------------------------------------------------------------------------
+    31   0.7     31   0.7   CNVRS/RUNTIME::CONTEXT-NODE [24]
+------------------------------------------------------------------------
+    31   0.7     31   0.7   SB-VM::EXTEND-VECTOR [25]
+------------------------------------------------------------------------
+    22   0.5     22   0.5   CNVRS/RUNTIME::MERGE-CACHE-GET [26]
+------------------------------------------------------------------------
+    21   0.5     21   0.5   VECTOR-PUSH-EXTEND [27]
+------------------------------------------------------------------------
+    20   0.4     20   0.4   CNVRS/RUNTIME::COMBINE-COMMON-PARENTS [28]
+------------------------------------------------------------------------
+    18   0.4     18   0.4   SB-KERNEL:UB64-BASH-FILL [29]
+------------------------------------------------------------------------
+    16   0.4     16   0.4   SB-KERNEL:HAIRY-DATA-VECTOR-SET [30]
+------------------------------------------------------------------------
+    14   0.3     14   0.3   SB-VM::SLOW-HAIRY-DATA-VECTOR-REF [31]
+------------------------------------------------------------------------
+    13   0.3     13   0.3   SB-KERNEL:%PUTHASH [32]
+------------------------------------------------------------------------
+    12   0.3     12   0.3   CNVRS/RUNTIME::MERGE-CACHE-PUT [33]
+------------------------------------------------------------------------
+    12   0.3     12   0.3   SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES [34]
+------------------------------------------------------------------------
+    12   0.3     12   0.3   (LABELS SB-IMPL::EQUAL-AUX :IN EQUAL) [35]
+------------------------------------------------------------------------
+    10   0.2     10   0.2   SB-VM::SLOW-HAIRY-DATA-VECTOR-SET [36]
+------------------------------------------------------------------------
+    10   0.2     10   0.2   CNVRS/RUNTIME::MERGE-SINGLETONS [37]
+------------------------------------------------------------------------
+     9   0.2      9   0.2   SB-KERNEL:%SINGLE-FLOAT [38]
+------------------------------------------------------------------------
+     7   0.2      7   0.2   SB-IMPL::GETHASH/EQUAL [39]
+------------------------------------------------------------------------
+     7   0.2      7   0.2   (SB-VM::OPTIMIZED-DATA-VECTOR-REF T) [40]
+------------------------------------------------------------------------
+     7   0.2      7   0.2   CNVRS/RUNTIME:UNIQUE-ALT [41]
+------------------------------------------------------------------------
+     7   0.2      7   0.2   SB-KERNEL:HAIRY-DATA-VECTOR-REF [42]
+------------------------------------------------------------------------
+     6   0.1      6   0.1   SB-KERNEL::FIXNUM-GCD [43]
+------------------------------------------------------------------------
+     5   0.1      5   0.1   (LAMBDA (CNVRS::KEY) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [44]
+------------------------------------------------------------------------
+     5   0.1      5   0.1   SB-IMPL::GETHASH/EQ [45]
+------------------------------------------------------------------------
+     5   0.1      5   0.1   (SB-VM::OPTIMIZED-DATA-VECTOR-SET T) [46]
+------------------------------------------------------------------------
+     4   0.1      4   0.1   SB-IMPL::%ALLOC-HASH-TABLE [47]
+------------------------------------------------------------------------
+     4   0.1      4   0.1   SB-KERNEL:VECTOR-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS [48]
+------------------------------------------------------------------------
+     4   0.1      4   0.1   RETURN-MULTIPLE [49]
+------------------------------------------------------------------------
+     4   0.1      4   0.1   SB-KERNEL:%MEMBER-TEST [50]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   SB-KERNEL::INTEGER-/-INTEGER [51]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   SB-UNIX::WITH-DEFERRABLE-SIGNALS-UNBLOCKED [52]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   SB-THREAD::CALL-WITH-MUTEX [53]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   CNVRS/RUNTIME::EXEC-ATN [54]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [55]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [56]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   (FLET "WITHOUT-INTERRUPTS-BODY-1" :IN SB-THREAD::CALL-WITH-MUTEX) [57]
+------------------------------------------------------------------------
+     3   0.1      3   0.1   SB-IMPL::MAKE-HASH-TABLE-USING-DEFAULTS [58]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   SB-KERNEL:TWO-ARG-< [59]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (FLET "CLEANUP-FUN-0" :IN CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT) [60]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   SB-VM::ALLOCATE-VECTOR-WITH-WIDETAG [61]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   SB-C::CHECK-DS-LIST [62]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   EQUAL [63]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [64]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   CNVRS/RUNTIME:ADAPTIVE-PREDICT [65]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [66]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [67]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [68]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [69]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [70]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   (LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2.) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [71]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   CNVRS::PREDICTION-TOKEN-INPUT [72]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   CNVRS::RUNTIME-ADAPTIVE-PREDICT [73]
+------------------------------------------------------------------------
+     2   0.0      2   0.0   CNVRS/RUNTIME:COMPUTE-START-STATE [74]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   SB-EXT:FLOAT-INFINITY-P [75]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [76]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LABELS SB-IMPL::SXHASH-RECURSE :IN SXHASH) [77]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME:CONTEXT-FROM-STACK [78]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CLOSURE-TRAMP [79]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   foreign function gc_find_freeish_pages [80]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [81]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [82]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [83]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [84]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [85]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS:STATE-ID CNVRS::START-POSITION CNVRS::CHILDREN CNVRS:LABEL LABELS) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [86]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [87]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [88]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS:STATE-ID CNVRS::START-POSITION CNVRS::CHILDREN CNVRS:LABEL LABELS) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [89]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME::EVALUATE-PREDICTIONS [90]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [91]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [92]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN CNVRS::MAKE-CHUNKED-RULE-RUNNER) [93]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [94]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS::PREDICT [95]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   SB-THREAD::%TRY-MUTEX [96]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   foreign function tlv_get_addr [97]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT [98]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   FLOOR [99]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [100]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [101]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   SB-THREAD:GRAB-MUTEX [102]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   SYMBOL-FUNCTION [103]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME::MERGE-ROOT [104]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME::CONTEXT-CACHE-ADD [105]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [106]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (FLET SB-UNIX::BODY :IN SB-THREAD::CALL-WITH-MUTEX) [107]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS::DIRECT-CHOICE-INDEX [108]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   LIST-ALLOC-TRAMP [109]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME::GET-EXISTING-TARGET-STATE [110]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (FLET "CLEANUP-FUN-4" :IN SB-THREAD::CALL-WITH-MUTEX) [111]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (FLET SB-IMPL::BODY :IN SB-IMPL::PUTHASH/WEAK) [112]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME:ADAPTIVE-PREDICT) [113]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [114]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [115]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp") [116]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME::RUNTIME-TRACE [117]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   SB-KERNEL:TWO-ARG-> [118]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   HASH-TABLE-SIZE [119]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   foreign function listify_rest_arg [120]
+------------------------------------------------------------------------
+     1   0.0      1   0.0   CNVRS/RUNTIME:MAKE-ATN-CONFIG [121]
+------------------------------------------------------------------------
+
+
+           Self        Total        Cumul
+  Nr  Count     %  Count     %  Count     %    Calls  Function
+------------------------------------------------------------------------
+   1   1388  30.6   1388  30.6   1388  30.6        -  CNVRS/RUNTIME::CLOSURE-WORK
+   2    323   7.1    323   7.1   1711  37.7        -  SB-IMPL::GETHASH/EQL
+   3    310   6.8    310   6.8   2021  44.6        -  CNVRS/RUNTIME::CLOSURE-CHECKING-STOP-STATE
+   4    283   6.2    283   6.2   2304  50.8        -  CNVRS/RUNTIME:CONFIG-SET-ADD
+   5    262   5.8    262   5.8   2566  56.6        -  foreign function __bzero
+   6    176   3.9    176   3.9   2742  60.5        -  CNVRS/RUNTIME::CAN-DROP-LOOP-ENTRY-EDGE-IN-LEFT-RECURSIVE-RULE
+   7    172   3.8    172   3.8   2914  64.3        -  CNVRS/RUNTIME::CONTEXT-STRUCTURALLY-EQUAL
+   8    160   3.5    160   3.5   3074  67.8        -  CNVRS/RUNTIME:SINGLETON-CONTEXT
+   9    117   2.6    117   2.6   3191  70.4        -  SB-IMPL::PUTHASH/EQL
+  10    102   2.2    102   2.2   3293  72.6        -  CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT
+  11    101   2.2    101   2.2   3394  74.9        -  foreign function __pthread_sigmask
+  12     98   2.2     98   2.2   3492  77.0        -  SB-IMPL::GROW-HASH-TABLE
+  13     92   2.0     92   2.0   3584  79.0        -  SB-IMPL::REHASH
+  14     73   1.6     73   1.6   3657  80.7        -  ALLOCATE-VECTOR-ON-HEAP
+  15     70   1.5     70   1.5   3727  82.2        -  (FLET SB-IMPL::REALLOC :IN SB-IMPL::GROW-HASH-TABLE)
+  16     66   1.5     66   1.5   3793  83.7        -  SB-IMPL::GETHASH3
+  17     60   1.3     60   1.3   3853  85.0        -  foreign function __psynch_cvwait
+  18     59   1.3     59   1.3   3912  86.3        -  CNVRS/RUNTIME:COMPUTE-REACH-SET
+  19     57   1.3     57   1.3   3969  87.5        -  CNVRS/RUNTIME:MERGE-CONTEXTS
+  20     42   0.9     42   0.9   4011  88.5        -  (FLET SB-IMPL::INSERT-AT :IN "SYS:SRC;CODE;TARGET-HASH-TABLE.LISP")
+  21     39   0.9     39   0.9   4050  89.3        -  CNVRS/RUNTIME::MERGE-ARRAYS
+  22     33   0.7     33   0.7   4083  90.1        -  SB-KERNEL:%MEMBER-EQ
+  23     32   0.7     32   0.7   4115  90.8        -  CNVRS/RUNTIME::STOP-CONFIG-P
+  24     31   0.7     31   0.7   4146  91.4        -  CNVRS/RUNTIME::CONTEXT-NODE
+  25     31   0.7     31   0.7   4177  92.1        -  SB-VM::EXTEND-VECTOR
+  26     22   0.5     22   0.5   4199  92.6        -  CNVRS/RUNTIME::MERGE-CACHE-GET
+  27     21   0.5     21   0.5   4220  93.1        -  VECTOR-PUSH-EXTEND
+  28     20   0.4     20   0.4   4240  93.5        -  CNVRS/RUNTIME::COMBINE-COMMON-PARENTS
+  29     18   0.4     18   0.4   4258  93.9        -  SB-KERNEL:UB64-BASH-FILL
+  30     16   0.4     16   0.4   4274  94.3        -  SB-KERNEL:HAIRY-DATA-VECTOR-SET
+  31     14   0.3     14   0.3   4288  94.6        -  SB-VM::SLOW-HAIRY-DATA-VECTOR-REF
+  32     13   0.3     13   0.3   4301  94.9        -  SB-KERNEL:%PUTHASH
+  33     12   0.3     12   0.3   4313  95.1        -  CNVRS/RUNTIME::MERGE-CACHE-PUT
+  34     12   0.3     12   0.3   4325  95.4        -  SB-IMPL::RECOMPUTE-HT-VECTOR-SIZES
+  35     12   0.3     12   0.3   4337  95.7        -  (LABELS SB-IMPL::EQUAL-AUX :IN EQUAL)
+  36     10   0.2     10   0.2   4347  95.9        -  SB-VM::SLOW-HAIRY-DATA-VECTOR-SET
+  37     10   0.2     10   0.2   4357  96.1        -  CNVRS/RUNTIME::MERGE-SINGLETONS
+  38      9   0.2      9   0.2   4366  96.3        -  SB-KERNEL:%SINGLE-FLOAT
+  39      7   0.2      7   0.2   4373  96.4        -  SB-IMPL::GETHASH/EQUAL
+  40      7   0.2      7   0.2   4380  96.6        -  (SB-VM::OPTIMIZED-DATA-VECTOR-REF T)
+  41      7   0.2      7   0.2   4387  96.8        -  CNVRS/RUNTIME:UNIQUE-ALT
+  42      7   0.2      7   0.2   4394  96.9        -  SB-KERNEL:HAIRY-DATA-VECTOR-REF
+  43      6   0.1      6   0.1   4400  97.0        -  SB-KERNEL::FIXNUM-GCD
+  44      5   0.1      5   0.1   4405  97.2        -  (LAMBDA (CNVRS::KEY) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  45      5   0.1      5   0.1   4410  97.3        -  SB-IMPL::GETHASH/EQ
+  46      5   0.1      5   0.1   4415  97.4        -  (SB-VM::OPTIMIZED-DATA-VECTOR-SET T)
+  47      4   0.1      4   0.1   4419  97.5        -  SB-IMPL::%ALLOC-HASH-TABLE
+  48      4   0.1      4   0.1   4423  97.6        -  SB-KERNEL:VECTOR-HAIRY-DATA-VECTOR-REF/CHECK-BOUNDS
+  49      4   0.1      4   0.1   4427  97.6        -  RETURN-MULTIPLE
+  50      4   0.1      4   0.1   4431  97.7        -  SB-KERNEL:%MEMBER-TEST
+  51      3   0.1      3   0.1   4434  97.8        -  SB-KERNEL::INTEGER-/-INTEGER
+  52      3   0.1      3   0.1   4437  97.9        -  SB-UNIX::WITH-DEFERRABLE-SIGNALS-UNBLOCKED
+  53      3   0.1      3   0.1   4440  97.9        -  SB-THREAD::CALL-WITH-MUTEX
+  54      3   0.1      3   0.1   4443  98.0        -  CNVRS/RUNTIME::EXEC-ATN
+  55      3   0.1      3   0.1   4446  98.1        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  56      3   0.1      3   0.1   4449  98.1        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  57      3   0.1      3   0.1   4452  98.2        -  (FLET "WITHOUT-INTERRUPTS-BODY-1" :IN SB-THREAD::CALL-WITH-MUTEX)
+  58      3   0.1      3   0.1   4455  98.3        -  SB-IMPL::MAKE-HASH-TABLE-USING-DEFAULTS
+  59      2   0.0      2   0.0   4457  98.3        -  SB-KERNEL:TWO-ARG-<
+  60      2   0.0      2   0.0   4459  98.3        -  (FLET "CLEANUP-FUN-0" :IN CNVRS/RUNTIME::CONFIG-SET-SINGLE-VIABLE-ALT)
+  61      2   0.0      2   0.0   4461  98.4        -  SB-VM::ALLOCATE-VECTOR-WITH-WIDETAG
+  62      2   0.0      2   0.0   4463  98.4        -  SB-C::CHECK-DS-LIST
+  63      2   0.0      2   0.0   4465  98.5        -  EQUAL
+  64      2   0.0      2   0.0   4467  98.5        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  65      2   0.0      2   0.0   4469  98.6        -  CNVRS/RUNTIME:ADAPTIVE-PREDICT
+  66      2   0.0      2   0.0   4471  98.6        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  67      2   0.0      2   0.0   4473  98.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  68      2   0.0      2   0.0   4475  98.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  69      2   0.0      2   0.0   4477  98.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  70      2   0.0      2   0.0   4479  98.8        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  71      2   0.0      2   0.0   4481  98.8        -  (LAMBDA (SB-PCL::.ARG0. SB-PCL::.ARG1. SB-PCL::.ARG2.) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  72      2   0.0      2   0.0   4483  98.9        -  CNVRS::PREDICTION-TOKEN-INPUT
+  73      2   0.0      2   0.0   4485  98.9        -  CNVRS::RUNTIME-ADAPTIVE-PREDICT
+  74      2   0.0      2   0.0   4487  99.0        -  CNVRS/RUNTIME:COMPUTE-START-STATE
+  75      1   0.0      1   0.0   4488  99.0        -  SB-EXT:FLOAT-INFINITY-P
+  76      1   0.0      1   0.0   4489  99.0        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  77      1   0.0      1   0.0   4490  99.0        -  (LABELS SB-IMPL::SXHASH-RECURSE :IN SXHASH)
+  78      1   0.0      1   0.0   4491  99.1        -  CNVRS/RUNTIME:CONTEXT-FROM-STACK
+  79      1   0.0      1   0.0   4492  99.1        -  CLOSURE-TRAMP
+  80      1   0.0      1   0.0   4493  99.1        -  foreign function gc_find_freeish_pages
+  81      1   0.0      1   0.0   4494  99.1        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  82      1   0.0      1   0.0   4495  99.1        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  83      1   0.0      1   0.0   4496  99.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  84      1   0.0      1   0.0   4497  99.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  85      1   0.0      1   0.0   4498  99.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  86      1   0.0      1   0.0   4499  99.2        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS:STATE-ID CNVRS::START-POSITION CNVRS::CHILDREN CNVRS:LABEL LABELS) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  87      1   0.0      1   0.0   4500  99.3        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  88      1   0.0      1   0.0   4501  99.3        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  89      1   0.0      1   0.0   4502  99.3        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK CNVRS:STATE-ID CNVRS::START-POSITION CNVRS::CHILDREN CNVRS:LABEL LABELS) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  90      1   0.0      1   0.0   4503  99.3        -  CNVRS/RUNTIME::EVALUATE-PREDICTIONS
+  91      1   0.0      1   0.0   4504  99.3        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  92      1   0.0      1   0.0   4505  99.4        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  93      1   0.0      1   0.0   4506  99.4        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN CNVRS::MAKE-CHUNKED-RULE-RUNNER)
+  94      1   0.0      1   0.0   4507  99.4        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+  95      1   0.0      1   0.0   4508  99.4        -  CNVRS::PREDICT
+  96      1   0.0      1   0.0   4509  99.4        -  SB-THREAD::%TRY-MUTEX
+  97      1   0.0      1   0.0   4510  99.5        -  foreign function tlv_get_addr
+  98      1   0.0      1   0.0   4511  99.5        -  CNVRS/RUNTIME::EXEC-ATN-WITH-FULL-CONTEXT
+  99      1   0.0      1   0.0   4512  99.5        -  FLOOR
+ 100      1   0.0      1   0.0   4513  99.5        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+ 101      1   0.0      1   0.0   4514  99.6        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+ 102      1   0.0      1   0.0   4515  99.6        -  SB-THREAD:GRAB-MUTEX
+ 103      1   0.0      1   0.0   4516  99.6        -  SYMBOL-FUNCTION
+ 104      1   0.0      1   0.0   4517  99.6        -  CNVRS/RUNTIME::MERGE-ROOT
+ 105      1   0.0      1   0.0   4518  99.6        -  CNVRS/RUNTIME::CONTEXT-CACHE-ADD
+ 106      1   0.0      1   0.0   4519  99.7        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+ 107      1   0.0      1   0.0   4520  99.7        -  (FLET SB-UNIX::BODY :IN SB-THREAD::CALL-WITH-MUTEX)
+ 108      1   0.0      1   0.0   4521  99.7        -  CNVRS::DIRECT-CHOICE-INDEX
+ 109      1   0.0      1   0.0   4522  99.7        -  LIST-ALLOC-TRAMP
+ 110      1   0.0      1   0.0   4523  99.8        -  CNVRS/RUNTIME::GET-EXISTING-TARGET-STATE
+ 111      1   0.0      1   0.0   4524  99.8        -  (FLET "CLEANUP-FUN-4" :IN SB-THREAD::CALL-WITH-MUTEX)
+ 112      1   0.0      1   0.0   4525  99.8        -  (FLET SB-IMPL::BODY :IN SB-IMPL::PUTHASH/WEAK)
+ 113      1   0.0      1   0.0   4526  99.8        -  (FLET SB-THREAD::WITH-MUTEX-THUNK :IN CNVRS/RUNTIME:ADAPTIVE-PREDICT)
+ 114      1   0.0      1   0.0   4527  99.8        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+ 115      1   0.0      1   0.0   4528  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+ 116      1   0.0      1   0.0   4529  99.9        -  (LAMBDA (CNVRS::GRAMMAR CNVRS::RUN CNVRS::RUNNERS CNVRS::STACK) :IN "/Users/alessio/projects/cnvrs/bench/tsql/prepare.lisp")
+ 117      1   0.0      1   0.0   4530  99.9        -  CNVRS/RUNTIME::RUNTIME-TRACE
+ 118      1   0.0      1   0.0   4531  99.9        -  SB-KERNEL:TWO-ARG->
+ 119      1   0.0      1   0.0   4532 100.0        -  HASH-TABLE-SIZE
+ 120      1   0.0      1   0.0   4533 100.0        -  foreign function listify_rest_arg
+ 121      1   0.0      1   0.0   4534 100.0        -  CNVRS/RUNTIME:MAKE-ATN-CONFIG
+------------------------------------------------------------------------
+          0   0.0                                     elsewhere

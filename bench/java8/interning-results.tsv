@@ -1,0 +1,161 @@
+kind	scope	case	process	trial	status	chars	tokens	cold_ms	allocated_bytes	retained_bytes	warm_us	warm_alloc_bytes	closures	key_lookups	arenas	total_contexts	peak_contexts	peak_stack_objects	live_arenas
+timing	closure	empty	timing-0-closure	1	ok	14	4	7.2869997	6259232	236224	1.031	655.312							
+timing	closure	empty	timing-0-closure	2	ok	14	4	2.4580002	2089328	208176	1.034	655.296							
+timing	closure	empty	timing-0-closure	3	ok	14	4	1.5600001	2089328	208256	1.071	655.296							
+timing	closure	field	timing-0-closure	1	ok	22	7	3.99	5742000	365040	2.072	1572.496							
+timing	closure	field	timing-0-closure	2	ok	22	7	5.775	5742000	362400	2.852	1572.496							
+timing	closure	field	timing-0-closure	3	ok	22	7	5.02	5742000	362960	2.0460000000000003	1572.496							
+timing	closure	return	timing-0-closure	1	ok	37	13	37.767002	54012080	3158336	18.006999999999998	8709.024							
+timing	closure	return	timing-0-closure	2	ok	37	13	37.584	54012080	3154320	16.598000000000003	8709.024							
+timing	closure	return	timing-0-closure	3	ok	37	13	43.88	54012080	3154176	14.645999	8709.024							
+timing	closure	call	timing-0-closure	1	ok	35	14	187.296	185372016	15051184	4.728000000000001	3210.176							
+timing	closure	call	timing-0-closure	2	ok	35	14	171.553	185372016	15047536	5.8979997	3210.176							
+timing	closure	call	timing-0-closure	3	ok	35	14	171.176	185372016	15047744	4.7009997	3210.176							
+timing	closure	arithmetic	timing-0-closure	1	ok	49	19	57.006	77562688	4249760	25.589000000000002	13944.496							
+timing	closure	arithmetic	timing-0-closure	2	ok	49	19	56.292	77562688	4243376	28.222	13944.496							
+timing	closure	arithmetic	timing-0-closure	3	ok	49	19	56.86	77562688	4243488	28.662	13944.496							
+timing	closure	lambda	timing-0-closure	1	ok	45	17	582.524	489115424	42545056	9.412	6028.0							
+timing	closure	lambda	timing-0-closure	2	ok	45	17	550.32996	489115424	42541056	9.061	6028.0							
+timing	closure	lambda	timing-0-closure	3	ok	45	17	547.916	489115424	42541200	9.962	6028.0							
+timing	closure	nested	timing-0-closure	1	ok	76	30	187.104	216667952	13231968	64.64399999999999	31607.088							
+timing	closure	nested	timing-0-closure	2	ok	76	30	183.02301	216667952	13220384	57.471998000000006	31607.088							
+timing	closure	nested	timing-0-closure	3	ok	76	30	182.263	216667952	13220960	57.708000000000006	31607.088							
+timing	closure	loop	timing-0-closure	1	ok	97	40	221.194	294201104	16683600	101.51800499999999	49908.67							
+timing	closure	loop	timing-0-closure	2	ok	97	40	229.835	294201104	16666784	105.11099999999999	49908.67							
+timing	closure	loop	timing-0-closure	3	ok	97	40	231.71399	294201104	16666704	96.824	49908.67							
+timing	prediction	empty	timing-0-prediction	1	ok	14	4	9.405	5926272	236368	1.173	655.328							
+timing	prediction	empty	timing-0-prediction	2	ok	14	4	1.9369999	1762816	208528	1.0500000999999999	655.312							
+timing	prediction	empty	timing-0-prediction	3	ok	14	4	1.82	1762816	208320	1.0330000000000001	655.312							
+timing	prediction	field	timing-0-prediction	1	ok	22	7	4.968	5045840	364416	2.054	1572.448							
+timing	prediction	field	timing-0-prediction	2	ok	22	7	3.661	5045840	363168	2.174	1572.448							
+timing	prediction	field	timing-0-prediction	3	ok	22	7	3.572	5045840	363216	2.0279998	1572.448							
+timing	prediction	return	timing-0-prediction	1	ok	37	13	37.378	50385872	3158736	14.264001	8709.104							
+timing	prediction	return	timing-0-prediction	2	ok	37	13	39.643	50385872	3154496	15.802	8709.104							
+timing	prediction	return	timing-0-prediction	3	ok	37	13	36.409	50385872	3153920	15.206000000000001	8709.104							
+timing	prediction	call	timing-0-prediction	1	ok	35	14	167.999	178414960	15051248	4.635	3210.32							
+timing	prediction	call	timing-0-prediction	2	ok	35	14	183.871	178414960	15048528	4.555	3210.32							
+timing	prediction	call	timing-0-prediction	3	ok	35	14	167.405	178414960	15048240	6.318	3210.32							
+timing	prediction	arithmetic	timing-0-prediction	1	ok	49	19	53.411	69554192	4250496	26.309999	13943.744							
+timing	prediction	arithmetic	timing-0-prediction	2	ok	49	19	52.66	69554192	4243872	29.288	13943.744							
+timing	prediction	arithmetic	timing-0-prediction	3	ok	49	19	52.534	69554192	4243872	25.721999999999998	13943.744							
+timing	prediction	lambda	timing-0-prediction	1	ok	45	17	597.405	480967504	42545712	9.24	6027.52							
+timing	prediction	lambda	timing-0-prediction	2	ok	45	17	593.42303	480967504	42541712	8.732	6027.52							
+timing	prediction	lambda	timing-0-prediction	3	ok	45	17	568.041	480967504	42541760	9.512001000000001	6027.52							
+timing	prediction	nested	timing-0-prediction	1	ok	76	30	177.73999	199784288	13232000	59.832	31607.168							
+timing	prediction	nested	timing-0-prediction	2	ok	76	30	160.308	199784288	13220848	59.671	31607.168							
+timing	prediction	nested	timing-0-prediction	3	ok	76	30	159.545	199784288	13221184	61.1	31607.168							
+timing	prediction	loop	timing-0-prediction	1	ok	97	40	228.64	271958592	16684128	99.17399999999999	49908.816							
+timing	prediction	loop	timing-0-prediction	2	ok	97	40	226.26599	271958592	16666976	99.61699999999999	49908.816							
+timing	prediction	loop	timing-0-prediction	3	ok	97	40	241.687	271958592	16666944	93.291	49908.816							
+timing	closure	empty	timing-1-closure	1	ok	14	4	6.488	6259152	236560	1.021	655.312							
+timing	closure	empty	timing-1-closure	2	ok	14	4	1.562	2089328	208304	0.9990000000000001	655.296							
+timing	closure	empty	timing-1-closure	3	ok	14	4	1.74	2089328	208016	0.9959999999999999	655.296							
+timing	closure	field	timing-1-closure	1	ok	22	7	4.894	5742000	364880	2.301	1572.496							
+timing	closure	field	timing-1-closure	2	ok	22	7	4.3250003	5742000	363168	2.5730000000000004	1572.496							
+timing	closure	field	timing-1-closure	3	ok	22	7	4.112	5742000	362816	2.7969999	1572.496							
+timing	closure	return	timing-1-closure	1	ok	37	13	39.128002	54012080	3158256	16.055001	8709.024							
+timing	closure	return	timing-1-closure	2	ok	37	13	40.287	54012080	3153568	15.753	8709.024							
+timing	closure	return	timing-1-closure	3	ok	37	13	44.921	54012080	3153968	14.846	8709.024							
+timing	closure	call	timing-1-closure	1	ok	35	14	178.941	185372016	15050624	4.590000000000001	3210.176							
+timing	closure	call	timing-1-closure	2	ok	35	14	172.172	185372016	15047776	5.3140004	3210.176							
+timing	closure	call	timing-1-closure	3	ok	35	14	196.66301	185372016	15047856	6.176	3210.176							
+timing	closure	arithmetic	timing-1-closure	1	ok	49	19	61.301	77562688	4249856	32.527	13944.496							
+timing	closure	arithmetic	timing-1-closure	2	ok	49	19	61.887	77562688	4243120	28.934998	13944.496							
+timing	closure	arithmetic	timing-1-closure	3	ok	49	19	64.945	77562688	4243008	29.267000000000003	13944.496							
+timing	closure	lambda	timing-1-closure	1	ok	45	17	561.541	489115424	42545280	10.168	6028.0							
+timing	closure	lambda	timing-1-closure	2	ok	45	17	548.689	489115424	42541440	11.293001	6028.0							
+timing	closure	lambda	timing-1-closure	3	ok	45	17	547.54297	489115424	42541488	8.232	6028.0							
+timing	closure	nested	timing-1-closure	1	ok	76	30	196.33	216667952	13232160	66.928	31607.088							
+timing	closure	nested	timing-1-closure	2	ok	76	30	184.494	216667952	13220320	63.148999999999994	31607.088							
+timing	closure	nested	timing-1-closure	3	ok	76	30	176.668	216667952	13220880	61.246	31607.088							
+timing	closure	loop	timing-1-closure	1	ok	97	40	227.174	294201104	16683408	104.71	49908.67							
+timing	closure	loop	timing-1-closure	2	ok	97	40	227.78	294201104	16666336	95.388	49908.67							
+timing	closure	loop	timing-1-closure	3	ok	97	40	228.97	294201104	16666752	99.638	49908.67							
+timing	prediction	empty	timing-1-prediction	1	ok	14	4	7.486	5926272	236368	1.0940001	655.328							
+timing	prediction	empty	timing-1-prediction	2	ok	14	4	2.047	1762816	208528	1.601	655.312							
+timing	prediction	empty	timing-1-prediction	3	ok	14	4	1.639	1762816	208320	1.1260001000000002	655.312							
+timing	prediction	field	timing-1-prediction	1	ok	22	7	3.5679998	5045840	364416	2.856	1572.448							
+timing	prediction	field	timing-1-prediction	2	ok	22	7	4.99	5045840	363168	2.068	1572.448							
+timing	prediction	field	timing-1-prediction	3	ok	22	7	3.528	5045840	363216	2.4459999999999997	1572.448							
+timing	prediction	return	timing-1-prediction	1	ok	37	13	39.345997	50385872	3158736	14.463999999999999	8709.104							
+timing	prediction	return	timing-1-prediction	2	ok	37	13	36.927	50385872	3154496	16.768	8709.104							
+timing	prediction	return	timing-1-prediction	3	ok	37	13	37.059002	50385872	3153920	15.128	8709.104							
+timing	prediction	call	timing-1-prediction	1	ok	35	14	182.681	178414960	15051248	5.337	3210.32							
+timing	prediction	call	timing-1-prediction	2	ok	35	14	184.963	178414960	15048528	4.6240003000000005	3210.32							
+timing	prediction	call	timing-1-prediction	3	ok	35	14	182.191	178414960	15048240	5.6499997	3210.32							
+timing	prediction	arithmetic	timing-1-prediction	1	ok	49	19	57.17	69554192	4250496	24.581	13943.744							
+timing	prediction	arithmetic	timing-1-prediction	2	ok	49	19	58.538998	69554192	4243872	27.587	13943.744							
+timing	prediction	arithmetic	timing-1-prediction	3	ok	49	19	54.629	69554192	4243872	23.869	13943.744							
+timing	prediction	lambda	timing-1-prediction	1	ok	45	17	542.839	480967504	42545712	9.239	6027.52							
+timing	prediction	lambda	timing-1-prediction	2	ok	45	17	582.797	480967504	42541712	8.11	6027.52							
+timing	prediction	lambda	timing-1-prediction	3	ok	45	17	594.437	480967504	42541760	8.088	6027.52							
+timing	prediction	nested	timing-1-prediction	1	ok	76	30	157.719	199784288	13232000	63.742004	31607.168							
+timing	prediction	nested	timing-1-prediction	2	ok	76	30	161.98	199784288	13220848	58.983000000000004	31607.168							
+timing	prediction	nested	timing-1-prediction	3	ok	76	30	171.642	199784288	13221184	66.415	31607.168							
+timing	prediction	loop	timing-1-prediction	1	ok	97	40	234.181	271958592	16684128	92.77000000000001	49908.816							
+timing	prediction	loop	timing-1-prediction	2	ok	97	40	233.836	271958592	16666976	102.53800000000001	49908.816							
+timing	prediction	loop	timing-1-prediction	3	ok	97	40	234.574	271958592	16666944	120.279	49908.816							
+timing	closure	empty	timing-2-closure	1	ok	14	4	6.3399997	6259152	236560	1.361	655.312							
+timing	closure	empty	timing-2-closure	2	ok	14	4	1.511	2089328	208304	1.377	655.296							
+timing	closure	empty	timing-2-closure	3	ok	14	4	2.199	2089328	208016	1.055	655.296							
+timing	closure	field	timing-2-closure	1	ok	22	7	5.396	5742000	364880	2.299	1572.496							
+timing	closure	field	timing-2-closure	2	ok	22	7	4.0119996	5742000	363168	2.0460000000000003	1572.496							
+timing	closure	field	timing-2-closure	3	ok	22	7	5.612	5742000	362816	2.9499999	1572.496							
+timing	closure	return	timing-2-closure	1	ok	37	13	41.871998	54012080	3158256	15.052	8709.024							
+timing	closure	return	timing-2-closure	2	ok	37	13	43.647	54012080	3153568	14.526000000000002	8709.024							
+timing	closure	return	timing-2-closure	3	ok	37	13	38.511	54012080	3153968	14.25	8709.024							
+timing	closure	call	timing-2-closure	1	ok	35	14	175.469	185372016	15050624	4.652	3210.176							
+timing	closure	call	timing-2-closure	2	ok	35	14	182.773	185372016	15047776	4.84	3210.176							
+timing	closure	call	timing-2-closure	3	ok	35	14	168.064	185372016	15047856	5.345	3210.176							
+timing	closure	arithmetic	timing-2-closure	1	ok	49	19	54.614998	77562688	4249856	25.979	13944.496							
+timing	closure	arithmetic	timing-2-closure	2	ok	49	19	51.467003	77562688	4243120	27.278	13944.496							
+timing	closure	arithmetic	timing-2-closure	3	ok	49	19	57.774	77562688	4243008	28.978	13944.496							
+timing	closure	lambda	timing-2-closure	1	ok	45	17	552.482	489115424	42545280	9.314	6028.0							
+timing	closure	lambda	timing-2-closure	2	ok	45	17	570.41504	489115424	42541440	8.207	6028.0							
+timing	closure	lambda	timing-2-closure	3	ok	45	17	522.637	489115424	42541488	9.244	6028.0							
+timing	closure	nested	timing-2-closure	1	ok	76	30	177.344	216667952	13232160	57.980999999999995	31607.088							
+timing	closure	nested	timing-2-closure	2	ok	76	30	182.112	216667952	13220320	64.83800000000001	31607.088							
+timing	closure	nested	timing-2-closure	3	ok	76	30	193.194	216667952	13220880	61.398998000000006	31607.088							
+timing	closure	loop	timing-2-closure	1	ok	97	40	231.98099	294201104	16683408	96.649	49908.67							
+timing	closure	loop	timing-2-closure	2	ok	97	40	229.178	294201104	16666336	96.40400000000001	49908.67							
+timing	closure	loop	timing-2-closure	3	ok	97	40	231.844	294201104	16666752	105.74600000000001	49908.67							
+timing	prediction	empty	timing-2-prediction	1	ok	14	4	7.565	5926272	236368	1.055	655.328							
+timing	prediction	empty	timing-2-prediction	2	ok	14	4	1.824	1762816	208528	1.4220000000000002	655.312							
+timing	prediction	empty	timing-2-prediction	3	ok	14	4	1.992	1762816	208320	1.2289999	655.312							
+timing	prediction	field	timing-2-prediction	1	ok	22	7	4.79	5045840	364416	2.0529998000000003	1572.448							
+timing	prediction	field	timing-2-prediction	2	ok	22	7	3.591	5045840	363168	2.4499999999999997	1572.448							
+timing	prediction	field	timing-2-prediction	3	ok	22	7	3.562	5045840	363216	2.059	1572.448							
+timing	prediction	return	timing-2-prediction	1	ok	37	13	37.877003	50385872	3158736	16.432	8709.104							
+timing	prediction	return	timing-2-prediction	2	ok	37	13	36.185	50385872	3154496	17.369999	8709.104							
+timing	prediction	return	timing-2-prediction	3	ok	37	13	43.260998	50385872	3153920	16.780999	8709.104							
+timing	prediction	call	timing-2-prediction	1	ok	35	14	179.389	178414960	15051248	5.675000000000001	3210.32							
+timing	prediction	call	timing-2-prediction	2	ok	35	14	172.95601	178414960	15048528	4.552	3210.32							
+timing	prediction	call	timing-2-prediction	3	ok	35	14	175.567	178414960	15048240	5.904000000000001	3210.32							
+timing	prediction	arithmetic	timing-2-prediction	1	ok	49	19	55.214	69554192	4250496	33.423	13943.744							
+timing	prediction	arithmetic	timing-2-prediction	2	ok	49	19	53.782	69554192	4243872	29.253999999999998	13943.744							
+timing	prediction	arithmetic	timing-2-prediction	3	ok	49	19	49.966	69554192	4243872	29.902	13943.744							
+timing	prediction	lambda	timing-2-prediction	1	ok	45	17	552.802	480967504	42545712	8.551	6027.52							
+timing	prediction	lambda	timing-2-prediction	2	ok	45	17	565.43304	480967504	42541712	9.897	6027.52							
+timing	prediction	lambda	timing-2-prediction	3	ok	45	17	574.97296	480967504	42541760	9.272	6027.52							
+timing	prediction	nested	timing-2-prediction	1	ok	76	30	169.59099	199784288	13232000	59.634	31607.168							
+timing	prediction	nested	timing-2-prediction	2	ok	76	30	161.99	199784288	13220848	61.244	31607.168							
+timing	prediction	nested	timing-2-prediction	3	ok	76	30	166.456	199784288	13221184	56.516	31607.168							
+timing	prediction	loop	timing-2-prediction	1	ok	97	40	217.862	271958592	16684128	99.09	49908.816							
+timing	prediction	loop	timing-2-prediction	2	ok	97	40	216.644	271958592	16666976	109.244	49908.816							
+timing	prediction	loop	timing-2-prediction	3	ok	97	40	222.92801	271958592	16666944	97.121	49908.816							
+stats	closure	empty	stats-closure	1	stats	14	4	7.456	6326080	239984			115	5221	115	1607	95	133	0
+stats	closure	field	stats-closure	1	stats	22	7	5.136	5744288	371216			200	14708	200	5114	905	1318	0
+stats	closure	return	stats-closure	1	stats	37	13	41.263	54017664	3169664			347	149621	347	52765	1970	2885	0
+stats	closure	call	stats-closure	1	stats	35	14	194.428	185375056	15058016			203	530331	203	167155	32007	46024	0
+stats	closure	arithmetic	stats-closure	1	stats	49	19	58.83	77572096	4269088			599	206700	599	82545	1970	2885	0
+stats	closure	lambda	stats-closure	1	stats	45	17	515.345	489114624	42555184			323	1467724	323	330236	32012	92051	0
+stats	closure	nested	stats-closure	1	stats	76	30	188.368	216654896	13257552			806	601876	806	216053	3941	5772	0
+stats	closure	loop	stats-closure	1	stats	97	40	235.239	294196032	16721152			1162	813326	1162	295603	5129	8648	0
+stats	prediction	empty	stats-prediction	1	stats	14	4	8.41	5926368	236448			115	5221	3	147	100	1073	0
+stats	prediction	field	stats-prediction	1	stats	22	7	4.383	5045920	364976			200	14708	6	2031	1066	1795	0
+stats	prediction	return	stats-prediction	1	stats	37	13	39.462997	50386416	3159600			347	149621	37	37471	5298	9549	0
+stats	prediction	call	stats-prediction	1	stats	35	14	199.878	178414576	15051456			203	530331	9	157581	71029	104024	0
+stats	prediction	arithmetic	stats-prediction	1	stats	49	19	50.396	69554704	4251328			599	206700	53	49206	4770	8412	0
+stats	prediction	lambda	stats-prediction	1	stats	45	17	559.914	480967312	42545776			323	1467724	15	315199	71034	184683	0
+stats	prediction	nested	stats-prediction	1	stats	76	30	180.76	199785776	13235856			806	601876	112	151902	50032	74094	0
+stats	prediction	loop	stats-prediction	1	stats	97	40	226.245	271953792	16690160			1162	813326	179	197775	11845	19886	0

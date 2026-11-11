@@ -1,0 +1,14 @@
+UTC 2026-11-08T23:03:42Z
+152100fdfaf8811f3f07646022e738650356140f
+arm64
+Apple M1 Max
+java version "24" 2025-03-18
+Java(TM) SE Runtime Environment (build 24+36-3646)
+Java HotSpot(TM) 64-Bit Server VM (build 24+36-3646, mixed mode, sharing)
+SBCL 2.4.0
+eae2dfa119a64327444672aff63e9ec35a20180dc5b8090b7a6ab85125df4d76  /tmp/cnvrs-antlr-reference/antlr-4.13.2-complete.jar
+275dd69b300e3b902def34e2fd90e2f582b4adee97a07ca13f1ac86e2f872e47  test/fixtures/IRI.g4
+16331464b1e303b6d2d4e8813f54c82b5707a56efb11eac69c0fa174e678267d  test/fixtures/runtime/Java8Lexer.g4
+ed3ec7f0181bf6e258615ba3fae8ae4d2e8eee0ad4aab474c8a11ad16cdb1940  test/fixtures/runtime/Java8Parser.g4
+66f80b8808852c2ab1cc819363c3430e7bb8c914b6c5de92a9a6a4b201490a4d  bench/java-reference/iri.txt
+c6596d344f2a6aaa72e2a37ec6a367e496843fd036fb23d88edf3029cde24f1b  bench/antlr4-grammar/Bench.java

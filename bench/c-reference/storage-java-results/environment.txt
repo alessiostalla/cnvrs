@@ -1,0 +1,29 @@
+UTC 2026-11-10T23:23:09Z
+142ce0c05eae5d458b458e5ca0ffabd0c433d383
+arm64
+java version "24" 2025-03-18
+Java(TM) SE Runtime Environment (build 24+36-3646)
+Java HotSpot(TM) 64-Bit Server VM (build 24+36-3646, mixed mode, sharing)
+SBCL 2.4.0
+eae2dfa119a64327444672aff63e9ec35a20180dc5b8090b7a6ab85125df4d76  /tmp/cnvrs-antlr-reference/antlr-4.13.2-complete.jar
+aac416eaf3a1bb409342b33eab6fae27837c654ad4c582469714bc77b2c09747  bench/c-reference/C.g4
+d34376923e47ec74e63610ccfd8a4479a684859e9ad8a0500d7d92cff863582b  bench/c-reference/examples/FuncCallAsFuncArgument.c
+3a820a38d9a8f5c1019ece5e5ca7f9f5e87dcec8a9cb93fa02419c72e550456e  bench/c-reference/examples/FuncCallwithVarArgs.c
+9fefdc6fc6d40567c0273fca313dcfb5d58e34a654d1529b977be0a90ece1185  bench/c-reference/examples/FunctionPointer.c
+fdfc2ab1e8563a455726ab0d6854d49010bca629d01584a978bf825e47022d72  bench/c-reference/examples/Wmisleading-indentation.pp.c
+136815b762676b948fd8dc79053b50a7e39bbe4f193f77fbe1ecf1a160956404  bench/c-reference/pointers.c
+7fcf32c80748d6822f924106844e03a8770b27bdcb149baa4eca2f339b693987  bench/c-reference/benchmark.lisp
+ddad3ea5d74d2a2a8abc7f78f200e286e71568e33b90b00127c7c7871dadacc4  bench/c-reference/operation-probe.lisp
+428b3fb88eabf0ffa8430070e6715536b5947fa3e794b1a2b2c82bfcaf606b22  bench/c-reference/storage-validate.lisp
+d3f98d5628c88a3ef49a8b023738f52d4faca9b766d79651380bb5d4148e3621  bench/c-reference/storage.lisp
+fe905cc9f79a8a7be7e693ecf5879116781faf9ec4cfffad033c110960028f69  bench/c-reference/warm-profile.lisp
+8a6dfb8164419c2e66f307caf42a8cf35cc85619e99527b71c90141c712ce30e  bench/c-reference/Benchmark.java
+e4400b4282a9423011477a249669c0594f96c33b89920646d5222974d7e83bf0  bench/c-reference/Operations.java
+8a38503d0f374495888c4dc7a1bb50235c5a33472fd54996d21f173fe70f043c  src/runtime/atn-config.lisp
+464e8d1d34407df663cd3f22fdcc88de7eb63bbfafadd3610be4b59c3305cfcb  src/runtime/lexer-atn-simulator.lisp
+df8cf6438f5990f971987b6ba9065903d348901c05d21aeb4f35acdcb6b7f199  src/runtime/ll1-analyzer.lisp
+d0d2326f0c2927bbf545b5d43e5c60c6eb8796b14b767e13137126c19a99faba  src/runtime/package.lisp
+748e756663c25983bc2e6d8f75565a4136f067110fdbe7e06ae72c6ab750ee4c  src/runtime/parser-atn-simulator.lisp
+e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7  src/runtime/prediction-context.lisp
+b0b7d36662c482fccf7c8211e1c8062368154c1f09fdd6e22c1ae817fac263e0  src/cnvrs.lisp
+de82fa74b27f5232d4504dee7845a558425e37d48734769112e817beb1bbbadf  src/parser-runtime.lisp

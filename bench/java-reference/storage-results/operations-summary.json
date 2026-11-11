@@ -1,0 +1,19 @@
+{
+  "counts": {
+    "ADAPTIVE": 1431,
+    "CLOSURE-CHECK": 1437208,
+    "CLOSURE-WORK": 1430300,
+    "CONFIG-ADD": 316043,
+    "EPSILON": 1737404,
+    "FALLBACK": 92,
+    "FULL-REACH": 368,
+    "FULL-START": 92,
+    "MERGE": 524143,
+    "REACH": 368,
+    "REACH-INPUT": 17378,
+    "REACH-OUTPUT": 19047,
+    "START": 92
+  },
+  "identical_counts": true,
+  "identical_ordered_decision_position_pairs": 1431
+}

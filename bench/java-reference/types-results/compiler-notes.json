@@ -1,0 +1,14 @@
+{
+  "before": {
+    "prediction-context": 145,
+    "atn-config": 153,
+    "parser-atn-simulator": 381,
+    "lexer-atn-simulator": 168
+  },
+  "after": {
+    "prediction-context": 22,
+    "atn-config": 126,
+    "parser-atn-simulator": 44,
+    "lexer-atn-simulator": 26
+  }
+}

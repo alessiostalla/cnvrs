@@ -1,0 +1,3 @@
+All runtime/harness hashes unchanged during measurement.
+All per-input character/token counts match.
+All trained cache populations match between runtimes in every phase.
