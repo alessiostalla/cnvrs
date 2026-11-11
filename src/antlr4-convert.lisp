@@ -15,6 +15,9 @@
 (defvar *antlr-parser-package* nil)
 (defvar *antlr-lexer-package* nil)
 (defvar *token-vocabulary* nil)
+(defvar *antlr-source* nil)
+(defvar *antlr-source-name* nil)
+(defvar *antlr-line-starts* nil)
 
 (defun action-expression (node predicate-p)
   (let* ((source (cnvrs:lexeme-text (first-token node)))
@@ -490,6 +493,30 @@
       (list node)
       (mapcan #'descendant-tokens (cnvrs:node-children node))))
 
+(defun rule-source (node form)
+  "Retain a portable rule-level source reference, without retaining the tree."
+  (let* ((tokens (descendant-tokens node))
+         (first (first tokens))
+         (last (car (last tokens)))
+         (start (cnvrs:lexeme-start first))
+         (end (cnvrs:lexeme-end last))
+         (line-index
+           (when *antlr-line-starts*
+             (loop with low = 0 with high = (length *antlr-line-starts*)
+                   while (< low high)
+                   for middle = (floor (+ low high) 2)
+                   do (if (<= (aref *antlr-line-starts* middle) start)
+                          (setf low (1+ middle)) (setf high middle))
+                   finally (return (1- low))))))
+    (cons (first form)
+          (list :language :antlr4 :name (cnvrs:lexeme-text first)
+                :source-name *antlr-source-name*
+                :start start :end end
+                :line (if line-index (1+ line-index) (cnvrs:lexeme-line first))
+                :column (if line-index (- start (aref *antlr-line-starts* line-index))
+                            (cnvrs:lexeme-column first))
+                :text (when *antlr-source* (subseq *antlr-source* start end))))))
+
 (defun prequel-metadata (node)
   (let ((construct (first (child-nodes node))))
     (case (cnvrs:node-rule construct)
@@ -593,7 +620,10 @@
     (dolist (rule (child-nodes (first-node tree 'rules) 'rule-spec))
       (let ((spec (first (child-nodes rule))))
         (case (cnvrs:node-rule spec)
-          (parser-rule-spec (push (parser-rule-form spec) parser-rules))
+          (parser-rule-spec
+           (let ((form (parser-rule-form spec)))
+             (push form parser-rules)
+             (push (rule-source spec form) (getf metadata :rule-sources))))
           (lexer-rule-spec (push (lexer-rule-form spec) lexer-rules)))))
     (dolist (mode (child-nodes tree 'mode-spec))
       (let ((mode-name (antlr-name (first-node mode 'identifier) t)))
@@ -623,8 +653,9 @@
                                   :lexer-package lexer-package
                                   :rules-only t))))
 
-(defun parse (source &key lexer token-vocabulary callbacks parser-package lexer-package)
+(defun parse (source &key lexer token-vocabulary callbacks parser-package lexer-package source-name)
   "Parse ANTLR4 SOURCE into a CNVRS grammar definition ready for ENSURE-COMPILED.
+SOURCE-NAME optionally labels retained rule source references (e.g. a pathname).
 For parser grammars, :LEXER optionally supplies a CNVRS lexer; otherwise
 PARSE accepts token sequences. TOKEN-VOCABULARY is an alist or EQUAL hash table
 mapping tokenVocab names (strings) to lexer definitions in :LEXER-PACKAGE.
@@ -634,6 +665,13 @@ including braces, to functions of (input position). Parser callbacks use
 INPUT-TOKEN-AT and INPUT-TOKEN-COUNT to inspect visible tokens. Use PARSE-TREE to inspect
 the syntax tree."
   (let ((*semantic-callbacks* callbacks)
+        (*antlr-source* source)
+        (*antlr-source-name* source-name)
+        (*antlr-line-starts*
+          (when (stringp source)
+            (coerce (cons 0 (loop for character across source for i from 0
+                                 when (char= character #\Newline) collect (1+ i)))
+                    'vector)))
         (parser-package (cnvrs::grammar-package parser-package "parser"))
         (lexer-package (cnvrs::grammar-package lexer-package "lexer")))
     (when (eq parser-package lexer-package)

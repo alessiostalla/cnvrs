@@ -24,7 +24,7 @@
            #:compiled-lexer-cache
            #:parser-p #:parser-states #:parser-starts #:parser-stops
            #:parser-default-rule #:parser-lexer #:parser-rewrites
-           #:parser-metadata #:parser-prediction-simulator #:parser-definition-metadata
+           #:parser-metadata #:parser-source-rules #:parser-prediction-simulator #:parser-definition-metadata
            #:parser-definition-parser-package #:parser-definition-lexer-package
            #:parser-tree-builder #:parser-runner #:parser-node-runner
            #:parser-decisions

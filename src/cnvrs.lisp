@@ -32,7 +32,7 @@
 (defvar *prediction-precedence* 0)
 (defstruct parser states starts stops default-rule lexer (tree-builder :node)
   (rewrites (make-hash-table :test 'eq))
-  has-negated-tokens metadata semantic-rules
+  has-negated-tokens metadata semantic-rules source-rules
   (cache-backend :hash-table)
   (full-context-strategy :recompute)
   decisions token-keys token-index runner node-runner
@@ -377,7 +377,8 @@ Caller-specific caches and custom full-context start hooks are unsupported."
   (resolve-full-context-strategy full-context-strategy)
   (unless (and (listp definitions) definitions)
     (grammar-fail "Expected a nonempty list of rule definitions"))
-  (let* ((names (make-hash-table :test 'eq))
+  (let* ((definitions-source definitions)
+        (names (make-hash-table :test 'eq))
         (nullable (make-hash-table :test 'eq))
         (rewrites nil)
         (*parser-rule-packages*
@@ -425,7 +426,7 @@ Caller-specific caches and custom full-context start hooks are unsupported."
                                    :starts (make-hash-table :test 'eq)
                                    :stops (make-hash-table :test 'eq)
                                    :default-rule default-rule :lexer lexer
-                                   :metadata metadata
+                                   :metadata metadata :source-rules definitions-source
                                    :tree-builder tree-builder
                                    :rewrites rewrites
                                    :cache-backend cache-backend

@@ -73,7 +73,8 @@
    'vector))
 
 (defun frozen-parser (parser)
-  (list :states (frozen-states (parser-states parser) t)
+  (list :source-rules (parser-source-rules parser)
+        :states (frozen-states (parser-states parser) t)
         :starts (frozen-table (parser-starts parser))
         :stops (frozen-table (parser-stops parser))
         :rewrites (frozen-table (parser-rewrites parser))
@@ -99,6 +100,7 @@
            :lexer lexer :tree-builder tree-builder
            :full-context-strategy full-context-strategy
            :cache-backend cache-backend :metadata metadata
+           :source-rules (getf data :source-rules)
            :decisions (make-cache cache-backend)
            :runner runner :node-runner node-runner)))
     (initialize-token-index parser)

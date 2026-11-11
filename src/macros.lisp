@@ -111,6 +111,7 @@
         (imported-names (make-hash-table :test 'eq))
         (imported-origins (make-hash-table :test 'eq))
         (origins (make-hash-table :test 'eq))
+        (imported-sources nil)
         (rules nil))
     (dolist (form forms)
       (let* ((rule (normalize-rule-form form
@@ -159,6 +160,9 @@
                             name))
             (unless (gethash name local-names)
               (cond ((null previous)
+                     (let ((reference (assoc name (getf (parser-definition-metadata source)
+                                                       :rule-sources))))
+                       (when reference (push reference imported-sources)))
                      (setf (gethash name imported-names) rule)
                      (setf (gethash name imported-origins) origin
                            (gethash name origins) origin)
@@ -168,6 +172,11 @@
                                    name (parser-definition-name definition)))))))))
     (setf rules (nreverse rules))
     (setf rules (nconc rules local-rules))
+    (when imported-sources
+      (let ((metadata (copy-list (parser-definition-metadata definition))))
+        (setf (getf metadata :rule-sources)
+              (append (getf metadata :rule-sources) (nreverse imported-sources))
+              (parser-definition-metadata definition) metadata)))
     (unless rules
       (grammar-fail "Definition ~S needs at least one rule"
                     (parser-definition-name definition)))
@@ -352,7 +361,14 @@
               (,cache-variable ,cache-input)
               (,tree-variable ,tree-input)
               (,strategy-variable ,strategy-input)
-              (,metadata-variable ,metadata-input)
+              (,metadata-variable
+               ,(let ((references (getf (parser-definition-metadata definition) :rule-sources)))
+                  (if references
+                      `(let ((metadata (copy-list ,metadata-input)))
+                         (setf (getf metadata :rule-sources)
+                               (append (getf metadata :rule-sources) ',references))
+                         metadata)
+                      metadata-input)))
               (definition
                (make-parser-definition
                 :name ',(parser-definition-name definition)
