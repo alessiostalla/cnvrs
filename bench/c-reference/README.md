@@ -1,9 +1,10 @@
 # C11 versus ANTLR Java
 
 Historical results below predate compact conflict grouping. See the
-[latest C11 and Java 8 comparison](../java-reference/compact.md) for updated measurements.
+[latest C11, Java 8, and T-SQL comparison](../java-reference/configuration-storage.md) for updated measurements.
 The [warm C11 profile](profile.md) locates remaining costs and matches prediction
-work against Java.
+work against Java. The [configuration-set storage optimization](storage.md)
+records the subsequent implementation and controlled before/after results.
 
 A full C11 grammar provides a second language comparison after the
 [configuration/context lookup optimization](../java-reference/lookup.md).

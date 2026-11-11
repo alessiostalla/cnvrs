@@ -23,8 +23,10 @@
 (defstruct (transient-atn-config (:include atn-config)
              (:constructor make-transient-atn-config ()) (:copier nil)))
 (defstruct (atn-config-set (:conc-name config-set-))
-  (items (make-array 0 :adjustable t :fill-pointer 0) :type (vector t))
-  (lookup (make-hash-table :test 'eql) :type (or null hash-table)) full-context
+  (items (make-array 4 :adjustable t :fill-pointer 0) :type (vector t))
+  ;; Tiny sets scan ITEMS directly. Larger sets index the same owned objects
+  ;; in a half-full open-addressed array, without per-entry bucket conses.
+  (lookup nil :type (or null simple-vector)) full-context
   (unique-alt nil :type (or null fixnum)) conflicting-alts has-semantic-context dips-into-outer-context read-only-p)
 (defvar *merge-cache* nil)
 
@@ -73,6 +75,32 @@
   (declare (type atn-config config) (type list bucket))
   (loop for candidate of-type atn-config in bucket
         when (config-lookup-equal config candidate) return candidate))
+(declaim (inline config-table-slot find-config-in-set))
+(defun config-table-slot (table config)
+  (declare (type simple-vector table) (type atn-config config))
+  (let* ((mask (1- (length table)))
+         (slot (logand mask (murmur-finish (config-lookup-hash config) 3))))
+    (declare (type fixnum mask slot))
+    (loop for candidate = (svref table slot)
+          when (or (null candidate) (config-lookup-equal config candidate)) return slot
+          do (setf slot (logand mask (1+ slot))))))
+(defun find-config-in-set (set config)
+  "Return an existing entry and its index slot (when a hash index exists)."
+  (declare (type atn-config-set set) (type atn-config config))
+  (let ((lookup (config-set-lookup set)))
+    (if lookup
+        (let ((slot (config-table-slot lookup config)))
+          (values (svref lookup slot) slot))
+        (loop for candidate of-type atn-config across (config-set-items set)
+              when (config-lookup-equal config candidate) return candidate))))
+(defun grow-config-index (set)
+  (declare (type atn-config-set set))
+  (let* ((items (config-set-items set))
+         (capacity (max 16 (ash 1 (integer-length (* 2 (length items))))))
+         (lookup (make-array capacity :initial-element nil)))
+    (loop for config of-type atn-config across items do
+      (setf (svref lookup (config-table-slot lookup config)) config))
+    (setf (config-set-lookup set) lookup)))
 (defun config-set-add (set config &optional (merge-cache *merge-cache*))
   "Return T and the source configuration to use for continued traversal.
 An inserted scratch configuration is promoted to an owned object; a merged
@@ -84,25 +112,30 @@ input remains the traversal source, preserving the reference aliasing rules."
     (setf (config-set-has-semantic-context set) t))
   (when (plusp (atn-config-outer-depth config))
     (setf (config-set-dips-into-outer-context set) t))
-  (let* ((lookup (the hash-table (config-set-lookup set)))
-         (key (config-lookup-hash config)) (bucket (gethash key lookup))
-         (existing (find-config-in-bucket config bucket)) (source config))
-    (if existing
-        (setf (atn-config-context existing)
-              (merge-contexts (atn-config-context existing) (atn-config-context config)
-                              (not (config-set-full-context set)) merge-cache)
-              (atn-config-outer-depth existing)
-              (max (atn-config-outer-depth existing) (atn-config-outer-depth config))
-              (atn-config-precedence-filter-suppressed-p existing)
-              (or (atn-config-precedence-filter-suppressed-p existing)
-                  (atn-config-precedence-filter-suppressed-p config)))
-        (let ((owned (retained-config config)))
-          (setf (gethash key lookup) (cons owned bucket)
-                source owned)
-          (vector-push-extend owned (config-set-items set))))
-    ;; Continue traversal with the retained object on insertion. Later merges
-    ;; must update the same object the active traversal uses, as in Java.
-    (values t source)))
+  (multiple-value-bind (existing slot) (find-config-in-set set config)
+    (let ((source config))
+      (if existing
+          (setf (atn-config-context existing)
+                (merge-contexts (atn-config-context existing) (atn-config-context config)
+                                (not (config-set-full-context set)) merge-cache)
+                (atn-config-outer-depth existing)
+                (max (atn-config-outer-depth existing) (atn-config-outer-depth config))
+                (atn-config-precedence-filter-suppressed-p existing)
+                (or (atn-config-precedence-filter-suppressed-p existing)
+                    (atn-config-precedence-filter-suppressed-p config)))
+          (let ((owned (retained-config config)))
+            (when (>= (length (config-set-items set)) 4)
+              (when (or (null (config-set-lookup set))
+                        (> (* 2 (1+ (length (config-set-items set))))
+                            (length (config-set-lookup set))))
+                (grow-config-index set)
+                (setf slot (config-table-slot (config-set-lookup set) config)))
+              (setf (svref (config-set-lookup set) slot) owned))
+            (setf source owned)
+            (vector-push-extend owned (config-set-items set))))
+      ;; Continue traversal with the retained object on insertion. Later merges
+      ;; must update the same object the active traversal uses, as in Java.
+      (values t source))))
 (defun config-set-alternatives (set)
   (sort (remove-duplicates (map 'list #'atn-config-alt (config-set-items set))) #'<))
 (defun unique-alt (set)

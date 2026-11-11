@@ -1,5 +1,7 @@
 # C11 warm recognition and tree profile
 
+This profile motivated the subsequent [configuration-set storage optimization](storage.md).
+
 Measured 2026-11-10 on the optimized runtime from the
 [latest paired comparison](../java-reference/compact.md). The workload is the
 unchanged 26,587-character GCC warning fixture: 6,811 tokens, of which 3,658

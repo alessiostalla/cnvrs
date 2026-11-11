@@ -28,11 +28,14 @@
                          (case special
                            (:config-add
                             (let* ((set (first args)) (config (second args))
-                                   (bucket (gethash (cnvrs/runtime::config-lookup-hash config)
-                                                    (cnvrs/runtime::config-set-lookup set))))
+                                   (lookup (cnvrs/runtime::config-set-lookup set))
+                                   (existing
+                                     (if (hash-table-p lookup)
+                                         (cnvrs/runtime::find-config-in-bucket
+                                          config (gethash (cnvrs/runtime::config-lookup-hash config) lookup))
+                                         (funcall (find-symbol "FIND-CONFIG-IN-SET" :cnvrs/runtime) set config))))
                               (setf (gethash set sets) t)
-                              (bump (if (cnvrs/runtime::find-config-in-bucket config bucket)
-                                        "CONFIG-HIT" "CONFIG-INSERT"))))
+                              (bump (if existing "CONFIG-HIT" "CONFIG-INSERT"))))
                            (:conflict (when (cnvrs/runtime:unique-alt (first args))
                                         (bump "CONFLICT-UNIQUE-ALT")))
                            (:parents (bump (format nil "PARENTS-SIZE-~D" (length (first args)))))

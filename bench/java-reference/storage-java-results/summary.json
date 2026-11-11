@@ -1,0 +1,302 @@
+{
+  "iri": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.006355,
+        "warm_run_medians_ms": [
+          0.012082,
+          0.005828,
+          0.006355
+        ],
+        "cold_ms": 0.386125,
+        "cold_bytes": 90128.0,
+        "warm_bytes": 14152.6,
+        "cache": [
+          31,
+          89,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.03531,
+        "warm_run_medians_ms": [
+          0.03531,
+          0.03492,
+          0.03565
+        ],
+        "cold_ms": 0.194,
+        "cold_bytes": 130416.0,
+        "warm_bytes": 64828.8,
+        "cache": [
+          31,
+          89,
+          0,
+          0
+        ]
+      },
+      "ratio": 5.556254917387883
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 0.021987,
+        "warm_run_medians_ms": [
+          0.023225,
+          0.019658,
+          0.021987
+        ],
+        "cold_ms": 0.94075,
+        "cold_bytes": 235312.0,
+        "warm_bytes": 23632.6,
+        "cache": [
+          0,
+          0,
+          5,
+          20
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.03201,
+        "warm_run_medians_ms": [
+          0.03187,
+          0.03201,
+          0.03216
+        ],
+        "cold_ms": 0.257,
+        "cold_bytes": 196592.0,
+        "warm_bytes": 35797.3,
+        "cache": [
+          0,
+          0,
+          5,
+          20
+        ]
+      },
+      "ratio": 1.4558602810751806
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 0.026945,
+        "warm_run_medians_ms": [
+          0.024815,
+          0.026945,
+          0.029777
+        ],
+        "cold_ms": 0.71175,
+        "cold_bytes": 287896.0,
+        "warm_bytes": 76216.6,
+        "cache": [
+          0,
+          0,
+          5,
+          20
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.0699,
+        "warm_run_medians_ms": [
+          0.07051,
+          0.06943,
+          0.0699
+        ],
+        "cold_ms": 0.3,
+        "cold_bytes": 261984.0,
+        "warm_bytes": 85547.7,
+        "cache": [
+          0,
+          0,
+          5,
+          20
+        ]
+      },
+      "ratio": 2.594173316014103
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 0.032959,
+        "warm_run_medians_ms": [
+          0.030382,
+          0.033257,
+          0.032959
+        ],
+        "cold_ms": 0.898625,
+        "cold_bytes": 377968.0,
+        "warm_bytes": 90368.6,
+        "cache": [
+          31,
+          89,
+          5,
+          20
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.10441,
+        "warm_run_medians_ms": [
+          0.10441,
+          0.10245,
+          0.10664
+        ],
+        "cold_ms": 0.447,
+        "cold_bytes": 457792.0,
+        "warm_bytes": 150346.4,
+        "cache": [
+          31,
+          89,
+          5,
+          20
+        ]
+      },
+      "ratio": 3.16787523893322
+    }
+  },
+  "java8": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.023354,
+        "warm_run_medians_ms": [
+          0.023354,
+          0.024563,
+          0.021375
+        ],
+        "cold_ms": 0.602667,
+        "cold_bytes": 534816.0,
+        "warm_bytes": 40964.0,
+        "cache": [
+          111,
+          367,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.149,
+        "warm_run_medians_ms": [
+          0.149,
+          0.1475,
+          0.149
+        ],
+        "cold_ms": 1.162,
+        "cold_bytes": 1177376.0,
+        "warm_bytes": 294776.0,
+        "cache": [
+          111,
+          367,
+          0,
+          0
+        ]
+      },
+      "ratio": 6.380063372441551
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 109.522021,
+        "warm_run_medians_ms": [
+          106.144625,
+          109.967729,
+          109.522021
+        ],
+        "cold_ms": 760.27075,
+        "cold_bytes": 1254216808.0,
+        "warm_bytes": 200819972.0,
+        "cache": [
+          0,
+          0,
+          1160,
+          24764
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 93.15,
+        "warm_run_medians_ms": [
+          93.15,
+          93.3495,
+          91.752
+        ],
+        "cold_ms": 654.598,
+        "cold_bytes": 645134224.0,
+        "warm_bytes": 98639888.0,
+        "cache": [
+          0,
+          0,
+          1160,
+          24764
+        ]
+      },
+      "ratio": 0.8505138888918057
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 106.160667,
+        "warm_run_medians_ms": [
+          106.160667,
+          105.449292,
+          109.309459
+        ],
+        "cold_ms": 753.571791,
+        "cold_bytes": 1254009792.0,
+        "warm_bytes": 200964356.0,
+        "cache": [
+          0,
+          0,
+          1160,
+          24764
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 94.839,
+        "warm_run_medians_ms": [
+          96.3525,
+          94.5365,
+          94.839
+        ],
+        "cold_ms": 655.572,
+        "cold_bytes": 645174928.0,
+        "warm_bytes": 98832104.0,
+        "cache": [
+          0,
+          0,
+          1160,
+          24764
+        ]
+      },
+      "ratio": 0.8933534677207707
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 106.090188,
+        "warm_run_medians_ms": [
+          106.090188,
+          105.752625,
+          108.745396
+        ],
+        "cold_ms": 748.87125,
+        "cold_bytes": 1254544360.0,
+        "warm_bytes": 201005292.0,
+        "cache": [
+          111,
+          367,
+          1160,
+          24764
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 93.7915,
+        "warm_run_medians_ms": [
+          96.051,
+          93.7915,
+          93.614
+        ],
+        "cold_ms": 654.348,
+        "cold_bytes": 646281712.0,
+        "warm_bytes": 99131528.0,
+        "cache": [
+          111,
+          367,
+          1160,
+          24764
+        ]
+      },
+      "ratio": 0.884073275466342
+    }
+  }
+}

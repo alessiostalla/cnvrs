@@ -1,0 +1,22 @@
+{
+  "baseline_core": "/tmp/cnvrs-conflict-after.core",
+  "candidate_core": "/tmp/cnvrs-set-after.core",
+  "baseline_source_sha256": {
+    "src/runtime/atn-config.lisp": "f66d9098f9b3f00bdc55e596c8e1b0ac5e5d02fcc08a2668f87fb62b33a04f9b",
+    "src/runtime/prediction-context.lisp": "e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7",
+    "src/runtime/parser-atn-simulator.lisp": "748e756663c25983bc2e6d8f75565a4136f067110fdbe7e06ae72c6ab750ee4c",
+    "src/cnvrs.lisp": "b0b7d36662c482fccf7c8211e1c8062368154c1f09fdd6e22c1ae817fac263e0"
+  },
+  "candidate_source_sha256": {
+    "src/runtime/atn-config.lisp": "4b71086754b5410ea3a380ed5cc92291a7b970a28ef9d3c8d1debe47bc727b97",
+    "src/runtime/prediction-context.lisp": "e435a1093c5e142a29b9678013a5255d67e125b30608579c15a6a552a857f2e7",
+    "src/runtime/parser-atn-simulator.lisp": "748e756663c25983bc2e6d8f75565a4136f067110fdbe7e06ae72c6ab750ee4c",
+    "src/cnvrs.lisp": "b0b7d36662c482fccf7c8211e1c8062368154c1f09fdd6e22c1ae817fac263e0"
+  },
+  "baseline_source_verified_against": "bench/tsql/compact-results/environment.txt",
+  "harness_sha256": {
+    "bench/tsql/recognition.lisp": "1ae5f692ff4a7906eb090503c90697d4c3548aee99885feeaa1000f010a17990",
+    "bench/tsql/conflict-validate.lisp": "293012170770b3c2fca5dc85844ea46b09c9abf7338a153a3cfe753fd7d208bf",
+    "bench/tsql/conflict-summary.py": "c8ffac452e7a5e0c157625c3c63547f62b43ed09df48ce946676e42a857cc0f1"
+  }
+}

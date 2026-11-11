@@ -1,6 +1,8 @@
 # T-SQL compiler-resource investigation
 
-[Latest paired Java performance comparison](compact.md).
+[Latest paired Java performance comparison](../java-reference/configuration-storage.md)
+after configuration-set storage changes; [prior comparison](compact.md)
+after compact conflict grouping.
 
 **Fixed:** the unchanged T-SQL grammar now compiles with native ARM64 SBCL
 2.4.0 using a **2 GB heap and the default control stack**. Its generated runners

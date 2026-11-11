@@ -1,0 +1,302 @@
+{
+  "preprocessed": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.284895,
+        "warm_run_medians_ms": [
+          0.293284,
+          0.284895,
+          0.282349
+        ],
+        "cold_ms": 1.226125,
+        "cold_bytes": 1270248.0,
+        "warm_bytes": 510656.6,
+        "cache": [
+          106,
+          588,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 1.33528,
+        "warm_run_medians_ms": [
+          1.33528,
+          1.32543,
+          1.33931
+        ],
+        "cold_ms": 2.751,
+        "cold_bytes": 4044640.0,
+        "warm_bytes": 2460719.8,
+        "cache": [
+          106,
+          588,
+          0,
+          0
+        ]
+      },
+      "ratio": 4.686919742361221
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 5.513688,
+        "warm_run_medians_ms": [
+          5.513688,
+          5.597396,
+          5.411333
+        ],
+        "cold_ms": 10.591542,
+        "cold_bytes": 15249952.0,
+        "warm_bytes": 9237796.0,
+        "cache": [
+          0,
+          0,
+          206,
+          994
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 7.344,
+        "warm_run_medians_ms": [
+          7.344,
+          7.2845,
+          7.382
+        ],
+        "cold_ms": 11.853,
+        "cold_bytes": 11006192.0,
+        "warm_bytes": 6061448.0,
+        "cache": [
+          0,
+          0,
+          206,
+          994
+        ]
+      },
+      "ratio": 1.3319578474516514
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 5.805,
+        "warm_run_medians_ms": [
+          5.858354,
+          5.805,
+          5.615542
+        ],
+        "cold_ms": 9.61725,
+        "cold_bytes": 16786328.0,
+        "warm_bytes": 10779044.0,
+        "cache": [
+          0,
+          0,
+          206,
+          994
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 8.628,
+        "warm_run_medians_ms": [
+          8.628,
+          8.6455,
+          8.414
+        ],
+        "cold_ms": 13.058,
+        "cold_bytes": 12508752.0,
+        "warm_bytes": 7581464.0,
+        "cache": [
+          0,
+          0,
+          206,
+          994
+        ]
+      },
+      "ratio": 1.4863049095607237
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 5.987896,
+        "warm_run_medians_ms": [
+          5.883333,
+          5.987896,
+          6.129792
+        ],
+        "cold_ms": 9.427375,
+        "cold_bytes": 17950536.0,
+        "warm_bytes": 11289700.0,
+        "cache": [
+          106,
+          588,
+          206,
+          994
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 10.0585,
+        "warm_run_medians_ms": [
+          9.823,
+          10.2755,
+          10.0585
+        ],
+        "cold_ms": 15.934,
+        "cold_bytes": 16607744.0,
+        "warm_bytes": 10036776.0,
+        "cache": [
+          106,
+          588,
+          206,
+          994
+        ]
+      },
+      "ratio": 1.6798053940816609
+    }
+  },
+  "pointers": {
+    "lexer": {
+      "java": {
+        "warm_ms": 0.030125,
+        "warm_run_medians_ms": [
+          0.015147,
+          0.030125,
+          0.031085
+        ],
+        "cold_ms": 0.902208,
+        "cold_bytes": 309224.0,
+        "warm_bytes": 29320.6,
+        "cache": [
+          62,
+          193,
+          0,
+          0
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 0.08179,
+        "warm_run_medians_ms": [
+          0.08066,
+          0.0849,
+          0.08179
+        ],
+        "cold_ms": 0.592,
+        "cold_bytes": 715488.0,
+        "warm_bytes": 155059.7,
+        "cache": [
+          62,
+          193,
+          0,
+          0
+        ]
+      },
+      "ratio": 2.715020746887967
+    },
+    "parse-none": {
+      "java": {
+        "warm_ms": 1.167959,
+        "warm_run_medians_ms": [
+          1.094084,
+          1.167959,
+          1.312292
+        ],
+        "cold_ms": 4.718916,
+        "cold_bytes": 6287344.0,
+        "warm_bytes": 2297092.0,
+        "cache": [
+          0,
+          0,
+          115,
+          665
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 1.274,
+        "warm_run_medians_ms": [
+          1.294,
+          1.274,
+          1.1525
+        ],
+        "cold_ms": 4.056,
+        "cold_bytes": 4505888.0,
+        "warm_bytes": 1173512.0,
+        "cache": [
+          0,
+          0,
+          115,
+          665
+        ]
+      },
+      "ratio": 1.0907917144351815
+    },
+    "parse-tree": {
+      "java": {
+        "warm_ms": 1.077292,
+        "warm_run_medians_ms": [
+          1.122167,
+          1.067042,
+          1.077292
+        ],
+        "cold_ms": 3.447792,
+        "cold_bytes": 6346544.0,
+        "warm_bytes": 2367436.0,
+        "cache": [
+          0,
+          0,
+          115,
+          665
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 1.2935,
+        "warm_run_medians_ms": [
+          1.322,
+          1.232,
+          1.2935
+        ],
+        "cold_ms": 4.293,
+        "cold_bytes": 4510688.0,
+        "warm_bytes": 1240352.0,
+        "cache": [
+          0,
+          0,
+          115,
+          665
+        ]
+      },
+      "ratio": 1.2006958187752255
+    },
+    "pipeline-tree": {
+      "java": {
+        "warm_ms": 1.135792,
+        "warm_run_medians_ms": [
+          1.085729,
+          1.14075,
+          1.135792
+        ],
+        "cold_ms": 3.727791,
+        "cold_bytes": 6645824.0,
+        "warm_bytes": 2396724.0,
+        "cache": [
+          62,
+          193,
+          115,
+          665
+        ]
+      },
+      "cnvrs": {
+        "warm_ms": 1.425,
+        "warm_run_medians_ms": [
+          1.397,
+          1.425,
+          1.447
+        ],
+        "cold_ms": 4.804,
+        "cold_bytes": 5296592.0,
+        "warm_bytes": 1404744.0,
+        "cache": [
+          62,
+          193,
+          115,
+          665
+        ]
+      },
+      "ratio": 1.254631129643456
+    }
+  }
+}

@@ -1,7 +1,9 @@
 # IRI and Java 8 versus ANTLR Java
 
-The [latest Java 8 and C11 comparison](compact.md) repeats the paired benchmarks
-after compact conflict grouping and temporary-table reuse.
+The [latest Java 8, C11, and T-SQL comparison](configuration-storage.md) repeats
+the paired benchmarks after the configuration-set representation changes.
+The [prior comparison](compact.md) records compact conflict grouping and
+temporary-table reuse.
 
 The [C11 comparison](../c-reference/README.md) adds a full non-Java grammar
 and two upstream workloads. The [T-SQL compiler investigation](../tsql/README.md)
