@@ -1,6 +1,8 @@
 # CNVRS
 
-CNVRS compiles Common Lisp grammar forms into native parser functions and loadable FASLs. Its parser prediction runtime is a port of ANTLR Java 4.13.2. Lisp forms remain the primary grammar language; the optional `.g4` importer lowers ANTLR grammars into the same compiler.
+CNVRS, the **Contextual Nonterminal Variable-lookahead Recognition System**, is a Common Lisp implementation of adaptive LL(*) parsing, the algorithm described by Parr et al, and in particular as implemented in the ANTLR parser generator.
+
+CNVRS compiles Common Lisp grammar forms into native parser functions and loadable FASLs. An optional `.g4` importer lowers ANTLR grammars into the same compiler.
 
 See [CNVRS and ANTLR 4/Java: current differences](docs/runtime-comparison.md) for feature, algorithm, and benchmark comparisons.
 
