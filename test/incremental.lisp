@@ -1,0 +1,216 @@
+(defpackage #:cnvrs/tests/incremental (:use #:cl) (:export #:run-tests))
+(in-package #:cnvrs/tests/incremental)
+
+;; Compiled by ASDF: exercises checkpoint declarations through FASL loading.
+(cnvrs:defparser *file-parser*
+  (document (and #\{ (cnvrs:label members (* method)) #\}))
+  (method (and #\[ (* (cnvrs:not-token (#\[ #\]))) #\]) :checkpoint t))
+
+(cnvrs:defparser *composed-parser*
+  (cnvrs:use *file-parser*)
+  (document (and #\< (* method) #\>)))
+
+(defvar *checks* 0)
+(defun check (value description)
+  (incf *checks*)
+  (unless value (error "Incremental parsing: ~A" description)))
+(defun shape (tree)
+  (cond ((cnvrs:node-p tree)
+         (list (cnvrs:node-rule tree) (cnvrs:node-label tree)
+               (cnvrs:node-start tree) (cnvrs:node-end tree)
+               (mapcar #'shape (cnvrs:node-children tree))))
+        ((cnvrs:lexeme-p tree)
+         (list (cnvrs:lexeme-kind tree) (cnvrs:lexeme-text tree)
+               (cnvrs:lexeme-start tree) (cnvrs:lexeme-end tree)
+               (cnvrs:lexeme-line tree) (cnvrs:lexeme-column tree)
+               (cnvrs:lexeme-channel tree)))
+        (t tree)))
+(defun nodes (tree rule)
+  (when (cnvrs:node-p tree)
+    (append (when (eq (cnvrs:node-rule tree) rule) (list tree))
+            (mapcan (lambda (child) (nodes child rule)) (cnvrs:node-children tree)))))
+(defun rejects (thunk)
+  (handler-case (progn (funcall thunk) nil) (cnvrs:grammar-error () t)))
+(defun compare-revision (session grammar input)
+  (let ((tree (cnvrs:parse-incrementally session input)))
+    (check (equal (shape tree) (shape (cnvrs:parse grammar input
+                                               :rule (cnvrs::incremental-parser-rule session)
+                                               :channels (cnvrs::incremental-parser-channels session))))
+           (format nil "fresh parse differs on ~S" input))
+    tree))
+
+(defun run-tests ()
+  (setf *checks* 0)
+  (let ((session (cnvrs:make-incremental-parser *composed-parser*)))
+    (compare-revision session *composed-parser* "<[a][b]>")
+    (compare-revision session *composed-parser* "<[a][c]>")
+    (check (= 4 (cnvrs:incremental-parser-restart-position session)) "imported checkpoint declaration"))
+  (let* ((grammar (cnvrs:ensure-compiled *file-parser*))
+         (session (cnvrs:make-incremental-parser grammar))
+         (old (compare-revision session grammar "{[a][b][c]}"))
+         (first (first (nodes old 'method)))
+         (old-shape (shape old))
+         (new (compare-revision session grammar "{[a][bb][c]}")))
+    (check (= 4 (cnvrs:incremental-parser-restart-position session)) "restart after first method")
+    (check (eq first (first (nodes new 'method))) "completed method retains identity")
+    (check (equal old-shape (shape old)) "old tree remains unchanged")
+    (check (not (eq (second (nodes old 'method)) (second (nodes new 'method))))
+           "changed method is rebuilt")
+    (check (not (eq (third (nodes old 'method)) (third (nodes new 'method))))
+           "unchanged suffix is reparsed")
+    (check (eq new (cnvrs:parse-incrementally session "{[a][bb][c]}")) "no-op retains root")
+    ;; Includes deletion, insertion at a checkpoint, earlier edits after later
+    ;; ones, empty documents, and length changes in enclosing open labels.
+    (dolist (revision '("{[a][bb][cc]}" "{[a][c]}" "{[a][x][c]}" "{[z][x][c]}"
+                        "{}" "{[one]}" "{[one][two]}" "{[one][two][three]}"))
+      (compare-revision session grammar revision))
+    (let ((before (cnvrs:incremental-parser-tree session)))
+      (check (handler-case (progn (cnvrs:parse-incrementally session "{[one][") nil)
+               (cnvrs:parse-error () t)) "invalid revision signals a parse error")
+      (check (eq before (cnvrs:incremental-parser-tree session)) "failure is transactional")
+      (compare-revision session grammar "{[one][two][four]}"))
+    ;; Many edit orders, always checked against the batch parser.
+    (dotimes (i 100)
+      (compare-revision session grammar
+                        (format nil "{~{[~A]~}}"
+                                (loop for j below (mod (* i 7) 11)
+                                      collect (if (= j (mod i 5)) "changed" "same")))))
+    (check (equal '(method) (cnvrs:parser-checkpoint-rules (cnvrs:clone-compiled grammar)))
+           "cloning retains declarations"))
+  ;; A caller's prediction reads beyond the declared rule. The method's tokens
+  ;; are unchanged, but its saved caller continuation is no longer valid.
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((document (or (and unit :x) (and unit :y)))
+                     (unit :a :checkpoint t))))
+         (session (cnvrs:make-incremental-parser grammar)))
+    (compare-revision session grammar '(:a :x))
+    (compare-revision session grammar '(:a :y))
+    (check (zerop (cnvrs:incremental-parser-restart-position session))
+           "caller lookahead invalidates a checkpoint"))
+  ;; Parser precedence and tree annotations survive restored continuations.
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((document (* method))
+                     (method (and :open expr :close) :checkpoint t)
+                     (expr (or (and expr :plus expr) (and :left expr :right) :a :b) :checkpoint t))))
+         (session (cnvrs:make-incremental-parser grammar)))
+    (dolist (revision '((:open :a :close :open :a :plus :b :close)
+                        (:open :a :close :open :left :a :plus :b :right :close)
+                        (:open :b :plus :a :close)))
+      (compare-revision session grammar revision)))
+  ;; EOF inspection cannot survive an append; this also exercises an EOF token
+  ;; inside a selected alternative rather than just PARSE's final EOF check.
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((document (or unit (and :a :b)))
+                     (unit (and :a (cnvrs:eof)) :checkpoint t))))
+         (session (cnvrs:make-incremental-parser grammar)))
+    (compare-revision session grammar '(:a))
+    (compare-revision session grammar '(:a :b))
+    (check (zerop (cnvrs:incremental-parser-restart-position session)) "EOF dependency on append"))
+  (let* ((grammar (cnvrs:compile-grammar
+                   '((document (* method))
+                     (method (and :open chain :close) :checkpoint t)
+                     (chain (cnvrs:label body (or (and :a chain) :b)) :checkpoint t))))
+         (session (cnvrs:make-incremental-parser grammar)))
+    (dolist (revision '((:open :a :a :b :close :open :b :close)
+                        (:open :a :a :b :close :open :a :b :close)
+                        (:open :a :b :close)))
+      (compare-revision session grammar revision)))
+  (lexer-checks)
+  (rejection-checks)
+  (java-checks)
+  (format t "~&~D incremental parsing checks passed.~%" *checks*)
+  t)
+
+(defun lexer-checks ()
+  (let* ((lexer (cnvrs:compile-lexer
+                 '((:open #\[) (:close #\]) (:word (+ (cnvrs:range #\a #\z)))
+                   (:space (+ (or #\Space #\Newline)) :channel :trivia))))
+         (grammar (cnvrs:compile-grammar
+                   '((document (* method)) (method (and :open :word :close) :checkpoint t))
+                   :lexer lexer))
+         (session (cnvrs:make-incremental-parser grammar)))
+    (dolist (revision '("[one][two]" "[one][three]" "[one] [three]" "[one][four]"
+                        "[one][four][five]" "[one][five]"))
+      (compare-revision session grammar revision))
+    (compare-revision session grammar (format nil "[one]~%[five]"))
+    (compare-revision session grammar (format nil "[one]~%[six]"))
+    (let ((before (cnvrs:incremental-parser-tree session)))
+      (check (handler-case (progn (cnvrs:parse-incrementally session "[one]!") nil)
+               (cnvrs:lexical-error () t)) "lexical failure")
+      (check (eq before (cnvrs:incremental-parser-tree session)) "lexical failure is transactional"))
+    ;; Character edits can merge two old tokens into one new longest match.
+    (let* ((merge-grammar (cnvrs:compile-grammar '((document (* word)) (word :word :checkpoint t))
+                                               :lexer lexer))
+           (merge-session (cnvrs:make-incremental-parser merge-grammar)))
+      (compare-revision merge-session merge-grammar "one two")
+      (compare-revision merge-session merge-grammar "onetwo")
+      (check (zerop (cnvrs:incremental-parser-restart-position merge-session)) "lexer token merge")))
+  (let* ((grammar (cnvrs:compile-grammar '((document (* unit)) (unit (cnvrs:any) :checkpoint t))))
+         (session (cnvrs:make-incremental-parser grammar :channels :all)))
+    (compare-revision session grammar (vector (cnvrs:make-lexeme :kind :a :text "a" :channel :trivia)
+                                             (cnvrs:make-lexeme :kind :b :text "b")))
+    (compare-revision session grammar (vector (cnvrs:make-lexeme :kind :a :text "a" :channel :trivia)
+                                             (cnvrs:make-lexeme :kind :c :text "c")))
+    (let ((old (compare-revision session grammar (vector (cnvrs:make-lexeme :kind :a :text nil))))
+          (new (compare-revision session grammar (vector (cnvrs:make-lexeme :kind :a :text "NIL")))))
+      (check (not (eq old new)) "lexeme text uses value equality, not string designators")))
+  (let* ((lexer (cnvrs:compile-lexer
+                 '((:open #\[ :push-mode :inside) (:word (+ (cnvrs:range #\a #\z)) :mode :inside)
+                   (:close #\] :mode :inside :pop-mode t))))
+         (grammar (cnvrs:compile-grammar '((document (* method))
+                                          (method (and :open :word :close) :checkpoint t)) :lexer lexer))
+         (session (cnvrs:make-incremental-parser grammar)))
+    (compare-revision session grammar "[one][two]")
+    (compare-revision session grammar "[one][three]")))
+
+(defun rejection-checks ()
+  (dolist (definitions '(((document :a :checkpoint :yes))
+                         ((document :a :unknown t))))
+    (check (rejects (lambda () (cnvrs:compile-grammar definitions))) "invalid declaration"))
+  (check (rejects (lambda () (cnvrs:compile-grammar '((document :a)) :checkpoint-rules '(missing))))
+         "unknown checkpoint")
+  (check (rejects (lambda () (cnvrs:compile-grammar '((document :a :checkpoint t)) :tree-builder :none)))
+         "unsupported builder")
+  (check (rejects (lambda () (cnvrs:compile-grammar
+                             `((document (and (cnvrs:predicate ,(lambda (i p) (declare (ignore i p)) t)) :a)
+                                         :checkpoint t))))) "parser callback")
+  (check (rejects (lambda () (cnvrs:compile-grammar '((document :a :checkpoint t)) :lexer #'identity)))
+         "custom lexer")
+  (check (rejects (lambda ()
+                    (cnvrs:compile-grammar
+                     '((document :a :checkpoint t))
+                     :lexer (cnvrs:compile-lexer
+                             `((:a (and #\a (cnvrs:action ,(lambda (i p) (declare (ignore i p)))))))))))
+         "lexer callback")
+  (check (rejects (lambda () (macroexpand-1 '(cnvrs:defparser *bad* (:kind :lexer)
+                                             (:a #\a :checkpoint t))))) "lexer checkpoint declaration")
+  (let* ((session (cnvrs:make-incremental-parser *file-parser*))
+         (before (cnvrs:parse-incrementally session "{[a]}")))
+    (check (rejects (lambda ()
+                      (handler-bind ((cnvrs:mismatched-token
+                                       (lambda (condition) (declare (ignore condition))
+                                         (invoke-restart 'cnvrs:insert-tokens))))
+                        (cnvrs:parse-incrementally session "{[a]")))) "manual recovery is rejected")
+    (check (eq before (cnvrs:incremental-parser-tree session)) "recovery does not commit")))
+
+(defun java-checks ()
+  (let* ((lexer (cnvrs/antlr4:parse
+                 (uiop:read-file-string (asdf:system-relative-pathname :cnvrs "test/fixtures/runtime/Java8Lexer.g4"))
+                 :parser-package :cnvrs/tests/topology/parser :lexer-package :cnvrs/tests/topology/lexer))
+         (grammar (cnvrs:ensure-compiled
+                   (cnvrs/antlr4:parse
+                    (uiop:read-file-string (asdf:system-relative-pathname :cnvrs "test/fixtures/runtime/Java8Parser.g4"))
+                    :parser-package :cnvrs/tests/topology/parser :lexer-package :cnvrs/tests/topology/lexer
+                    :token-vocabulary (list (cons "Java8Lexer" lexer)))))
+         (method (find-symbol "METHODDECLARATION" :cnvrs/tests/topology/parser))
+         (session (cnvrs:make-incremental-parser grammar :checkpoint-rules (list method)
+                                                :rule (find-symbol "COMPILATIONUNIT" :cnvrs/tests/topology/parser)))
+         (old (compare-revision session grammar "class C { int a() { return 1; } int b() { return 2; } }"))
+         (new (compare-revision session grammar "class C { int a() { return 1; } int b() { return 3 + 4; } }")))
+    (check (plusp (cnvrs:incremental-parser-restart-position session)) "Java method checkpoint reused")
+    (check (eq (first (nodes old method)) (first (nodes new method))) "Java method tree retained")
+    (dolist (revision '("class C { int a() { return 1; } int b() { return 3; } int c() {} }"
+                        "class C { int a() { return 2; } }"
+                        "class C { int a() { return 2; } void b() { class D { void c() {} } } }"
+                        "class C { int a() { return 2; } void b() { } }"))
+      (compare-revision session grammar revision))))

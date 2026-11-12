@@ -77,6 +77,14 @@ Parser recovery remains outside the port. Parser actions run
 on the selected execution path, never during prediction; predicates are collected
 in SLL and evaluated on full-context closure as in Java.
 
+Incremental sessions use a separate observed prediction path generated from the
+same execution forms as batch prediction. It records the furthest token read,
+including EOF and full-context retries, to invalidate checkpoints after edits.
+Ordinary prediction has no observer branch or counter updates. Rule checkpoints
+retain the frontend executor's caller stack and partial trees; they do not cache
+full-context prediction results or snapshot shared DFAs. Source revisions are
+fully relexed before validating prefix reuse. See [incremental parsing](../../README.md#incremental-parsing).
+
 ## Fidelity checks
 
 `asdf:test-system :cnvrs` includes the runtime parity checks without Java:

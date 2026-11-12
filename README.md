@@ -160,6 +160,63 @@ Here multiplication binds more tightly than addition, and exponentiation binds m
 
 `parse` accepts a sequence of tokens: a string is a sequence of characters, while a list or vector can contain arbitrary token values. It consumes the whole input and returns `node` structs. Each node has a rule name, ordered children, start/end token offsets, and an optional `node-label` (NIL when absent). Children are literal tokens or nodes for referenced rules. A labeled element produces a `:label` node containing its matched tokens or rule nodes; repetition produces one such node per match. An alternative label appears on the enclosing rule node. Invalid grammars signal `cnvrs:grammar-error`.
 
+### Incremental parsing
+
+Declare parser rules as checkpoint boundaries with `:checkpoint t`. An
+incremental session accepts successive complete input revisions, retains trees
+before a valid checkpoint, and reparses everything after it:
+
+```lisp
+(cnvrs:defparser *methods*
+  (document (* method))
+  (method (and #\[ (* (cnvrs:not-token (#\[ #\]))) #\]) :checkpoint t))
+
+(defparameter *session* (cnvrs:make-incremental-parser *methods*))
+(cnvrs:parse-incrementally *session* "[one][two]")
+(cnvrs:parse-incrementally *session* "[one][changed]")
+; => updated tree, 5 (restart offset in visible tokens)
+```
+
+`compile-grammar` accepts the same per-rule option, or a `:checkpoint-rules`
+list. `make-incremental-parser` also accepts `:checkpoint-rules`, overriding the
+declarations, plus `:rule` and `:channels`. This lets imported ANTLR grammars use
+checkpoints without changing their `.g4` source:
+
+```lisp
+(cnvrs:make-incremental-parser java-parser
+                              :checkpoint-rules (list 'java:methodDeclaration))
+```
+
+Use the actual rule symbols interned by the importer. Declarations survive
+grammar composition, cloning and FASL loading. Recompile existing grammar FASLs
+after updating CNVRS.
+
+A checkpoint records the caller continuation, precedence, and partial enclosing
+trees after a marked rule returns. Completed prefix nodes retain `eq` identity;
+enclosing nodes and the entire suffix are rebuilt. The session tracks prediction
+lookahead, including reads beyond the marked rule and EOF. If an edit invalidates
+those dependencies, it restarts earlier, potentially at the beginning. A
+declaration requests restart opportunities; unchanged rule text alone does not
+guarantee reuse. No-op revisions retain the root tree. The second return value
+and `incremental-parser-restart-position` report the restart offset;
+`incremental-parser-tree` returns the latest successful tree. A no-op reports
+the visible input length because parsing did not restart.
+
+The initial implementation requires the standard `:node` builder and rejects
+parser callbacks, custom lexer functions, and lexer callbacks with
+`grammar-error`. Built-in lexer commands and modes are supported. Every source
+revision is lexed in full, and tokens (including hidden channels, text and source
+locations) are compared to validate the saved prefix. Tokenization changes can
+therefore invalidate earlier checkpoints. Recovery is unsupported; failed
+revisions leave the previous session intact. Inputs, returned trees, and the
+grammar must remain unmodified while retained by a session. Sessions own mutable
+state and must not be used concurrently.
+
+Incremental execution currently uses the explicit-stack executor; ordinary
+`parse` retains its compiled rule functions and unobserved prediction loops.
+Full relexing and prefix comparison remain linear in input size. See
+[incremental benchmarks](bench/incremental.md) for measured costs and gains.
+
 Use `(cnvrs:eof)` for an explicit end-of-input assertion, including when `:require-eof nil` permits a prefix parse. `(cnvrs:any)` consumes any one token. Use `(cnvrs:not-token (:a :b))` in a parser rule to consume one token whose kind is neither `:a` nor `:b`. It never matches end of input. With `lexeme` input, the comparison uses `lexeme-kind`.
 
 ## Lexing

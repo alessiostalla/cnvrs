@@ -36,7 +36,9 @@
        (tokens (cnvrs:lex lexer source))
        (entry (find-symbol (if iri "PARSE" "COMPILATIONUNIT") :java-reference/bench/parser))
        (expected (if iri 216 505))
-       (iterations (if iri 100 2)))
+       (iterations (or (let ((value (uiop:getenv "CNVRS_BENCH_ITERATIONS")))
+                         (when value (parse-integer value)))
+                       (if iri 100 2))))
   (assert (= expected (length tokens)))
   ;; Initialize the typed parser ATN before timing; no grammar conversion/lowering is timed.
   (cnvrs:parser-prediction-simulator parser)

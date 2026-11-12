@@ -63,7 +63,7 @@
            (expression (second body))
            (options (checked-options (cddr body)
                                      '(:lexer :skip :channel :mode
-                                       :push-mode :pop-mode :set-mode :more :type :case-insensitive :fragment)
+                                       :push-mode :pop-mode :set-mode :more :type :case-insensitive :fragment :checkpoint)
                                      (format nil "rule ~S" name)))
            (lexer-option (getf options :lexer :unspecified))
            (lexer-p (case kind
@@ -77,6 +77,9 @@
                       name))
       (unless (member lexer-option '(:unspecified nil t))
         (grammar-fail ":LEXER for ~S must be T or NIL" name))
+      (when (plist-key-p options :checkpoint)
+        (unless (and (not lexer-p) (member (getf options :checkpoint) '(nil t)))
+          (grammar-fail ":CHECKPOINT requires a parser rule and a boolean")))
       (when (and (eq kind :parser) (eq lexer-option t))
         (grammar-fail "Lexer rule ~S is not allowed in a parser grammar" name))
       (when (and (eq kind :lexer) (eq lexer-option nil))
@@ -102,7 +105,8 @@
             (getf options :mode :default)
             (getf options :push-mode nil)
             (getf options :pop-mode nil)
-            (getf options :set-mode nil)))))
+            (getf options :set-mode nil)
+            (getf options :checkpoint nil)))))
 
 (defun compose-definition-rules (definition imports forms)
   "Merge definitions before compiling their shared graph."
@@ -230,7 +234,7 @@
       (let ((parser-rules nil) (lexer-rules nil))
         (dolist (rule (parser-definition-rules definition))
           (destructuring-bind (name expression lexer-p skip channel mode
-                               push-mode pop-mode set-mode) rule
+                               push-mode pop-mode set-mode &optional checkpoint) rule
             (if lexer-p
                 (push (append (list name expression :skip skip :channel channel
                                     :mode mode)
@@ -238,7 +242,8 @@
                               (when pop-mode (list :pop-mode pop-mode))
                               (when set-mode (list :set-mode set-mode)))
                       lexer-rules)
-                (push (list name expression) parser-rules))))
+                (push (append (list name expression)
+                              (when checkpoint (list :checkpoint t))) parser-rules))))
         (setf parser-rules (nreverse parser-rules)
               lexer-rules (nreverse lexer-rules))
         (case (parser-definition-kind definition)
@@ -293,7 +298,7 @@
   (let ((parser-rules nil) (lexer-rules nil))
     (dolist (rule (parser-definition-rules definition))
       (destructuring-bind (name expression lexer-p skip channel mode
-                           push-mode pop-mode set-mode) rule
+                           push-mode pop-mode set-mode &optional checkpoint) rule
         (if lexer-p
             (push (append (list name expression :skip skip :channel channel
                                 :mode mode)
@@ -301,7 +306,8 @@
                           (when pop-mode (list :pop-mode pop-mode))
                           (when set-mode (list :set-mode set-mode)))
                   lexer-rules)
-            (push (list name expression) parser-rules))))
+            (push (append (list name expression)
+                          (when checkpoint (list :checkpoint t))) parser-rules))))
     (values (nreverse parser-rules) (nreverse lexer-rules))))
 
 (defun file-compiled-definition-form (definition lexer-form cache-form

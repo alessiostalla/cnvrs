@@ -1,0 +1,17 @@
+Date: 2026-11-12 (Europe/Rome)
+Baseline: c7c100caa5f5a32ffba886e6661db4438ed1752b
+After: working tree implementing checkpoint sessions
+Host: macOS arm64
+Lisp: SBCL 2.0.2, x86_64 executable via /usr/local/bin/sbcl
+Heap: 2048 MiB
+Control stack: 256 MiB
+Locale: en_US.UTF-8
+XDG_CACHE_HOME: /private/tmp/cnvrs-cache
+Batch harness: current bench/java-reference/benchmark.lisp in both checkouts
+IRI: 2000 iterations per warm batch
+Java8 reference: 5 iterations per warm batch
+Batch samples: 7 batches, 3 process trials, sequential before/after; reverse order in trial 2
+Incremental samples: 7 batches, 100 iterations for characters and 20 for Java8
+Timing: SBCL millisecond wall clock; medians of per-trial warm medians
+Validation: asdf:test-system :cnvrs
+Checks: 417 integration + 3222 topology + 3130 lexer + 2282 LL1 + 173 incremental + 4256 runtime = 13480

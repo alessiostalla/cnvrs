@@ -6,6 +6,9 @@
            #:source-order-precedence
            #:and #:or #:* #:+
            #:compile-grammar #:compile-lexer #:parse #:lex
+           #:make-incremental-parser #:parse-incrementally
+           #:incremental-parser-tree #:incremental-parser-restart-position
+           #:parser-checkpoint-rules
            #:make-lexer-state #:lexer-next-token #:*lexer-state*
            #:lexer-state-source #:lexer-state-start-line #:lexer-state-start-column
            #:lexer-simulator #:lexer-state-position #:lexer-state-line #:lexer-state-column #:lexer-state-start

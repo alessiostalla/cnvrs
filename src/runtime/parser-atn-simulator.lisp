@@ -339,7 +339,25 @@
 (defun input-la (position)
   (declare (type fixnum position))
   (if (< position (length *input*)) (the fixnum (aref *input* position)) -1))
-(defun exec-atn-with-full-context (dfa start)
+;; Generate a separate observed prediction path. Ordinary batch prediction has
+;; no observer branch or additional writes in its lookahead loop.
+(defvar *input-read-limit* 0)
+(declaim (type fixnum *input-read-limit*) (inline observed-input-la))
+(defun observed-input-la (position)
+  (declare (type fixnum position))
+  (setf *input-read-limit* (max *input-read-limit* (1+ position)))
+  (input-la position))
+(defmacro define-observable-prediction (name arguments &body body)
+  (let ((observed (intern (concatenate 'string "OBSERVED-" (symbol-name name))
+                          (symbol-package name))))
+    `(progn
+       (defun ,name ,arguments ,@body)
+       (defun ,observed ,arguments
+         ,@(sublis '((input-la . observed-input-la)
+                     (exec-atn . observed-exec-atn)
+                     (exec-atn-with-full-context . observed-exec-atn-with-full-context))
+                   body)))))
+(define-observable-prediction exec-atn-with-full-context (dfa start)
   (let ((previous start) (position *start-index*))
     (loop
       (let* ((token (input-la position))
@@ -369,7 +387,7 @@
   (etypecase context
     (prediction-context context)
     (list (context-from-stack context))))
-(defun exec-atn (dfa start)
+(define-observable-prediction exec-atn (dfa start)
   (let ((previous start) (position *start-index*))
     (loop
       (let* ((token (input-la position))
@@ -390,7 +408,7 @@
                       (dfa-state-prediction next))))
         (setf previous next)
         (unless (= token -1) (incf position))))))
-(defun adaptive-predict (simulator tokens decision &key (position 0) outer-context (precedence 0))
+(define-observable-prediction adaptive-predict (simulator tokens decision &key (position 0) outer-context (precedence 0))
   "ParserATNSimulator.adaptivePredict. TOKENS are positive types; EOF is -1.
 The input is immutable; cursor restoration is implicit. Alternatives are one-based.
 OUTER-CONTEXT is a nearest-first caller follow-state list or a prediction context."

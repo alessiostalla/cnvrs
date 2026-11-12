@@ -74,6 +74,7 @@
 
 (defun frozen-parser (parser)
   (list :source-rules (parser-source-rules parser)
+        :checkpoint-rules (parser-checkpoint-rules parser)
         :states (frozen-states (parser-states parser) t)
         :starts (frozen-table (parser-starts parser))
         :stops (frozen-table (parser-stops parser))
@@ -101,6 +102,7 @@
            :full-context-strategy full-context-strategy
            :cache-backend cache-backend :metadata metadata
            :source-rules (getf data :source-rules)
+           :checkpoint-rules (getf data :checkpoint-rules)
            :decisions (make-cache cache-backend)
            :runner runner :node-runner node-runner)))
     (initialize-token-index parser)
