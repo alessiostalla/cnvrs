@@ -3,6 +3,10 @@
 Measured 2026-11-12 against baseline
 `c7c100caa5f5a32ffba886e6661db4438ed1752b`.
 
+For a subsequent before/after rerun of Java 8 and both C11 inputs on native
+ARM64 SBCL 2.4.0, see the [native benchmark recheck](checkpoint-recheck.md).
+The measurements below retain their original x86-64 SBCL 2.0.2 environment.
+
 Incremental sessions retain completed prefix nodes and parser continuations at
 declared rule returns. Every edit reparses the suffix from the latest checkpoint
 whose consumed tokens and lookahead dependencies are unchanged. Source input is
