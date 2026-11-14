@@ -67,9 +67,64 @@
   (loop for tail on plist by #'cddr
         thereis (eq (first tail) key)))
 
+(defun token-category-members (category)
+  "Return a copy of CATEGORY's token symbols and whether CATEGORY is defined."
+  (values (copy-list (get category 'token-category-members))
+          (not (null (plist-key-p (symbol-plist category) 'token-category-members)))))
+
+(defun token-categories (token)
+  "Return a copy of the categories declared for the token symbol TOKEN."
+  (copy-list (get token 'token-categories)))
+
+(defun register-token-category (category tokens)
+  (unless (and (symbolp category) (listp tokens) (every #'symbolp tokens))
+    (grammar-fail "Expected a category symbol and a list of token symbols: ~S ~S"
+                  category tokens))
+  (let ((members (remove-duplicates tokens :test #'eq :from-end t)))
+    (dolist (token (get category 'token-category-members))
+      (setf (get token 'token-categories)
+            (remove category (get token 'token-categories) :test #'eq)))
+    (setf (get category 'token-category-members) (copy-list members))
+    (dolist (token members)
+      (pushnew category (get token 'token-categories) :test #'eq)))
+  category)
+
+(defmacro def-token-category (category &rest tokens)
+  "Define CATEGORY's literal token symbols at compile, load and evaluation time.
+Redefinition replaces membership. Existing compiled parsers retain their snapshot."
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (register-token-category ',category ',tokens)))
+
+(defun expand-token-categories (form)
+  "Resolve categories to literal alternatives before parser analysis and freezing."
+  (if (atom form) form
+      (case (first form)
+        (token-category
+         (unless (and (= (length form) 2) (symbolp (second form)))
+           (grammar-fail "TOKEN-CATEGORY requires one category symbol: ~S" form))
+         (multiple-value-bind (members defined-p) (token-category-members (second form))
+           (unless defined-p (grammar-fail "Undefined token category ~S" (second form)))
+           (unless members (grammar-fail "Empty token category ~S" (second form)))
+           (cons 'or (mapcar (lambda (token) (list 'token token)) members))))
+        (or
+         ;; Splice category alternatives so a surrounding token choice still
+         ;; reduces to one set, exactly as if its members were written inline.
+         (cons 'or
+               (loop for part in (rest form)
+                     for expanded = (expand-token-categories part)
+                     append (if (and (consp part) (eq (first part) 'token-category))
+                                (rest expanded) (list expanded)))))
+        ((and seq * + ? right source-order-precedence)
+         (cons (first form) (mapcar #'expand-token-categories (rest form))))
+        ((label alt-label)
+         (list* (first form) (second form)
+                (mapcar #'expand-token-categories (cddr form))))
+        ;; Literal token values, labels and callbacks are data, not expressions.
+        (otherwise form))))
+
 (defun grammar-operator-p (symbol)
   (member symbol '(and or * + seq ? *? +? ?? range unicode-property one-of not-one-of any
-                   label alt-label token not-token eof predicate action right
+                   label alt-label token token-category not-token eof predicate action right
                    source-order-precedence defparser defrule with-mode use)))
 
 (defun check-lexer-kind-overlap (rule-names lexer)
@@ -421,7 +476,10 @@ Caller-specific caches and custom full-context start hooks are unsupported."
     (unless (gethash default-rule names)
       (grammar-fail "Unknown default rule ~S" default-rule))
     (let ((left-rules nil))
-      (setf definitions (mapcar (lambda (rule) (subseq rule 0 2)) definitions))
+      (setf definitions (mapcar (lambda (rule)
+                                  (list (first rule)
+                                        (expand-token-categories (second rule))))
+                                definitions))
       (multiple-value-setq (definitions left-rules) (java-left-recursion definitions))
       (setf rewrites (make-hash-table :test 'eq))
       (setf definitions

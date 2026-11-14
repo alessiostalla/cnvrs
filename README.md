@@ -32,9 +32,27 @@ See [CNVRS and ANTLR 4/Java: current differences](docs/runtime-comparison.md) fo
 | `(cnvrs:alt-label name a)` | Set `node-label` on the enclosing rule node when this alternative matches |
 | `rule-name` | Reference to the exact rule symbol |
 | `(cnvrs:token value)` | Match a token with `equal` |
+| `(cnvrs:token-category name)` | Match any token kind declared in the category |
 | Character, string, number, or symbol from a token package | Literal token |
 
 Grammar operators are recognized by symbol identity. Use the exported `cnvrs:` operators or import them into the grammar's package. `cnvrs:and`, `cnvrs:or`, `cnvrs:*`, and `cnvrs:+` are the corresponding symbols inherited from `COMMON-LISP`. A same-named symbol in another package is a different symbol: `cnvrs:predicate`, `my-parser:predicate`, and `my-lexer:predicate` can each have a separate role. A CNVRS operator symbol cannot name a parser rule or lexer token kind; for example, `CL:AND` is `CNVRS:AND` and is rejected as a rule name. Bare parser references use exact defined rule symbols; symbols from the packages containing parser rules that are not defined signal an undefined-rule error. Use `(cnvrs:token symbol)` to match a token symbol from one of those packages explicitly.
+
+## Token categories
+
+Declare a category's token symbols before compiling a parser that uses it:
+
+```lisp
+(cnvrs:def-token-category soft-keyword :yield :await)
+
+(cnvrs:defparser *identifier-parser*
+  (identifier (or :identifier (cnvrs:token-category soft-keyword))))
+```
+
+The lexer can still emit distinct `:yield` and `:await` tokens. The identifier rule accepts either, while other rules can match their exact identities. No attached lexer is needed: the category symbol records its members on its plist under `cnvrs:token-category-members`. Token symbols record their categories under `cnvrs:token-categories`. The functions `(cnvrs:token-category-members 'soft-keyword)` and `(cnvrs:token-categories :yield)` return copies of these lists; the former also returns a second value indicating whether the category is defined. Use the declaration helper to keep both directions consistent.
+
+`def-token-category` takes literal symbols, removes duplicate members, and replaces any previous membership for that category. A token may belong to multiple categories. At top level the declaration executes during compilation, loading, and evaluation, so a preceding declaration in the same file is available to `defparser`. Declarations in other files must be available in the compilation environment before the parser is compiled.
+
+Category references expand into ordinary literal token alternatives before parser analysis; they use the same token-set matching and lookahead as explicitly listing those alternatives, with no runtime plist checks or semantic predicates. Compiled parsers and their FASLs retain the resolved members even if declarations subsequently change. Recompiling a parser resolves the current declarations again. Referencing an undefined or empty category signals `cnvrs:grammar-error`. Category names and token kinds use exact symbol identity.
 
 ## Defining grammars with macros
 

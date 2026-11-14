@@ -2,7 +2,8 @@
   (:use #:cl)
   (:shadow #:parse-error)
   (:export #:seq #:? #:*? #:+? #:?? #:range #:unicode-property #:one-of #:not-one-of #:any #:eof
-           #:label #:alt-label #:token #:not-token #:predicate #:action #:right
+           #:label #:alt-label #:token #:token-category #:not-token #:predicate #:action #:right
+           #:def-token-category #:token-category-members #:token-categories
            #:source-order-precedence
            #:and #:or #:* #:+
            #:compile-grammar #:compile-lexer #:parse #:lex
